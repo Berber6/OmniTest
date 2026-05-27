@@ -1,0 +1,14 @@
+- generic [ref=e4]:
+  - img "4ga Boards"
+  - heading "Log in" [level=1] [ref=e5]
+  - generic [ref=e7]:
+    - generic [ref=e8]: Email or username
+    - textbox [active] [ref=e9]
+    - generic [ref=e10]: Password
+    - generic [ref=e11]:
+      - textbox [ref=e12]
+      - button "Toggle password visibility" [ref=e13] [cursor=pointer]:
+        - img [ref=e14]
+    - button "Log in" [ref=e16] [cursor=pointer]:
+      - text: Log in
+      - img [ref=e17]

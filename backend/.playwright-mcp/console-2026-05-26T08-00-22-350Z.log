@@ -1,0 +1,77 @@
+[    6659ms] [ERROR] TypeError: Cannot read properties of null (reading 'id')
+    at Object.handleUserUpdate (https://demo.4gaboards.com/static/js/main.6fceab6a.js:1:437360)
+    at handleUserUpdate.next (<anonymous>)
+    at m (https://demo.4gaboards.com/static/js/942.ad9f7dc1.js:2:1671018)
+    at l (https://demo.4gaboards.com/static/js/942.ad9f7dc1.js:2:1671350)
+    at C.<computed> (https://demo.4gaboards.com/static/js/942.ad9f7dc1.js:2:1668093)
+    at https://demo.4gaboards.com/static/js/942.ad9f7dc1.js:2:1670630
+    at f (https://demo.4gaboards.com/static/js/942.ad9f7dc1.js:2:1671567)
+    at m (https://demo.4gaboards.com/static/js/942.ad9f7dc1.js:2:1671078)
+    at H (https://demo.4gaboards.com/static/js/942.ad9f7dc1.js:2:1670826)
+    at https://demo.4gaboards.com/static/js/942.ad9f7dc1.js:2:1667502 @ https://demo.4gaboards.com/static/js/main.6fceab6a.js:0
+[    6660ms] [ERROR] The above error occurred in task anonymous
+    created by takeEvery(@entry/USER_UPDATE_HANDLE, )
+    created by anonymous
+    created by MG
+    created by anonymous
+Tasks cancelled due to error:
+takeEvery(@entry/USER_UPDATE_HANDLE, )
+takeEvery(@entry/USER_CREATE, )
+takeEvery(@entry/USER_CREATE_HANDLE, )
+takeEvery(@entry/USER_CREATE_ERROR_CLEAR, )
+takeEvery(@entry/USER_UPDATE, )
+takeEvery(@entry/CURRENT_USER_UPDATE, )
+takeEvery(@entry/USER_EMAIL_UPDATE, )
+takeEvery(@entry/CURRENT_USER_EMAIL_UPDATE, )
+takeEvery(@entry/CURRENT_USER_EMAIL_VERIFICATION_RESEND, )
+takeEvery(@entry/USER_EMAIL_UPDATE_ERROR_CLEAR, )
+takeEvery(@entry/CURRENT_USER_EMAIL_UPDATE_ERROR_CLEAR, )
+takeEvery(@entry/USER_PASSWORD_UPDATE, )
+takeEvery(@entry/CURRENT_USER_PASSWORD_UPDATE, )
+takeEvery(@entry/USER_PASSWORD_UPDATE_ERROR_CLEAR, )
+takeEvery(@entry/CURRENT_USER_PASSWORD_UPDATE_ERROR_CLEAR, )
+takeEvery(@entry/USER_USERNAME_UPDATE, )
+takeEvery(@entry/CURRENT_USER_USERNAME_UPDATE, )
+takeEvery(@entry/USER_USERNAME_UPDATE_ERROR_CLEAR, )
+takeEvery(@entry/CURRENT_USER_USERNAME_UPDATE_ERROR_CLEAR, )
+takeEvery(@entry/CURRENT_USER_AVATAR_UPDATE, )
+takeEvery(@entry/CURRENT_USER_API_CLIENT_ERROR_CLEAR, )
+takeEvery(@entry/USER_DELETE, )
+takeEvery(@entry/USER_DELETE_HANDLE, )
+takeEvery(@entry/USER_TO_CARD_ADD, )
+takeEvery(@entry/USER_TO_CURRENT_CARD_ADD, )
+takeEvery(@entry/USER_TO_CARD_ADD_HANDLE, )
+takeEvery(@entry/USER_FROM_CARD_REMOVE, )
+takeEvery(@entry/USER_FROM_CURRENT_CARD_REMOVE, )
+takeEvery(@entry/USER_FROM_CARD_REMOVE_HANDLE, )
+takeEvery(@entry/USER_TO_TASK_ADD, )
+takeEvery(@entry/USER_TO_TASK_ADD_HANDLE, )
+takeEvery(@entry/USER_FROM_TASK_REMOVE, )
+takeEvery(@entry/USER_FROM_TASK_REMOVE_HANDLE, )
+takeEvery(@entry/USER_TO_FILTER_IN_CURRENT_BOARD_ADD, )
+takeEvery(@entry/USER_FROM_FILTER_IN_CURRENT_BOARD_REMOVE, )
+takeEvery(@entry/CURRENT_USER_FILTER_QUERY_UPDATE, )
+takeEvery(@entry/CURRENT_USER_NOTIFICATION_FILTER_QUERY_UPDATE, )
+MG
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+anonymous
+initializeCore @ https://demo.4gaboards.com/static/js/main.6fceab6a.js:0

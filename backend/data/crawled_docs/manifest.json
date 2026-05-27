@@ -1,0 +1,518 @@
+[
+  {
+    "url": "https://docs.4gaboards.com/docs/account",
+    "title": "Installation and creating an account | 4ga Boards Docs",
+    "content": "# Installation and creating an account\nIf you succesfully deployed 4ga Boards or your organization has already provided you with working one, it is time to create your account. To do this, simply go to the web adress of your 4ga Boards.\nTo try out 4ga Boards, you can go and register in the [demo instance](https://demo.4gaboards.com/). It's limitations are described here: [Try 4ga Boards](https://4gaboards.com/try).\n![Login screen](https://docs.4gaboards.com/assets/images/login_en-af5eb29e26706fed3a547d6671207548.png)\nIf you don't have an account yet, you can register by clicking \"Create an account\" button. Remember to choose a strong password and accept the \"Terms of service\" and Privacy Policy\".\n![Registration screen](https://docs.4gaboards.com/assets/images/register_en-772018e97b5a56127f1f2a9c6fbb0878.png)\nIf you/your organization have enabled SSO sign-in you can register with your SSO provider (4ga Boards supports Google, Microsoft, GitHub and generic OIDC).\nIf you cannot register with both methods, it means the administrator of your instance disabled the registration. Ask your administrator to add you manually.",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/login_en-af5eb29e26706fed3a547d6671207548.png",
+        "alt": "Login screen",
+        "local_path": "images/000_assets_images_login_en-af5eb29e26706fed3a547d6671207548_d53719.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/register_en-772018e97b5a56127f1f2a9c6fbb0878.png",
+        "alt": "Registration screen",
+        "local_path": "images/001_assets_images_register_en-772018e97b5a56127f1f2a9c6fbb0878_19d05b.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/admin-settings",
+    "title": "Administration and settings | 4ga Boards Docs",
+    "content": "# Administration and settings\nHere you will find explanation of all different features in the settings sections and administration panel.\n## Levels of management[​](https://docs.4gaboards.com/docs/admin-settings/#levels-of-management \"Direct link to Levels of management\")\nThere are three levels of management in the 4ga Boards structure: User/Member - the lowest level, they can only access those projects and boards they have been added to; Project Manager - can manage everything inside the project, including adding new members to it and creating new boards; Administrator - can access every settings in the instance and create new projects.\nEach tier is unlocking special settings panel.\n  * For each user: [Settings](https://docs.4gaboards.com/docs/settings) will show you your personal settings.\n  * For project managers: [Project settings](https://docs.4gaboards.com/docs/project-settings) will guide you through settings of projects inside your instance\n  * For administrators: [Instance settings](https://docs.4gaboards.com/docs/instance-settings) will explain the settings of the instance (e.g. demo.4gaboards.com)\n\n\n## Dashboard access to settings[​](https://docs.4gaboards.com/docs/admin-settings/#dashboard-access-to-settings \"Direct link to Dashboard access to settings\")\nIf you are an administrator and you are manager of the currently opened project, your top-right corner of the dashboard will look like this:\n![Dashboard view displaying settings option](https://docs.4gaboards.com/docs/admin-settings/)\nIf you click on your profile photo/name, you will open all the possible settings for your account:\n![Dashboard with profile settings expanded](https://docs.4gaboards.com/assets/images/settingsprofileclicked_en-5c128c37d429c6175deff17796b6034f.png)\nTo access the settings, click on the cog icon.\nTo access instance settings click on the users icon (to the right of the cog settings icon). It will not be visible if you don't have the administrator rights.\nTo quickly navigate the different settings, use the side panel - you can hide/show it using the bar&arrow icon next to 4ga Boards logo:\n![Toggle settings sidebar button](https://docs.4gaboards.com/assets/images/settingssidebar_en-f376fd9b7940079b428eecb36d4a8b55.png)",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/settingsprofileclicked_en-5c128c37d429c6175deff17796b6034f.png",
+        "alt": "Dashboard with profile settings expanded",
+        "local_path": "images/000_assets_images_settingsprofileclicked_en-5c128c37d429c6175def_8c3475.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/board",
+    "title": "Board | 4ga Boards Docs",
+    "content": "# Board\nThe heart of 4ga Boards is, unsuprisingly, a board. Board view is the main view of this app - you will spend here most of your time. Don't worry! It's easy to grasp. At first you will see that your project contains no boards - to create them, simply click the `+Add Board` button that is located at the bottom of the sidebar or at the top-right corner of the screen.\n![Empty board view](https://docs.4gaboards.com/assets/images/boardviewempty_en-07726b7b56ac4c5f3992de859abd8020.png)\nIf you are joining to an existing project, here is how it should look like:\n![Board view showing &quot;New website&quot; board](https://docs.4gaboards.com/assets/images/mainviewgettingstarted_en-e6ac5245c2d24b3adf601cd30bf695de.png)\nIf you have set the default view as list view, here is what you will see:\n![List view showing the &quot;New website&quot; board](https://docs.4gaboards.com/assets/images/listview_en-c26bbc2fc4100bada795e3162a7fd767.png)\nNotice that selected board is highlighted in the sidebar view (in this case, it is \"New Website\" from \"Marketing\" project).\n## Creating a new board[​](https://docs.4gaboards.com/docs/board/#creating-a-new-board \"Direct link to Creating a new board\")\nThere can be more than one board per project - simply click the `+Add Board` button that is located at the top-right corner of the screen to create new one inside the currently opened project. Alternatively you can add board using three-dot sidebar menu of a [project](https://docs.4gaboards.com/docs/project) (it will create the board inside the selected project). The last option is to click the `+Add Board` button at the bottom of the sidebar. This will enable additional setting - choosing the project in which the board will be created from the dropdown list.\n![Buttons placement for creating a new board](https://docs.4gaboards.com/assets/images/boardaddbutton_en-aac00e89337ce0287096168656a167a9.png)\nThis will open up a pop-up window in which you can name your board, prefill the lists in the board with templates or import your data from 4ga Boards (in .csv file format) or from Trello (supporting .json file format).\n![Board creation popup window](https://docs.4gaboards.com/assets/images/boardcreate_en-dec32a5ab0362b083076298ee8be6f57.png)\nCurrently there are two available templates, simple:\n![Simple board template](https://docs.4gaboards.com/assets/images/boardsimple_en-0f292f3e2a9e4a289b9f9812a6ed05e3.png)\nAnd kanban:\n![Kanban board template](https://docs.4gaboards.com/assets/images/boardkanban_en-0d8d53e96c30dd857eccd63f138e8d29.png)\n## Board additional options[​](https://docs.4gaboards.com/docs/board/#board-additional-options \"Direct link to Board additional options\")\nIf you want to edit or delete your board, open the ellipsis menu in the sidebar (they will show after you hover over the board name). You can also change the order of the board within the project after clicking and holding the two arrows button that will appear on the left of the board name. If you wish, you can also export your board in .csv format here.\n![Popup menu with board settings](https://docs.4gaboards.com/assets/images/boardmenu_en-504faa17880e8a0cf3c6465fc648b2f8.png)\n## Board toolbar[​](https://docs.4gaboards.com/docs/board/#board-toolbar \"Direct link to Board toolbar\")\nEach board comes with separate toolbar, in which (going from left to right) you can:\n  1. Set up GitHub integration (click GitHub icon),\n  2. See the number of cards after filtering,\n  3. Add members to the board `+Add member` icon, delete or edit permissions of members (click on the appriopriate member icon to change it),\n  4. Filter cards (more below the image),\n  5. Change view (Board view/List view)\n\n\n![Board toolbar](https://docs.4gaboards.com/assets/images/boardtoolbar_en-2eb3876798033c97133ed1b2a1a0795c.png)\n## Board Filtering[​](https://docs.4gaboards.com/docs/board/#board-filtering \"Direct link to Board Filtering\")\nBoard filtering is a powerful tool that let's you quickly find what you are looking for. For even quicker navigation, you can select appriopriate option (explained below) by clicking or using key combination when you are clicked in the `Filter cards` type box.\nYou can filter board using different techniques:\n  1. `Aa`: Match Case (`Alt` + `C`): will filter based on letter case (Example: typing \"create\" will not return cards with the title \"Create\")\n  2. `~`: Any Match (`Alt` + `V`): \"inclusive search\"; Enable this option to show cards that match any of your selected filters.  \n(Example: If you select multiple members, the search will return every card that has at least one of the selected members assigned. If `Any Match` is off, only cards that have all selected members assigned will appear.)\n  3. Filter by members: Select/Remove members you want to filter.\n  4. Filter by labels: Select/Remove labels you want to filter.\n  5. Filter by due date: Select the due date to filter: search will return all the cards that are _before_ selected due date; if `Show Cards Just For Selected Day` option is enabled, it will show cards with only the _exact_ due date. This search returns also the cards with appriopriate subtask due date.\n\n\n## Board permissions[​](https://docs.4gaboards.com/docs/board/#board-permissions \"Direct link to Board permissions\")\nEach member of the board can have different permission:\n  * Project manager: manage boards and add members,\n  * Editor: can create and delete tasks and lists,\n  * Commenter: can view contents of the board and comment on the cards,\n  * Viewer: can only view contents of the board.",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/boardviewempty_en-07726b7b56ac4c5f3992de859abd8020.png",
+        "alt": "Empty board view",
+        "local_path": "images/000_assets_images_boardviewempty_en-07726b7b56ac4c5f3992de859abd_639507.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/mainviewgettingstarted_en-e6ac5245c2d24b3adf601cd30bf695de.png",
+        "alt": "Board view showing &quot;New website&quot; board",
+        "local_path": "images/001_assets_images_mainviewgettingstarted_en-e6ac5245c2d24b3adf60_02fe42.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/listview_en-c26bbc2fc4100bada795e3162a7fd767.png",
+        "alt": "List view showing the &quot;New website&quot; board",
+        "local_path": "images/002_assets_images_listview_en-c26bbc2fc4100bada795e3162a7fd767_d43ec3.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/boardcreate_en-dec32a5ab0362b083076298ee8be6f57.png",
+        "alt": "Board creation popup window",
+        "local_path": "images/003_assets_images_boardcreate_en-dec32a5ab0362b083076298ee8be6f5_9fa8ce.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/boardsimple_en-0f292f3e2a9e4a289b9f9812a6ed05e3.png",
+        "alt": "Simple board template",
+        "local_path": "images/004_assets_images_boardsimple_en-0f292f3e2a9e4a289b9f9812a6ed05e_14ff94.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/boardkanban_en-0d8d53e96c30dd857eccd63f138e8d29.png",
+        "alt": "Kanban board template",
+        "local_path": "images/005_assets_images_boardkanban_en-0d8d53e96c30dd857eccd63f138e8d2_fd1577.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/boardmenu_en-504faa17880e8a0cf3c6465fc648b2f8.png",
+        "alt": "Popup menu with board settings",
+        "local_path": "images/006_assets_images_boardmenu_en-504faa17880e8a0cf3c6465fc648b2f8_12ff89.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/boardtoolbar_en-2eb3876798033c97133ed1b2a1a0795c.png",
+        "alt": "Board toolbar",
+        "local_path": "images/007_assets_images_boardtoolbar_en-2eb3876798033c97133ed1b2a1a079_5720d8.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/board-view",
+    "title": "Board View | 4ga Boards Docs",
+    "content": "# Board View\nA classic Kanban board view, with [lists](https://docs.4gaboards.com/docs/list) and [cards](https://docs.4gaboards.com/docs/card).\n![Main view showing the getting started board](https://docs.4gaboards.com/assets/images/mainviewgettingstarted_en-e6ac5245c2d24b3adf601cd30bf695de.png)",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/mainviewgettingstarted_en-e6ac5245c2d24b3adf601cd30bf695de.png",
+        "alt": "Main view showing the getting started board",
+        "local_path": "images/000_assets_images_mainviewgettingstarted_en-e6ac5245c2d24b3adf60_02fe42.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/card",
+    "title": "Card | 4ga Boards Docs",
+    "content": "# Card\nThis section shows all of the possible actions that can be performed with a card, including labelling, notifications and extensive tutorial on description text editor.\nCard represents individual task, e.g. \"Go buy groceries\" or \"Fix the wrong button placement\".\n## Creating, moving and deleting cards[​](https://docs.4gaboards.com/docs/card/#creating-moving-and-deleting-cards \"Direct link to Creating, moving and deleting cards\")\nTo create a card you have two options:\n  1. Click on the `+ Add Card` button at the bottom of an existing list or `+` button at the bottom of an existing hidden list.\n  2. Click the `ellipsis` icon at the top-right of the list and select `Add Card`. It will create card at the bottom of the list.\n\n\n![List menu with add card button](https://docs.4gaboards.com/assets/images/listmenu_en-b9ba08ddfb792b3f6c162cb1792b5d9e.png)\n  1. While in list view, click on the `+ Add Card` button at the bottom navigation pane.\n\n\n![List view bottom menu](https://docs.4gaboards.com/docs/card/)\nAfter you write the title of the card, press `Enter` or `Add card` button to create it; alternatively, you can press `Ctrl` + `Enter` or `Ctrl` +`+Add Card` combination to create the card and immidiately open it. Pressing `Shift` + `Enter` or `Shift` +`+Add Card` will let you create multiple cards at once. To abort creating a new card, press `Cancel` or click in an empty spot on the board (this option will not work if you have filled the title; in that case, click the `Cancel` button).\nThe easiest way to move cards across the board is to drag and drop it in the desired place - just click and hold it! You can put card in both open and hidden lists. When dropping to the hidden list, it will be placed at the bottom of this list. To be sure which hidden list are you putting your card into, look if the title is pushed lower. In the example below, the card will be stored in \"To test\" list.\n![Demonstration of drap and dropping a card to another list](https://docs.4gaboards.com/assets/images/carddrop_en-8ebb388397211a4f8f85282112a254ac.png)\nThere are two other ways to move a card: with card menu (see below) and in the card view, right below the title (see Card options). You can also move card between lists in the list view by changing the \"List\" column.\n![List changing in list menu](https://docs.4gaboards.com/assets/images/listinlistview_en-94a566d74897e8df73900b495a857104.png)\nTo delete the card, you have to move your mouse above the card you want to delete. After that, a `ellipsis` icon will appear. Click on it to open a card menu and select `Delete Card`.\n## Card menu[​](https://docs.4gaboards.com/docs/card/#card-menu \"Direct link to Card menu\")\n![Card context menu with card edit options](https://docs.4gaboards.com/assets/images/cardmenu_en-65bb66d60f8753e812c5c8492b09a56a.png)\nAfter clicking the ellipsis menu in the card you will open a card menu. Here you can:\n  1. Edit the name of the card\n  2. Assing members to the card (see Card Options below)\n  3. Add/remove labels to the card (see Card Options below)\n  4. Edit due date of the card (see Card Options below)\n  5. Edit timer of the card (see Card Options below)\n  6. Move card to another project/board/list (note that this is the only way to move the card to another project or board, as drag & dropping the card works only on the lists in a current board)\n  7. Duplicate card, which will create exact same copy of the card directly below it in the list\n  8. Copy a link to a card which you can then share with your team\n  9. Check activity on the card (creation, last edit time)\n  10. Delete card\n\n\n## Card View overview[​](https://docs.4gaboards.com/docs/card/#card-view-overview \"Direct link to Card View overview\")\nWhen you click on the card, the card view will show up at the right side of your screen. Why not on the centre? The unique feature of 4ga Boards is that you can manipulate the lists and boards while the card view is open.\n![Open card view with full board view](https://docs.4gaboards.com/assets/images/cardopenboardview_en-fa73e5a674a61bf854347d60440104c2.png)\nIt is quite convenient if you want to rearrange your cards while still writing the description, or to simply appraise you beautiful card cover picture. Isn't it beautiful?\n![Open card view with full board view and card logo attached](https://docs.4gaboards.com/assets/images/cardopenboardviewlogo_en-2e0108b4a66ec2c96c2861e2724b10e1.png)\nAlso, notice that cards have different appearance that is changing with the amount of options and details set.\nIn the list view, the card is also opening at the right side, squeezing the table to fit the screen (no worries, it will be back at normal size once you close the card).\n![List view with card opened](https://docs.4gaboards.com/assets/images/listviewcard_en-2ed7ae71913c246c5a149c833aa06550.png)\n## Card options[​](https://docs.4gaboards.com/docs/card/#card-options \"Direct link to Card options\")\nThe card view is the best way to change all the informations, options and details about your card. If the view gets cluttered, you can hide certain elements (description, tasks, attachments, comments) by clicking on the `-` icon next to them. Click the `+` icon to show them again. This section will explain all of them from the top to the bottom.\n![Open card view](https://docs.4gaboards.com/assets/images/cardviewmain_en-3353501371dd15c371870e822e2b0b57.png)\n  1. Notifications (`Bell` icon): Here you can subscribe or unsubscribe from the notifications on this card. While subscribed you will receive a notification (`bell` icon at the dashboard in the top-right corner) whenever someone adds comment to the card.\n  2. Title: you can click on it to change the cards title (`ENTER` to accept)\n  3. Card view icons on the top-right corner: click the `bin` icon to delete card (it will open pop-up to confirm deleting), three dots icon will open the card menu explained before, the `X` button will close the card view.\n  4. List selection: Below the title of the card, it shows in which list the card is situated. Clicking on it will open dropdown list. Here you can select in which list the card should be moved (it will appear at the top of the list).\n  5. Members: Click on the plus icon to toggle assigning members to the card. Tick symbol indicates whether the member is assinged or not.\n\n\n![Card members option](https://docs.4gaboards.com/assets/images/cardmembers_en-33131266549af6e09bce8480b2788f4b.png)\nNote that only members that are added to the current board can be assigned to the card. If you don't see a member that should be available here and you are a project manager, add the member in [board options](https://docs.4gaboards.com/docs/board). 6. Labels: Click on the plus icon to add labels to your card. Tick symbol indicates whether or not the label is used. You can also manage your labels here: create new labels (click on `Create new label`) or editing existing ones (click on the `pencil` icon).\n![Card labels](https://docs.4gaboards.com/assets/images/cardlabels_en-1d9effea891ad6a592a5d9490c30da16.png) ![Card labels edit](https://docs.4gaboards.com/assets/images/cardlabelsedit_en-f7dc7db476b5cf2986fd76db3d2f1cde.png)\n  1. Due date: Here you can add (click on `+` icon)/edit (`pencil` icon) the due date for the card. If the due date is furhter than two weeks, it will appear grey; if it is in the range of two weeks - yellow; if overdue - red.\n\n\n![Card due date](https://docs.4gaboards.com/assets/images/cardduedate_en-87a16b61c10edada050dd24aadb64fbd.png)\n  1. Timer: Using timer you can track the time it takes you to complete the task. Click on the timer to start/pause it, and click `pencil` button to edit the time manually or reset timer. When the timer runs it appears green.\n  2. Earliest due date, from both main due date and all the subtasks due dates.\n  3. Activity log (Created/Last updated time). Only visible if not disabled in the personal preferences.\n  4. Description: Write the description for your card (to save click `Save` button or press `Ctrl` + `Enter`). See \"Text editor\" section below for a detailed guide.\n  5. Tasks: In this section you can add/edit tasks in your card or mark them complete. A small line indicates the portion of tasks completed, ranging from red to green. It remains empty if there are no finished tasks or when there are no tasks added.\n     * To add tasks, click the `+` icon or `Add Task` button.\n     * To toggle the task complete, click the square next to the task description.\n     * To rename the task, click on the task description; upon finishing press `Enter` or click `Save`.\n     * To delete task, hover over it until `ellipsis` icon appears; click it and select `delete task`.\n     * You can toogle tasks visibility on the board: to do this, click on the `triangle` icon near the cards taskbar visible on the list.\n     * Tasks can be assigned with a member or a due date: to do this click on the `ellipsis` icon and choose appriopriate option (\"Edit Due Date\" or \"Edit Members\"). This informations will be displayed at the right side of the appriopriate task. This can be done in both card view and directly on the board view (when tasks are expanded).\n     * Tasks activity log can be checked with `Check activity` fter clicking `ellipsis` icon.\n     * From the `ellipsis` menu, choose \"Duplicate Task\" to create duplicate.\n\n\n![Card tasks options](https://docs.4gaboards.com/assets/images/cardtasksviewed_en-db9122228c46dd5bff94373953730fbe.png)\n  1. Attachments: Here you can add attachments to your card by either `Ctrl` + `V`, dropping them on the card or clicking on `Add attachment` field and selecting from the disc. If the attachment is an image, you can use it as a cover that will appear in the list view. To do this, click on `Make cover` button near the desired image. To remove cover, use `Remove cover` button. To remove the attachment completely, hover over it, click on the `pencil` icon and select `Delete attachment`.\n\n\n![Card attachments and cover](https://docs.4gaboards.com/assets/images/cardcover_en-6634036fbf191e8848e0cd6e33040c15.png)\n  1. Comments: here you can add (start writing in the box and press `Ctrl` + `Enter` or `Add comment` button), edit (`pencil` icon) or delete (`bin` icon) coments to the card, using the same text editor as in the description field.\n\n\n![Card comments](https://docs.4gaboards.com/assets/images/cardcomment_en-591275a3a9c6757f87c73f8ccd41ff3a.png)\nYou can also check activity by clicking the `waveform` symbol.\n## Text editor[​](https://docs.4gaboards.com/docs/card/#text-editor \"Direct link to Text editor\")\nIn 4ga Boards we are using very powerful markdown editor with unique features (marked by bold text). In the bottom-right corner of text editor box there are three small dots: drag them with a mouse to make the box bigger/smaller. The working view should look like this (notice the yellow text local changes - it shows that the text is still in edit mode and the changes are not yet registered on the server):\n![Text editor showcase](https://docs.4gaboards.com/assets/images/texteditor_en-4504d93f75978eb288f302203bb3e93d.png)\nAs the text editor is a markdown editor, it follows typical syntax to other editors like this. More detailed information on any of the options of the markdown editor can be found here: \n  * Editor options are as follows (from left to right; you can click them or use button combination):\n  * Bold text (CTRL + b)\n  * Italic text (CTRL + i)\n  * Strikethorugh text (CTRL + SHIFT + x)\n  * Insert HR/horizontal bar (CTRL + h)\n  * Insert title (CTRL + number from 1 to 6, depending on the size); alternatively you can use hashtags.\n  * Add link (CTRL + l)\n  * Insert a quote (CTRL + q)\n  * Insert code (CTRL + j)\n  * Insert codeblocks (CTRL + SHIFT + j). After creating default codeblock, you can add **custom tags** :\n    * The first tag just after opening symbol (`````) is a language shortcut, e.g. ````js` will highlight javascript syntax.\n    * The second tag is for showing line numbers ````js showLineNumbers`\n    * The third that indicates which lines should be highlighted ````js showLineNumbers {1, 3-4}` - in this example the lines 1, 3 and 4 highlighted.\n  * Insert comment (CTRL + /)\n  * Add image (CTRL + k)\n  * Add table\n  * Add unordered list (CTRL + SHIFT + u)\n  * Add ordered list (CTRL + SHIFT + o)\n  * Add checked list (CTRL + SHIFT + c)\n  * Open help (opens the \n  * **Add issue link - with this feature you create a link from card to GitHub issue or pull request. Some ways to do it:**\n    * click the add issue button and type issue or PR number or write: #(number of the issue), e.g. `#1`.\n    * instead of hashtag you can use: GH-(number), e.g. `GH-1`\n    * to link issue or PR in fork use: (fork name)#(issue number), e.g. `samplefork#1`\n    * to link issue or PR in specific repository use:(username or organization name)/(repository name)#(issue number), e.g. `RARgames/4gaboards#1`\n  * **Add colored text**\n    * use button to select desired color or type in color name like in the example: `<!--black-->This text wil be black<!--black-end-->`\n    * available colors: black, grey, white, brown, red, purple, pink, green, lime, yellow, blue, cyan, orange.\n\n\nView options:\n  * Edit code (ctrl + 7) - shows only the edited text with markdown symbols\n  * Live code (ctrl + 8) - shows both markdown symbols (on left) and live preview of the text (on the right)\n  * Preview code (ctrl + 9) - shows just the text preview\n  * Toggle fullscreen (ctrl + 0)\n\n\nSome functions that don't have special buttons:\n  * **Add commit link** - type:\n    * to link commit use (commit hash), e.g. `1d7e95e8d496564ac5f69a06db60df79a6a585c4`\n    * to link commit in fork use (fork name)@(commit hash), e.g. `samplefork@1d7e95e8d496564ac5f69a06db60df79a6a585c4`\n    * to link commit in repository use (username)/(repository name)@(commit hash), e.g. `RARgames/4gaBoards@1d7e95e8d496564ac5f69a06db60df79a6a585c4`\n  * **Add mention** - type:\n    * to mention user use @(username), e.g. `@RARgames`\n\n\nAlternatively you can paste links to link commit, commit comment, issue or PR, issue or PR comment, user.\nSpecial power: if you have read so far, you can use special ability: add invisible comment with: `<!-- This comment will be invisible so I can say whatever I want -->`",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/carddrop_en-8ebb388397211a4f8f85282112a254ac.png",
+        "alt": "Demonstration of drap and dropping a card to another list",
+        "local_path": "images/000_assets_images_carddrop_en-8ebb388397211a4f8f85282112a254ac_bb36fd.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/listinlistview_en-94a566d74897e8df73900b495a857104.png",
+        "alt": "List changing in list menu",
+        "local_path": "images/001_assets_images_listinlistview_en-94a566d74897e8df73900b495a85_c34c52.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/cardmenu_en-65bb66d60f8753e812c5c8492b09a56a.png",
+        "alt": "Card context menu with card edit options",
+        "local_path": "images/002_assets_images_cardmenu_en-65bb66d60f8753e812c5c8492b09a56a_4f69b6.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/cardopenboardview_en-fa73e5a674a61bf854347d60440104c2.png",
+        "alt": "Open card view with full board view",
+        "local_path": "images/003_assets_images_cardopenboardview_en-fa73e5a674a61bf854347d604_8757d2.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/listviewcard_en-2ed7ae71913c246c5a149c833aa06550.png",
+        "alt": "List view with card opened",
+        "local_path": "images/004_assets_images_listviewcard_en-2ed7ae71913c246c5a149c833aa065_bbcf61.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/cardviewmain_en-3353501371dd15c371870e822e2b0b57.png",
+        "alt": "Open card view",
+        "local_path": "images/005_assets_images_cardviewmain_en-3353501371dd15c371870e822e2b0b_2e2444.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/cardmembers_en-33131266549af6e09bce8480b2788f4b.png",
+        "alt": "Card members option",
+        "local_path": "images/006_assets_images_cardmembers_en-33131266549af6e09bce8480b2788f4_f1cd75.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/cardlabels_en-1d9effea891ad6a592a5d9490c30da16.png",
+        "alt": "Card labels",
+        "local_path": "images/007_assets_images_cardlabels_en-1d9effea891ad6a592a5d9490c30da16_fec6c6.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/cardlabelsedit_en-f7dc7db476b5cf2986fd76db3d2f1cde.png",
+        "alt": "Card labels edit",
+        "local_path": "images/008_assets_images_cardlabelsedit_en-f7dc7db476b5cf2986fd76db3d2f_4791a3.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/cardduedate_en-87a16b61c10edada050dd24aadb64fbd.png",
+        "alt": "Card due date",
+        "local_path": "images/009_assets_images_cardduedate_en-87a16b61c10edada050dd24aadb64fb_963cca.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/cardtasksviewed_en-db9122228c46dd5bff94373953730fbe.png",
+        "alt": "Card tasks options",
+        "local_path": "images/010_assets_images_cardtasksviewed_en-db9122228c46dd5bff943739537_8e83ae.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/cardcover_en-6634036fbf191e8848e0cd6e33040c15.png",
+        "alt": "Card attachments and cover",
+        "local_path": "images/011_assets_images_cardcover_en-6634036fbf191e8848e0cd6e33040c15_9df6c4.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/cardcomment_en-591275a3a9c6757f87c73f8ccd41ff3a.png",
+        "alt": "Card comments",
+        "local_path": "images/012_assets_images_cardcomment_en-591275a3a9c6757f87c73f8ccd41ff3_38e93e.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/texteditor_en-4504d93f75978eb288f302203bb3e93d.png",
+        "alt": "Text editor showcase",
+        "local_path": "images/013_assets_images_texteditor_en-4504d93f75978eb288f302203bb3e93d_572f65.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/dev/api",
+    "title": "API | 4ga Boards Docs",
+    "content": "# API\n### Description[​](https://docs.4gaboards.com/docs/dev/api/#description \"Direct link to Description\")\nAPI can be used to automate tasks in 4ga Boards either by developers through external calls/scripts or to allow 4ga Boards built-in functionality such as creating cards using email.\n### API Clients[​](https://docs.4gaboards.com/docs/dev/api/#api-clients \"Direct link to API Clients\")\n#### Internal[​](https://docs.4gaboards.com/docs/dev/api/#internal \"Direct link to Internal\")\nInternal API clients are generated (if needed) on app startup and exchanged with 4ga Boards Notifications server to allow creating cards using email.  \nFor email-to-card functionality mailToken creator is used as a card creator.\n#### External[​](https://docs.4gaboards.com/docs/dev/api/#external \"Direct link to External\")\nAny user can generate API client to authenticate on it's behalf.  \nPermissions are separated into groups: all `*`, all for group api e.g. attachments `attachments.*` or separate permissions e.g. `attachments.create`.\n### API Usage Examples[​](https://docs.4gaboards.com/docs/dev/api/#api-usage-examples \"Direct link to API Usage Examples\")\nCreating a card named `Card Name`:\n\n```\n\n\ncurl -X POST \"http://localhost:1337/api/lists/<listId>/cards\" \\  \n\n\n-H \"Content-Type: application/json\" \\  \n\n\n-H \"X-Client-Id: notclientid\" \\  \n\n\n-H \"X-Client-Secret: notclientsecret\" \\  \n\n\n-d '{  \n\n\n  \"name\": \"Card Name\"  \n\n\n}'  \n\n\n```\n\nReplace `http://localhost:1337` with you instance server URL.  \nReplace `notclientid` and `notclientsecret` with data generated in `Authentication Settings`.  \nYou need approperiate permissions - in this case `cards.create`.  \nYou need to fetch listId using another API call, or just for testing using browser inspect.\nAdditional Links:",
+    "metadata": {
+      "depth": 1
+    },
+    "images": []
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/dev/sso",
+    "title": "SSO (Single sign-on) | 4ga Boards Docs",
+    "content": "# SSO (Single sign-on)\n### Google SSO[​](https://docs.4gaboards.com/docs/dev/sso/#google-sso \"Direct link to Google SSO\")\nCreate a project on   \nCreate OAuth 2.0 Client ID and Client Secret.  \nConfigure 4ga Boards instance variables in the appropriate config file _(check your install method docs for details)_ - set Client ID and Client Secret to `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to the values from the Google Cloud Console.\n\n```\n\n\nGOOGLE_CLIENT_ID: googleClientId  \n\n\nGOOGLE_CLIENT_SECRET: googleClientSecret  \n\n\n```\n\n### GitHub SSO[​](https://docs.4gaboards.com/docs/dev/sso/#github-sso \"Direct link to GitHub SSO\")\nCreate an app on GitHub:   \nCreate OAuth 2.0 Client ID and Client Secret.  \nConfigure 4ga Boards instance variables in the appropriate config file _(check your install method docs for details)_ - set Client ID and Client Secret to `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` to the values from the GitHub App.\n\n```\n\n\nGITHUB_CLIENT_ID: githubClientId  \n\n\nGITHUB_CLIENT_SECRET: githubClientSecret  \n\n\n```\n\n### Microsoft SSO[​](https://docs.4gaboards.com/docs/dev/sso/#microsoft-sso \"Direct link to Microsoft SSO\")\nCreate an app on   \nCreate OIDC Client ID and Client Secret.  \nConfigure 4ga Boards instance variables in the appropriate config file _(check your install method docs for details)_ - set Client ID and Client Secret to `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET` to the values from the Entra App.\n\n```\n\n\nMICROSOFT_CLIENT_ID: microsoftClientId  \n\n\nMICROSOFT_CLIENT_SECRET: microsoftClientSecret  \n\n\n```\n\n### OIDC SSO[​](https://docs.4gaboards.com/docs/dev/sso/#oidc-sso \"Direct link to OIDC SSO\")\nCreate an app on OIDC provider website.  \nCreate OIDC Client ID and Client Secret.  \nConfigure 4ga Boards instance variables in the appropriate config file _(check your install method docs for details)_ - set Client ID and Client Secret to `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` to the values from the app.\n\n```\n\n\nOIDC_CLIENT_ID: oidcClientId  \n\n\nOIDC_CLIENT_SECRET: oidcClientSecret  \n\n\nOIDC_ISSUER_URL: https://oidcIssuer.com  \n\n\nOIDC_STATE_SECRET: stateSecret  \n\n\n```\n\n`REDIRECT_URL` that you should use to get back to 4ga Boards instance after authentication by OIDC provider is e.g. `https://instance.domain.com/auth/oidc/callback\"`",
+    "metadata": {
+      "depth": 1
+    },
+    "images": []
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/import-export",
+    "title": "Import/Export | 4ga Boards Docs",
+    "content": "# Import/Export\n## Import from Trello[​](https://docs.4gaboards.com/docs/import-export/#import-from-trello \"Direct link to Import from Trello\")\nAre you migrating from other software?  \nCurrently 4ga Boards is supporting migration from Trello. To do this, export your Trello board in .json format (the only one included in the free version of Trello) and do the following:\n  1. Create new board and select \"Import\":\n\n\n![Board creation popup window](https://docs.4gaboards.com/assets/images/boardcreate_en-dec32a5ab0362b083076298ee8be6f57.png)\n  1. Select appriopriate option for import:\n\n\n![Board import popup window](https://docs.4gaboards.com/docs/import-export/)\n  1. In the file manager select the appriopriate `.json` file, name your new board and choose in which project it should be created. Think of the project for now as kind of Trello's workspaces - a container that holds boards. More on project [here](https://docs.4gaboards.com/docs/project).\n\n\n![Trello import options](https://docs.4gaboards.com/assets/images/importboardtrello_en-0c8c5b7334066e7008903d1f8c567cea.png)\nAnd done! Now you have a fully functioning board - also with labels!\n## Import from 4ga Boards[​](https://docs.4gaboards.com/docs/import-export/#import-from-4ga-boards \"Direct link to Import from 4ga Boards\")\nChanging instances or copying board from another user?  \nWith the 4ga Boards import you can quickly setup your workspace. Be sure you have an appriopriate 4ga Boards export file (it should have a `.tgz` format) and do the following:\n  1. Create new board and select \"Import\":\n\n\n![Board creation popup window](https://docs.4gaboards.com/assets/images/boardcreate_en-dec32a5ab0362b083076298ee8be6f57.png)\n  1. Select appriopriate option for import:\n\n\n![Board import popup window](https://docs.4gaboards.com/docs/import-export/)\n  1. In the file manager select the appriopriate .tgz file, name your new board and choose in which project it should be created. Here you can also check two options regarding users:\n     * `Add project managers`: New managers will be added to the project if they had the same role in the exported board.\n     * `Create accounts for non-existing users`: New accounts will be created for users that does not exist in the current 4ga Boards instance, but were members of the board in the exported board.\n\n\n![4ga Boards import options](https://docs.4gaboards.com/assets/images/importboard4ga_en-42f739f0c2b1e8364f975e133ea3f0c5.png)\n## Export[​](https://docs.4gaboards.com/docs/import-export/#export \"Direct link to Export\")\nExporting in 4ga Boards is quick and easy. Simply open the context menu of the board you wish to export and select the `Export Board` option. Save the resulting `.tgz` file to your preferred location.\n![Board context menu](https://docs.4gaboards.com/assets/images/boardmenu_en-504faa17880e8a0cf3c6465fc648b2f8.png)",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/boardcreate_en-dec32a5ab0362b083076298ee8be6f57.png",
+        "alt": "Board creation popup window",
+        "local_path": "images/000_assets_images_boardcreate_en-dec32a5ab0362b083076298ee8be6f5_9fa8ce.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/importboardtrello_en-0c8c5b7334066e7008903d1f8c567cea.png",
+        "alt": "Trello import options",
+        "local_path": "images/001_assets_images_importboardtrello_en-0c8c5b7334066e7008903d1f8_5c4c0a.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/boardcreate_en-dec32a5ab0362b083076298ee8be6f57.png",
+        "alt": "Board creation popup window",
+        "local_path": "images/002_assets_images_boardcreate_en-dec32a5ab0362b083076298ee8be6f5_9fa8ce.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/importboard4ga_en-42f739f0c2b1e8364f975e133ea3f0c5.png",
+        "alt": "4ga Boards import options",
+        "local_path": "images/003_assets_images_importboard4ga_en-42f739f0c2b1e8364f975e133ea3_24bbb7.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/boardmenu_en-504faa17880e8a0cf3c6465fc648b2f8.png",
+        "alt": "Board context menu",
+        "local_path": "images/004_assets_images_boardmenu_en-504faa17880e8a0cf3c6465fc648b2f8_12ff89.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/instance-settings",
+    "title": "Instance settings | 4ga Boards Docs",
+    "content": "# Instance settings\nAs an administrator, you have control over instance possible login methods and users. To access it, click \"Users\" icon on the dashboard, or click one of the relevant options from the settings sidebar.\n![settingsdashboard_en.png](https://docs.4gaboards.com/docs/instance-settings/)\n## Users[​](https://docs.4gaboards.com/docs/instance-settings/#users \"Direct link to Users\")\nIn the table you can see most important information about each user: name, username, e-mail and last login time. Here you can also grant users administrator rights by toggling the switch blue.\nYou can manually add new users with the \"add user\" button here. If you have disabled user registration, new users cannot log into the instance if you didn't add them. To add new user you have to provide an e-mail, password, name and (optional) username.\nAs an administrator, you have control over users information. When you click on the pencil icon, you can access the all of the personal [settings](https://docs.4gaboards.com/docs/settings) of each individual user. You can change them all without knowing their current password. Pretty handy! You can also check account activity — including when the user account was created and when the user’s information was last updated (for example, after a password change). You can also view the user’s activity log, which lists all actions performed across projects and boards.\n![instanceusers_en.png](https://docs.4gaboards.com/assets/images/instanceusers_en-f3c4aa19bc6365ba5be908635d247945.png)\nThis is the default column selection. Similar to the list view, you can show or hide additional columns with extra information (see pictures below). You can also adjust the table to fit the content or screen, and change the width of columns using the `|` separator.\n![instanceusers_en.png](https://docs.4gaboards.com/assets/images/userscolumns_en-d182d0bdd345c3f5e5bf2be50948c8ce.png)\nHere is the picture of all columns selected:\n![instanceusers_en.png](https://docs.4gaboards.com/assets/images/usersfull_en-42bf351631bc1dffc4929420ec52b41f.png)\n## Instance options[​](https://docs.4gaboards.com/docs/instance-settings/#instance-options \"Direct link to Instance options\")\n  * Users registration: turn off if you want to retain full control over new users (they will have to be added manually).\n  * Local User registration: Turn on if you want new users to be able to register using e-mail and password.\n  * SSO User Registration: Turn on if you want to enable registration with SSO.\n  * Project Creation For All Users: Enable or disable project creation for all users. If you disable project creation for all users, only admins will be able to create new projects. Select this options if you want all your users to be able to create personal projects.\n  * Sync SSO Data on Authentication: Enable or disable synchronization of user data from the SSO provider during authentication.\n  * Sync SSO Admin on Authentication: Enable or disable synchronization of admin from the SSO provider during authentication. Enabling this option can automatically grant or revoke admin rights based on the SSO data.\n  * Allowed Registration Domains: Semicolon separated list of allowed email domains for user registration. Leave empty to allow any domain.\n\n\n![instance-settings.jpg](https://docs.4gaboards.com/assets/images/instancesettings_en-5e06fc0be3956807f89207ae8447dbd9.png)",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/instanceusers_en-f3c4aa19bc6365ba5be908635d247945.png",
+        "alt": "instanceusers_en.png",
+        "local_path": "images/000_assets_images_instanceusers_en-f3c4aa19bc6365ba5be908635d247_3c290e.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/userscolumns_en-d182d0bdd345c3f5e5bf2be50948c8ce.png",
+        "alt": "instanceusers_en.png",
+        "local_path": "images/001_assets_images_userscolumns_en-d182d0bdd345c3f5e5bf2be50948c8_6e7a9e.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/usersfull_en-42bf351631bc1dffc4929420ec52b41f.png",
+        "alt": "instanceusers_en.png",
+        "local_path": "images/002_assets_images_usersfull_en-42bf351631bc1dffc4929420ec52b41f_73bf59.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/instancesettings_en-5e06fc0be3956807f89207ae8447dbd9.png",
+        "alt": "instance-settings.jpg",
+        "local_path": "images/003_assets_images_instancesettings_en-5e06fc0be3956807f89207ae84_2f151a.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/intro",
+    "title": "Getting started | 4ga Boards Docs",
+    "content": "# Getting started\nHello! This guide aims to provide a comprehensive tutorial for you to get started with 4ga Boards. In the upcoming sections we will show you all of the important features of our tool.\n## What exactly is 4ga Boards?[​](https://docs.4gaboards.com/docs/intro/#what-exactly-is-4ga-boards \"Direct link to What exactly is 4ga Boards?\")\n4ga Boards is a convienient and easy to grasp management tool based on the kanban board technique. A kanban board is a visual tool used to manage and optimize workflows, which displays tasks as cards across columns that can represent different stages of a process. The main view of 4ga Boards, which you will probably see for the most time can be seen below.\n![Main view showing the getting started board](https://docs.4gaboards.com/assets/images/mainviewgettingstarted_en-e6ac5245c2d24b3adf601cd30bf695de.png)\n##  [Creating an account](https://docs.4gaboards.com/docs/account)[​](https://docs.4gaboards.com/docs/intro/#creating-an-account \"Direct link to creating-an-account\")\nThis section will guide you through creating your account in 4ga Boards.\n##  [Structure](https://docs.4gaboards.com/docs/structure)[​](https://docs.4gaboards.com/docs/intro/#structure \"Direct link to structure\")\nThis section aims to present the logical structure of organizing the workflow with 4ga Boards.\n4ga Boards is using a four-level structure to help you maintain even the most complicated projects:\n[Project](https://docs.4gaboards.com/docs/project) is a highest level of organization in 4ga Boards, a container holding boards.  \n[Board](https://docs.4gaboards.com/docs/board) is a workspace within a project where tasks are organized and displayed using:  \n[List View](https://docs.4gaboards.com/docs/list-view), where tasks are displayed in a to-do list style,  \n[Board View](https://docs.4gaboards.com/docs/board-view), which is a classic Kanban view with lists and cards.\n[List](https://docs.4gaboards.com/docs/list) is a column on the board representing different stages or categories of the workflow (e.g. \"To Do\", \"Doing\"), with tasks attached to it.  \n[Card](https://docs.4gaboards.com/docs/card) is representing individual task (with optional subtasks) that can be moved across lists.\nEach of the levels is thoroughly explained in the respective sections.\n[Sidebar](https://docs.4gaboards.com/docs/sidebar) allows for efficient management of 4ga Boards program elements.\n##  [Administration and Settings](https://docs.4gaboards.com/docs/admin-settings)[​](https://docs.4gaboards.com/docs/intro/#administration-and-settings \"Direct link to administration-and-settings\")\nHere you will find explanation of all different features in the settings sections and administration panel.\n  * For each user: [Settings](https://docs.4gaboards.com/docs/settings) will show you your personal settings.\n  * For project managers: [Project settings](https://docs.4gaboards.com/docs/project-settings) will guide you through settings of projects inside your instance\n  * For administrators: [Instance settings](https://docs.4gaboards.com/docs/instance-settings) will explain the settings of the instance (e.g. demo.4gaboards.com)\n\n\n##  [Additional Information](https://docs.4gaboards.com/docs/additional-info)[​](https://docs.4gaboards.com/docs/intro/#additional-information \"Direct link to additional-information\")\nYou should be able to find all the missing information from the previous chapters here, including FAQ.\nIf you have any further problems, feel free to [contact us](https://4gaboards.com/contact).\nAnd if you don't have any troubles, or you simply love using our tool, consider starring us at:",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/mainviewgettingstarted_en-e6ac5245c2d24b3adf601cd30bf695de.png",
+        "alt": "Main view showing the getting started board",
+        "local_path": "images/000_assets_images_mainviewgettingstarted_en-e6ac5245c2d24b3adf60_02fe42.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/list",
+    "title": "List | 4ga Boards Docs",
+    "content": "# List\nIn 4ga Boards, lists are columns on the board representing different stages or categories of the workflow. For example, kanban board template comes with 5 empty lists:\n![Kanban board template](https://docs.4gaboards.com/assets/images/boardkanban_en-0d8d53e96c30dd857eccd63f138e8d29.png)\n## List navigation[​](https://docs.4gaboards.com/docs/list/#list-navigation \"Direct link to List navigation\")\nTo move list into different spot on the same board, simply drag and drop it where you want. You can't, however, move a list to different board or project.\nIf you have many lists that don't fit in a browser window, you can move around by using `Shift` + `Scroll`, holding on an empty space in the board (when a hand icon is visible) or by using scrollbar at the bottom.\nIf the list is full of cards, you can scroll through them using mouse scroll (while hovering over the list) or with scrollbar at the right side of the list.\nYou can hide/unhide all lists (empty or with cards) by clicking on the little triangle button in the top-left corner of the list (right next to its name). This feature is very handy for decluttering your board view and/or hiding unnecesarry lists. Hidden list will have the number of holded cards displayed on them (see screenshot).\n![List visibility toggle](https://docs.4gaboards.com/assets/images/listhide_en-096ff901d7aa697b8a169187dcf68fd8.png)\n## Creating, editing and deleting the list[​](https://docs.4gaboards.com/docs/list/#creating-editing-and-deleting-the-list \"Direct link to Creating, editing and deleting the list\")\nTo create a list, click on the `+add list` button on the board, write a name and confirm it by clicking on the green `Add List` button. It will automatically open a new pop-up window to create a next list. If you don't want to do it, simply click `Cancel` or start doing anything else and it will automatically close.\nYou can edit the list name by clicking on the `ellipsis` in the top-right corner of a list. It will open a context menu, in which you can also add card and delete list (clicking it will open an additional confirmation pop-up). In the same menu you can check activity of the list (when it was created and last updated). By clicking on `Add Card` you can create a new card at the bottom of the list.\n![List context menu](https://docs.4gaboards.com/assets/images/listmenu_en-b9ba08ddfb792b3f6c162cb1792b5d9e.png)\n## List in list view[​](https://docs.4gaboards.com/docs/list/#list-in-list-view \"Direct link to List in list view\")\nLists do not magically disappear when you switch from the board view to the list view. To see which list a card belongs to, refer to the \"List\" column. You can also move cards between lists here by clicking on it.\n![List changing in list menu](https://docs.4gaboards.com/assets/images/listinlistview_en-94a566d74897e8df73900b495a857104.png)\nSorting the lists in this view _does not_ change its placement in the board view.",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/boardkanban_en-0d8d53e96c30dd857eccd63f138e8d29.png",
+        "alt": "Kanban board template",
+        "local_path": "images/000_assets_images_boardkanban_en-0d8d53e96c30dd857eccd63f138e8d2_fd1577.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/listhide_en-096ff901d7aa697b8a169187dcf68fd8.png",
+        "alt": "List visibility toggle",
+        "local_path": "images/001_assets_images_listhide_en-096ff901d7aa697b8a169187dcf68fd8_70216b.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/listmenu_en-b9ba08ddfb792b3f6c162cb1792b5d9e.png",
+        "alt": "List context menu",
+        "local_path": "images/002_assets_images_listmenu_en-b9ba08ddfb792b3f6c162cb1792b5d9e_c30e2e.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/listinlistview_en-94a566d74897e8df73900b495a857104.png",
+        "alt": "List changing in list menu",
+        "local_path": "images/003_assets_images_listinlistview_en-94a566d74897e8df73900b495a85_c34c52.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/list-view",
+    "title": "List View | 4ga Boards Docs",
+    "content": "# List View\nList View is a special view in 4ga Boards that lets you see all your tasks in a convenient to-do list style. Both views are interchangeable — all changes stay in sync, whether you make them in the board or list view.\n![List view showing the &quot;New website&quot; board](https://docs.4gaboards.com/assets/images/listview_en-c26bbc2fc4100bada795e3162a7fd767.png)\n## List view navigation[​](https://docs.4gaboards.com/docs/list-view/#list-view-navigation \"Direct link to List view navigation\")\nYou can adjust the column width manually by dragging the `|` separators.\nEach row represents a separate card and includes all the same features as a regular card in the board view, displayed in columns. From left to right:\n  1. `Bell` icon for notifications\n  2. Card name\n  3. Labels attached to the card\n  4. Members attached to the card\n  5. List in the board view where the card belongs\n  6. `Tick` indicating whether a description is present\n  7. Number of attachments\n  8. Number of comments\n  9. Due date\n  10. Earliest due date\n  11. Timer\n  12. Tasks attached to the card\n  13. `Ellipsis` menu of the card.\n\n\nFor additional info, please refer to [Card description](https://docs.4gaboards.com/docs/card).\nYou can interact with each of them directly form the list view or by opening the appriopriate card. To do this, click on an empty spot in a card row (for ease of navigation, we recommend clicking on the description/attachment/comment field - they will not open a popup window).\n![List view with card opened](https://docs.4gaboards.com/assets/images/listviewcard_en-2ed7ae71913c246c5a149c833aa06550.png)\nThis is the default column selection. To add or remove columns, use the `Ellipsis` menu in the top-right corner of the list. You can also set columns to adjust to the content or screen, and easily reset sorting and column selection to their default values.\n![List view menu](https://docs.4gaboards.com/assets/images/listviewmenu_en-fb1abb984f938d09f473710d822a5858.png)\nAt the bottom of the list is another navigation pane, in which you can select how many cards are visible per page (default: 100), change pages with the arrows on the left and access list menu with the `cog` icon. On the right side you can add [List](https://docs.4gaboards.com/docs/list) and [Card](https://docs.4gaboards.com/docs/card) - they will also appear on the board view.\n![List view bottom menu](https://docs.4gaboards.com/docs/list-view/)\n## List view features[​](https://docs.4gaboards.com/docs/list-view/#list-view-features \"Direct link to List view features\")\nCompared to a classic board view, there are a few special options which helps visualise your workflow better:\nSorting - you can sort your list just like a regular table, in both ascending and descending order, indicated with `Arrow` icon.\nYou can perform a multilayered sorting - choose multiple columns to sort with, with the numbers indicating the priority. In the example below, the sorting order is as follows: labels ascending, then name descending.\n![List view sorting feature](https://docs.4gaboards.com/assets/images/listviewsorting_en-6ea6feedbeb304aa2afbca4ecdbe0a7e.png)",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/listview_en-c26bbc2fc4100bada795e3162a7fd767.png",
+        "alt": "List view showing the &quot;New website&quot; board",
+        "local_path": "images/000_assets_images_listview_en-c26bbc2fc4100bada795e3162a7fd767_d43ec3.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/listviewmenu_en-fb1abb984f938d09f473710d822a5858.png",
+        "alt": "List view menu",
+        "local_path": "images/002_assets_images_listviewmenu_en-fb1abb984f938d09f473710d822a58_dbe349.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/listviewsorting_en-6ea6feedbeb304aa2afbca4ecdbe0a7e.png",
+        "alt": "List view sorting feature",
+        "local_path": "images/003_assets_images_listviewsorting_en-6ea6feedbeb304aa2afbca4ecdb_1da394.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/notifications",
+    "title": "Notifications | 4ga Boards Docs",
+    "content": "# Notifications\n4ga Boards features a comprehensive notifications sytem, consisting of two main modules: _Notification Center_ and _Check Activity Log_\n## Notifications and Notification Center[​](https://docs.4gaboards.com/docs/notifications/#notifications-and-notification-center \"Direct link to Notifications and Notification Center\")\nYou can quickly view notifications by clicking the `bell` icon in the top-right corner. This will open a panel on the side. To close it, click anywhere on the board.\n![Notifications](https://docs.4gaboards.com/assets/images/notifications_en-7182e9cc8b3071254f24457fe533c8b6.png)\nEach notification is structured as follows:\n  * Notification category (see details below)\n  * User and time of trigerring notification\n  * Detailed description of notification (what _action_ occurred on which _element_ , e.g. _adding a user_ to a _task_)\n  * Board and Project associated with the notification (if applicable)\n  * `eye` icon - notification is unread/`crossed eye` icon and dimmed notification - notification is read; click the icon to manually change the status\n  * `bin` icon - delete notification.\n\n\n![Notification](https://docs.4gaboards.com/assets/images/notificationone_en-88bfa9488beb1bffe0a4099be2a60b28.png)\nThere are several notification categories marked with a distinctive label on the left:\n  * **Project** (e.g. creation, name changes, adding/removing users, background changes)\n  * **Board** (e.g. creation, name changes, adding/removing users)\n  * **List** (e.g. creation, removal, position changes on the board, expanding/collapsing)\n  * **Card** (e.g. adding tasks, members, labels, comments, changing the description)\n  * **Task** (e.g. creation, marking as complete, adding members, setting a due date)\n  * **Comment** (adding, updating, deleting)\n\n\nAt the top of the panel, you will find a filter box that helps you quickly scan notifications. Use the `double arrow` icon to change the filter type:\n  * **All** – shows all results\n  * **Project** – notifications for a specific project\n  * **Board** – notifications for a specific board\n  * **User** – notifications related to a user\n  * **Card** – notifications related to a card\n  * **Text/type of activity** – searches notification text fields (e.g. comment text) or activity type (e.g. typing \"taskcreate\" will result in showing all task creation notifications)\n\n\n![Notification Ellipsis Menu](https://docs.4gaboards.com/docs/notifications/)\nOpen `ellipsis` icon to mark all notifications as read/unread, delete all notifications, delete only read notifications. Click on the icon to the left from the `ellipsis` to open fullscreen Notification Center, where you can thoroughly examine all notifications.\n![Notification Center](https://docs.4gaboards.com/assets/images/notificationscenter_en-8824fbed73e7a63c4751a6322bf3d29c.png)\n## Activity Check Log[​](https://docs.4gaboards.com/docs/notifications/#activity-check-log \"Direct link to Activity Check Log\")\nIn several elements, clicking the `ellipsis icon` gives you the option to check activity. This opens the Activity Log popup window.\n![Activity Log Popup Window](https://docs.4gaboards.com/assets/images/activitylog_en-af3d75e81359fea0791d1d4e5f031614.png)\nThe window displays the creation and last update time of the element, along with all activity performed on it. For elements with high activity (e.g. boards), you can scroll through the activity list, down to the very first entry.",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/notifications_en-7182e9cc8b3071254f24457fe533c8b6.png",
+        "alt": "Notifications",
+        "local_path": "images/000_assets_images_notifications_en-7182e9cc8b3071254f24457fe533c_d48d0c.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/notificationone_en-88bfa9488beb1bffe0a4099be2a60b28.png",
+        "alt": "Notification",
+        "local_path": "images/001_assets_images_notificationone_en-88bfa9488beb1bffe0a4099be2a_993cc5.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/notificationscenter_en-8824fbed73e7a63c4751a6322bf3d29c.png",
+        "alt": "Notification Center",
+        "local_path": "images/002_assets_images_notificationscenter_en-8824fbed73e7a63c4751a63_dc688e.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/activitylog_en-af3d75e81359fea0791d1d4e5f031614.png",
+        "alt": "Activity Log Popup Window",
+        "local_path": "images/003_assets_images_activitylog_en-af3d75e81359fea0791d1d4e5f03161_73d674.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/project",
+    "title": "Project | 4ga Boards Docs",
+    "content": "# Project\nProjects are the highest structure of 4ga boards workflow. All of the projects can be accessed from the dashboard view (3) or using the sidebar (2).\n![Dashboard view](https://docs.4gaboards.com/assets/images/projectsview_en-fb1477343dacf4f70eda20ce936649c8.png)\nIf you ever wish to come back to dashboard view, you can do so by clicking 4ga Boards logo in header (1). In addition, if you have administration rights to any of the projects, you can customize them in [project settings](https://docs.4gaboards.com/docs/project-settings).\nTo create a project, simply click on the `+Add project` button. This button is located at the bottom of the sidebar or at the top-right corner while you are in the dashboard. After clicking one of the buttons, the prompt for naming the project will appear.\n![Add project buttons](https://docs.4gaboards.com/assets/images/projectsadd_en-2b66d947617eff25ca8cac32eb780de3.png)\nNOTE: If you don't see the option to create project it means you lack the administrator rights. In this case you can only use the projects you were already added to by the administrator.\nTo access context menu for the projects (available for project managers) hover over the project name and click `ellipsis` button. In this menu you can rename your project, go to [project settings](https://docs.4gaboards.com/docs/project-settings), check activity for the project (when it was created and last updated) or add a new [board](https://docs.4gaboards.com/docs/board).\n![Project context menu](https://docs.4gaboards.com/assets/images/projectsmenu_en-74909a67e4470a6550d30825e7bd4ac3.png)\nAfter you create your first project, click on its tile in the dashboard or on its name in the sidebar to see the [board view](https://docs.4gaboards.com/docs/board).",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/projectsmenu_en-74909a67e4470a6550d30825e7bd4ac3.png",
+        "alt": "Project context menu",
+        "local_path": "images/001_assets_images_projectsmenu_en-74909a67e4470a6550d30825e7bd4a_d9ba08.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/project-settings",
+    "title": "Project Settings | 4ga Boards Docs",
+    "content": "# Project Settings\nIf you are manager of the project that you are currently editing, click the \"cog in the box\" icon in the top-right corner next to `+ Add Board` button to access this project settings.\n![Project settings buttons](https://docs.4gaboards.com/docs/project-settings/)\nAlternatively you can use ellipsis menu from the sidebar to access settings to any of your managed projects. Just hover over the desired project name and click on ellipsis icon.\n![Project context menu](https://docs.4gaboards.com/assets/images/projectsmenu_en-74909a67e4470a6550d30825e7bd4ac3.png)\nWhen you choose the project you have options to change the title (click `Save` button to save changes),add or remove managers from the project and set the background image (with possibility to upload your own). The image will be visible in [projects view](https://docs.4gaboards.com/docs/project). For extra caution, the `Delete Project` button was situated in the `Danger Zone`. And no worries, we added an additional pop-up for confirmation.\n![Project settings view](https://docs.4gaboards.com/assets/images/projectsettings_en-a1445c6c2ffa02d3c349f1d4449b57bf.png)\nTo go back to the project, click on arrow icon in the top-right corner or click the 4ga Boards logo to access [projects view](https://docs.4gaboards.com/docs/project).",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/projectsmenu_en-74909a67e4470a6550d30825e7bd4ac3.png",
+        "alt": "Project context menu",
+        "local_path": "images/000_assets_images_projectsmenu_en-74909a67e4470a6550d30825e7bd4a_d9ba08.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/projectsettings_en-a1445c6c2ffa02d3c349f1d4449b57bf.png",
+        "alt": "Project settings view",
+        "local_path": "images/001_assets_images_projectsettings_en-a1445c6c2ffa02d3c349f1d4449_c3f477.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/settings",
+    "title": "Settings | 4ga Boards Docs",
+    "content": "# Settings\nThe personal and general settings panel looks like this:\n![Settings sidebar](https://docs.4gaboards.com/assets/images/settingsgeneralsidebar_en-3b10346e0638adc3848d82bd5e1a29be.png)\n## Profile[​](https://docs.4gaboards.com/docs/settings/#profile \"Direct link to Profile\")\nIn the profile settings you can add an avatar (from the disc), change your displayed name and add additional informations such as phone and organization name. Remember to click on the `Save` button!\n![Profile settings](https://docs.4gaboards.com/assets/images/settingsprofile_en-547d015a3d81f2a0028e6e529889e752.png)\n## Preferences[​](https://docs.4gaboards.com/docs/settings/#preferences \"Direct link to Preferences\")\nThis section lets you customize 4ga Boards to your, well, preferences.\n![User preferences settings](https://docs.4gaboards.com/assets/images/settingspreferences_en-d32e3e1f99759db5e322a4b6e94da3af.png)\n### General[​](https://docs.4gaboards.com/docs/settings/#general \"Direct link to General\")\n  1. \"Language\": Select the language you want to use in 4ga Boards.\n  2. \"Theme\": Select the color theme of the application. Currently available themes: default (which is used in this documentation), and \"GitHub Dark\", and even create custom theme! (see pictures below)\n\n\n![Github dark rounded showcase](https://docs.4gaboards.com/assets/images/githubdarkrounded_en-784aebfb210f284096f1a1f241f88cad.png)\n![Light theme showcase](https://docs.4gaboards.com/assets/images/themelight_en-706419706933d536bc39618941a95768.png)\n![Custom theme selection](https://docs.4gaboards.com/assets/images/themecustomselect_en-29920bcc2f798aa43f1544b40446bb25.png)\n![Custom theme editor](https://docs.4gaboards.com/assets/images/themecustom_en-47429ba480f5021e68c097d65e07b442.png)\n  1. \"Theme Shape\": Select the shape of the application theme. Choose from default square shape or rounded shape on elements (see picture below)\n  2. \"Preferred Details Font\": Select the font (default or monospace) you want to use in card description and comments; in this documentation, the default version is used.\n  3. \"Default View\": Set if you want boards to open in board view or list view by default.\n  4. \"Compact Sidebar\": choose the style of your sidebar (applicable for both settings and board sidebars). If you enable it, you sidebar will be slim. This option is great if you prefer minimalistic design and more room for your lists in the board view.\n\n\n![Compact sidebar width](https://docs.4gaboards.com/assets/images/sidebarslim_en-6e65da8fa3d7752b6c4dc8b34c53f1f9.png)\nIf you disable it, the sidebar will be bulkier, which might be useful if you have long project names.\n![Normal sidebar width](https://docs.4gaboards.com/assets/images/sidebarnormal_en-ec0303baddc5b2aa2fb9a0f0af9e3a7a.png)\n  1. \"List View Style\": Set if you want a compact or bigger (default) version of list view; in this documentation, the compact version is visible.\n  2. \"Users Settings Style\": Set if you want a compact or bigger (default) version of User Settings;\n  3. \"Hide Card Modal Activity\": Enable to hide activity log (creation and last update time) in card view.\n  4. \"Hide Closest Due Date\": Hide closest/earliest due date in card modal.\n\n\n### Notifications[​](https://docs.4gaboards.com/docs/settings/#notifications \"Direct link to Notifications\")\n  1. \"Subscribe to my own cards\": set if you want to be automatically subscribed to the cards created by you (see [card](https://docs.4gaboards.com/docs/card#card-options), card options section).\n  2. \"Subscribe to new boards\": set if you want to be automatically subscribed to boards you join\n  3. \"Subscribe to new projects\": set if you want to be automatically subscribed to projects you join.\n\n\n(ADMIN ONLY BELOW)\n  1. \"Subscribe to users notifications\": set if you want to be automatically subscribed to notifications about other users (change e-mail, username).\n  2. \"Subscribe to instance notifications\": set if you want to be automatically subscribed to instance-wide notifications.\n\n\n## Account[​](https://docs.4gaboards.com/docs/settings/#account \"Direct link to Account\")\nHere you can change your username and/or e-mail adress. For both changes you will need to input your current password.\n![Account settings](https://docs.4gaboards.com/assets/images/settingsaccount_en-75dd0952aae59a5d9e1a943c58b2e8c4.png)\n## Authentication[​](https://docs.4gaboards.com/docs/settings/#authentication \"Direct link to Authentication\")\nHere you can change your current password.\n![Authentication settings](https://docs.4gaboards.com/assets/images/settingsauth_en-a21711d7b98b81a6d837de5cb231f5b0.png)\n## About[​](https://docs.4gaboards.com/docs/settings/#about \"Direct link to About\")\nSection providing information about your current build version, latest available version of 4ga Boards and useful links: [4ga Boards](https://4gaboards.com), [Documentation](https://docs.4gaboards.com),[Privacy Policy](https://4gaboards.com/privacy-policy) and [Terms of Service](https://4gaboards.com/terms-of-service). Here, you can also import the “Getting Started” project, which provides an interactive introduction to 4ga Boards features and functionality.\n![About](https://docs.4gaboards.com/assets/images/settingsabout_en-559bf713396b58e12feb3c236295fc8d.png)",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/settingsgeneralsidebar_en-3b10346e0638adc3848d82bd5e1a29be.png",
+        "alt": "Settings sidebar",
+        "local_path": "images/000_assets_images_settingsgeneralsidebar_en-3b10346e0638adc3848d_e5633b.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/settingsprofile_en-547d015a3d81f2a0028e6e529889e752.png",
+        "alt": "Profile settings",
+        "local_path": "images/001_assets_images_settingsprofile_en-547d015a3d81f2a0028e6e52988_0ef883.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/settingspreferences_en-d32e3e1f99759db5e322a4b6e94da3af.png",
+        "alt": "User preferences settings",
+        "local_path": "images/002_assets_images_settingspreferences_en-d32e3e1f99759db5e322a4b_6f5fa7.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/githubdarkrounded_en-784aebfb210f284096f1a1f241f88cad.png",
+        "alt": "Github dark rounded showcase",
+        "local_path": "images/003_assets_images_githubdarkrounded_en-784aebfb210f284096f1a1f24_f27848.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/themelight_en-706419706933d536bc39618941a95768.png",
+        "alt": "Light theme showcase",
+        "local_path": "images/004_assets_images_themelight_en-706419706933d536bc39618941a95768_b47387.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/themecustomselect_en-29920bcc2f798aa43f1544b40446bb25.png",
+        "alt": "Custom theme selection",
+        "local_path": "images/005_assets_images_themecustomselect_en-29920bcc2f798aa43f1544b40_a55325.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/themecustom_en-47429ba480f5021e68c097d65e07b442.png",
+        "alt": "Custom theme editor",
+        "local_path": "images/006_assets_images_themecustom_en-47429ba480f5021e68c097d65e07b44_bbb00a.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/sidebarslim_en-6e65da8fa3d7752b6c4dc8b34c53f1f9.png",
+        "alt": "Compact sidebar width",
+        "local_path": "images/007_assets_images_sidebarslim_en-6e65da8fa3d7752b6c4dc8b34c53f1f_9951fa.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/sidebarnormal_en-ec0303baddc5b2aa2fb9a0f0af9e3a7a.png",
+        "alt": "Normal sidebar width",
+        "local_path": "images/008_assets_images_sidebarnormal_en-ec0303baddc5b2aa2fb9a0f0af9e3_aaa9d1.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/settingsaccount_en-75dd0952aae59a5d9e1a943c58b2e8c4.png",
+        "alt": "Account settings",
+        "local_path": "images/009_assets_images_settingsaccount_en-75dd0952aae59a5d9e1a943c58b_a8500d.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/settingsauth_en-a21711d7b98b81a6d837de5cb231f5b0.png",
+        "alt": "Authentication settings",
+        "local_path": "images/010_assets_images_settingsauth_en-a21711d7b98b81a6d837de5cb231f5_73c36c.png"
+      },
+      {
+        "url": "https://docs.4gaboards.com/assets/images/settingsabout_en-559bf713396b58e12feb3c236295fc8d.png",
+        "alt": "About",
+        "local_path": "images/011_assets_images_settingsabout_en-559bf713396b58e12feb3c236295f_c95aa0.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/shortcuts",
+    "title": "Useful Shortcuts | 4ga Boards Docs",
+    "content": "# Useful Shortcuts\nThis page presents shortcuts that helps you use 4ga Boards more effectively.\n`Ctrl` + `Enter`\nUse it to quickly save text changes, e.g. while editing description, comments or adding a task. If you use it while creating a new card it will automatically open card view.\n`Shift` + `Enter`\nUse this to quickly create multiple cards while adding a new one.\n`Shift` + `Scroll`\nHold shift to scroll across the board horizontally. Very useful when a board has a lot of lists that don't fit in the browser window.\n`Tab`\nWhile typing, use this to switch between filtering types (notifications, sidebar)",
+    "metadata": {
+      "depth": 1
+    },
+    "images": []
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/sidebar",
+    "title": "Sidebar | 4ga Boards Docs",
+    "content": "# Sidebar\nAll the time while using the 4ga Boards you can use the sidebar. It let's you quickly manage and navigate thorough your projects and boards. Here is how it looks like:\n![Sidebar view](https://docs.4gaboards.com/assets/images/sidebarmain_en-00973becab835d83f75d9057fdee8f8d.png)\n### Some actions you can perform within sidebar:[​](https://docs.4gaboards.com/docs/sidebar/#some-actions-you-can-perform-within-sidebar \"Direct link to Some actions you can perform within sidebar:\")\n  1. You can change sidebar width inside [personal settings](https://docs.4gaboards.com/docs/settings).\n     * You can show/hide the sidebar using the bar and arrow icon in the top-left corner, left of 4ga Boards logo.\n  2. You can filter your projects or boards using the filtering function at the top of the sidebar. The two arrows icon with a letter indicates which structure is being filtered: projects (P) or boards (B). To switch, click on the icon. As you can see in the example below, filtering works also if you write the middle part of the word. To clear filtering, click on the \"x\" icon.\n\n\n![Sidebar filtering option](https://docs.4gaboards.com/docs/sidebar/)\n  1. You can show/hide the boards in projects using triangle button on the left of the project name. It will show all of the boards within this project that you have access to (unless there is an active filtering hiding some of them).\n  2. You can quickly navigate between different projects/boards by clicking on their names. Selected project/board will be highlighted with blueish color.\n  3. You can edit project/board within sidebar using a three-dot menu (see [project](https://docs.4gaboards.com/docs/project) and [board](https://docs.4gaboards.com/docs/board)).\n  4. If you have appriopriate permissions, the buttons `+ Add project` and `+ Add board` will be visible at the bottom of the sidebar.",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/sidebarmain_en-00973becab835d83f75d9057fdee8f8d.png",
+        "alt": "Sidebar view",
+        "local_path": "images/000_assets_images_sidebarmain_en-00973becab835d83f75d9057fdee8f8_5c5c35.png"
+      }
+    ]
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/structure",
+    "title": "Structure | 4ga Boards Docs",
+    "content": "# Structure\nThis section aims to present the logical structure of organizing the workflow with 4ga Boards.\n4ga Boards is using a four-level structure to help you maintain even the most complicated projects. Speaking of projects...\n[Project](https://docs.4gaboards.com/docs/project) is a highest level of organization in 4ga Boards, a container holding boards.  \n[Board](https://docs.4gaboards.com/docs/board) is a workspace within a project where tasks are organized and displayed using:  \n[List View](https://docs.4gaboards.com/docs/list-view), where tasks are displayed in a to-do list style,  \n[Board View](https://docs.4gaboards.com/docs/board-view), which is a classic Kanban view with lists and cards.\n[List](https://docs.4gaboards.com/docs/list) is a column on the board representing different stages or categories of the workflow (e.g. \"To Do\", \"Doing\"), with tasks attached to it.  \n[Card](https://docs.4gaboards.com/docs/card) is representing individual task (with optional subtasks) that can be moved across lists.\nEach of the levels is thoroughly explained in the respective sections.\n[Sidebar](https://docs.4gaboards.com/docs/sidebar) allows for efficient management of 4ga Boards program elements.",
+    "metadata": {
+      "depth": 1
+    },
+    "images": []
+  },
+  {
+    "url": "https://docs.4gaboards.com/docs/view",
+    "title": "Views description | 4ga Boards Docs",
+    "content": "# Views description\n  1. Dashboard view\n\n\n![Dashboard view](https://docs.4gaboards.com/assets/images/projectsview_en-fb1477343dacf4f70eda20ce936649c8.png)\n  1. Project view\n\n\n![Project view](https://docs.4gaboards.com/assets/images/projectview_en-c5b7878283a06954f176651dc85b6bd3.png)\n  1. Board view\n\n\n![Board view](https://docs.4gaboards.com/assets/images/boardview_en-ebee2c6c3a2a8b7baa803b5c89283c91.png)\n  1. Board with opened card view\n\n\n![Board view with opened card view](https://docs.4gaboards.com/assets/images/cardview_en-823ddbd01c1c914dfe0aa0627f89097c.png)",
+    "metadata": {
+      "depth": 1
+    },
+    "images": [
+      {
+        "url": "https://docs.4gaboards.com/assets/images/projectsview_en-fb1477343dacf4f70eda20ce936649c8.png",
+        "alt": "Dashboard view",
+        "local_path": "images/000_assets_images_projectsview_en-fb1477343dacf4f70eda20ce936649_b0c3c0.png"
+      }
+    ]
+  }
+]

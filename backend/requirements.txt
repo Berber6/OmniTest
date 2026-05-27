@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+langchain
+langchain-community
+langgraph
+chromadb
+crawl4ai
+litellm
+sentence-transformers
+pydantic
+pydantic-settings
+sqlalchemy
+websockets
+mcp
+python-dotenv
+aiohttp

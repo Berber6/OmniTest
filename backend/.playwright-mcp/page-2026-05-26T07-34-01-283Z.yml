@@ -1,0 +1,105 @@
+- generic [ref=e2]:
+  - generic [ref=e39]:
+    - link "4ga Boards" [ref=e40] [cursor=pointer]:
+      - /url: /
+      - button "4ga Boards" [ref=e41]:
+        - img "4ga Boards" [ref=e42]
+    - 'generic "Settings: Profile" [ref=e140]'
+    - generic [ref=e44]:
+      - link "Star 4ga Boards on GitHub! Your support speeds up development" [ref=e45] [cursor=pointer]:
+        - /url: https://github.com/RARgames/4gaBoards
+        - img [ref=e46]
+        - generic [ref=e48]:
+          - generic [ref=e49]: Star 4ga Boards on GitHub!
+          - generic [ref=e50]: Your support speeds up development
+      - link "We'd love to hear your feedback! It means a lot for us" [ref=e52] [cursor=pointer]:
+        - /url: https://forms.gle/FqjR7uhBp9Gn2fu26
+        - img [ref=e53]
+        - generic [ref=e55]:
+          - generic [ref=e56]: We'd love to hear your feedback!
+          - generic [ref=e57]: It means a lot for us
+    - generic [ref=e58]:
+      - link "Settings" [ref=e59] [cursor=pointer]:
+        - /url: /settings
+        - button "Settings" [active] [ref=e60]:
+          - img [ref=e61]
+      - 'link "Settings: Users" [ref=e63] [cursor=pointer]':
+        - /url: /settings/users
+        - 'button "Settings: Users" [ref=e64]':
+          - img [ref=e65]
+      - button "Notifications" [ref=e68] [cursor=pointer]:
+        - img [ref=e69]
+      - button "Z1" [ref=e72] [cursor=pointer]:
+        - generic [ref=e73]: Z1
+  - generic [ref=e75]:
+    - button "Hide Sidebar" [ref=e76] [cursor=pointer]:
+      - img [ref=e77]
+    - generic [ref=e79]:
+      - generic [ref=e88]:
+        - generic [ref=e141]:
+          - generic [ref=e142]:
+            - img [ref=e143]
+            - text: Settings
+          - link "Profile" [ref=e146] [cursor=pointer]:
+            - /url: /settings/profile
+            - button "Profile" [ref=e147]:
+              - img [ref=e148]
+              - text: Profile
+          - link "Preferences" [ref=e151] [cursor=pointer]:
+            - /url: /settings/preferences
+            - button "Preferences" [ref=e152]:
+              - img [ref=e153]
+              - text: Preferences
+          - link "Account" [ref=e156] [cursor=pointer]:
+            - /url: /settings/account
+            - button "Account" [ref=e157]:
+              - img [ref=e158]
+              - text: Account
+          - link "Authentication" [ref=e161] [cursor=pointer]:
+            - /url: /settings/authentication
+            - button "Authentication" [ref=e162]:
+              - img [ref=e163]
+              - text: Authentication
+          - link "About" [ref=e166] [cursor=pointer]:
+            - /url: /settings/about
+            - button "About" [ref=e167]:
+              - img [ref=e168]
+              - text: About
+        - generic [ref=e170]:
+          - generic [ref=e171]:
+            - img [ref=e172]
+            - text: Instance Settings
+          - link "Users" [ref=e175] [cursor=pointer]:
+            - /url: /settings/users
+            - button "Users" [ref=e176]:
+              - img [ref=e177]
+              - text: Users
+          - link "Settings" [ref=e180] [cursor=pointer]:
+            - /url: /settings/instance
+            - button "Settings" [ref=e181]:
+              - img [ref=e182]
+              - text: Settings
+      - link "Dashboard" [ref=e184] [cursor=pointer]:
+        - /url: /
+        - button "Dashboard" [ref=e185]:
+          - img [ref=e186]
+          - text: Dashboard
+    - generic [ref=e188]:
+      - heading "Profile" [level=2] [ref=e190]
+      - generic [ref=e191]:
+        - generic [ref=e192]:
+          - generic [ref=e193]: Profile picture
+          - generic [ref=e195]:
+            - button "Z1" [ref=e196] [cursor=pointer]:
+              - generic "z1491861920" [ref=e197]: Z1
+            - button "Edit" [ref=e198] [cursor=pointer]:
+              - img [ref=e199]
+              - text: Edit
+        - generic [ref=e203]:
+          - generic [ref=e204]: Name
+          - textbox [ref=e205]: z1491861920
+          - generic [ref=e206]: Phone
+          - textbox [ref=e207]
+          - generic [ref=e208]: Organization
+          - textbox [ref=e209]
+          - button "Save" [disabled] [ref=e211]

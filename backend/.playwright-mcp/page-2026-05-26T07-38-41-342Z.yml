@@ -1,0 +1,1269 @@
+- generic [ref=e2]:
+  - generic [ref=e39]:
+    - link "4ga Boards" [ref=e40] [cursor=pointer]:
+      - /url: /
+      - button "4ga Boards" [ref=e41]:
+        - img "4ga Boards" [ref=e42]
+    - generic "Getting started" [ref=e141]
+    - generic [ref=e44]:
+      - link "Star 4ga Boards on GitHub! Your support speeds up development" [ref=e45] [cursor=pointer]:
+        - /url: https://github.com/RARgames/4gaBoards
+        - img [ref=e46]
+        - generic [ref=e48]:
+          - generic [ref=e49]: Star 4ga Boards on GitHub!
+          - generic [ref=e50]: Your support speeds up development
+      - link "We'd love to hear your feedback! It means a lot for us" [ref=e52] [cursor=pointer]:
+        - /url: https://forms.gle/FqjR7uhBp9Gn2fu26
+        - img [ref=e53]
+        - generic [ref=e55]:
+          - generic [ref=e56]: We'd love to hear your feedback!
+          - generic [ref=e57]: It means a lot for us
+    - generic [ref=e58]:
+      - link "Settings" [ref=e59] [cursor=pointer]:
+        - /url: /settings
+        - button "Settings" [ref=e60]:
+          - img [ref=e61]
+      - 'link "Settings: Users" [ref=e63] [cursor=pointer]':
+        - /url: /settings/users
+        - 'button "Settings: Users" [ref=e64]':
+          - img [ref=e65]
+      - button "Notifications" [ref=e68] [cursor=pointer]:
+        - img [ref=e69]
+      - button "Z1" [ref=e72] [cursor=pointer]:
+        - generic [ref=e73]: Z1
+  - generic [ref=e75]:
+    - button "Hide Sidebar" [ref=e76] [cursor=pointer]:
+      - img [ref=e77]
+    - generic [ref=e79]:
+      - generic [ref=e82]:
+        - textbox "Filter projects..." [ref=e83]
+        - button "P" [ref=e84] [cursor=pointer]:
+          - generic [ref=e85]: P
+          - img [ref=e86]
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - button "Hide boards" [ref=e126] [cursor=pointer]:
+            - img [ref=e93]
+          - link "Getting started" [ref=e95] [cursor=pointer]:
+            - /url: /projects/1782743791292122327
+            - button "Getting started" [ref=e96]
+          - button "Edit Project" [ref=e98] [cursor=pointer]:
+            - img [ref=e99]
+        - generic [ref=e129]:
+          - button "Reorder boards within the project" [ref=e130]:
+            - button "Reorder boards within the project" [ref=e131] [cursor=pointer]:
+              - img [ref=e132]
+          - link "Learn 4ga Boards" [ref=e134] [cursor=pointer]:
+            - /url: /boards/1782743791409562843
+            - button "Learn 4ga Boards" [ref=e135]
+          - button "Edit Board" [ref=e137] [cursor=pointer]:
+            - img [ref=e138]
+      - generic [ref=e101]:
+        - button "Add Project" [ref=e103] [cursor=pointer]:
+          - img [ref=e104]
+          - text: Add Project
+        - button "Add Board" [ref=e107] [cursor=pointer]:
+          - img [ref=e108]
+          - text: Add Board
+    - generic [ref=e142]:
+      - generic [ref=e143]:
+        - button "Unsubscribe" [ref=e144] [cursor=pointer]:
+          - img [ref=e145]
+        - generic "Learn 4ga Boards" [ref=e147]
+        - generic [ref=e148]: 31 cards
+        - img "Not connected to GitHub" [ref=e151]
+        - generic [ref=e154]:
+          - generic "z1491861920" [ref=e157]: Z1
+          - button "Add user" [ref=e159] [cursor=pointer]:
+            - img [ref=e160]
+        - generic [ref=e162]:
+          - textbox "Filter cards..." [ref=e165]
+          - generic [ref=e166]:
+            - button "Match Case [Alt+C]" [ref=e167] [cursor=pointer]:
+              - img [ref=e168]
+            - button "Any Match [Alt+V]" [ref=e171] [cursor=pointer]:
+              - img [ref=e172]
+          - button "Filter By Members" [ref=e176] [cursor=pointer]:
+            - img [ref=e178]
+          - button "Filter By Labels" [ref=e182] [cursor=pointer]:
+            - img [ref=e184]
+          - button "Filter by Notifications" [ref=e187] [cursor=pointer]:
+            - img [ref=e189]
+          - button "Filter by Due Date" [ref=e193] [cursor=pointer]:
+            - img [ref=e195]
+        - generic [ref=e198]:
+          - button "Switch to Board View" [ref=e199] [cursor=pointer]:
+            - img [ref=e200]
+          - button "Switch to List View" [active] [ref=e202] [cursor=pointer]:
+            - img [ref=e203]
+        - link "Project Settings" [ref=e206] [cursor=pointer]:
+          - /url: /projects/1782743791292122327/settings
+          - button "Project Settings" [ref=e207]:
+            - img [ref=e208]
+        - button "Edit Board" [ref=e212] [cursor=pointer]:
+          - img [ref=e213]
+        - link "Back to Project" [ref=e216] [cursor=pointer]:
+          - /url: /projects/1782743791292122327
+          - button "Back to Project" [ref=e217]:
+            - img [ref=e218]
+      - generic [ref=e927]:
+        - table [ref=e929]:
+          - rowgroup [ref=e930]:
+            - row "Notifications Name Labels Members List Has Description Attachment Count Comment Count Due Date Earliest Due Timer Tasks" [ref=e931]:
+              - columnheader "Notifications" [ref=e932] [cursor=pointer]:
+                - generic [ref=e933]:
+                  - img "Notifications" [ref=e934]
+                  - generic "Resize column" [ref=e936]
+              - columnheader "Name" [ref=e937] [cursor=pointer]:
+                - generic [ref=e938]:
+                  - text: Name
+                  - generic "Resize column" [ref=e939]
+              - columnheader "Labels" [ref=e940] [cursor=pointer]:
+                - generic [ref=e941]:
+                  - text: Labels
+                  - generic "Resize column" [ref=e942]
+              - columnheader "Members" [ref=e943] [cursor=pointer]:
+                - generic [ref=e944]:
+                  - text: Members
+                  - generic "Resize column" [ref=e945]
+              - columnheader "List" [ref=e946] [cursor=pointer]:
+                - generic [ref=e947]:
+                  - text: List
+                  - generic "Resize column" [ref=e948]
+              - columnheader "Has Description" [ref=e949] [cursor=pointer]:
+                - generic [ref=e950]:
+                  - img "Has Description" [ref=e951]
+                  - generic "Resize column" [ref=e953]
+              - columnheader "Attachment Count" [ref=e954] [cursor=pointer]:
+                - generic [ref=e955]:
+                  - img "Attachment Count" [ref=e956]
+                  - generic "Resize column" [ref=e958]
+              - columnheader "Comment Count" [ref=e959] [cursor=pointer]:
+                - generic [ref=e960]:
+                  - img "Comment Count" [ref=e961]
+                  - generic "Resize column" [ref=e963]
+              - columnheader "Due Date" [ref=e964] [cursor=pointer]:
+                - generic [ref=e965]:
+                  - text: Due Date
+                  - generic "Resize column" [ref=e966]
+              - columnheader "Earliest Due" [ref=e967] [cursor=pointer]:
+                - generic [ref=e968]:
+                  - text: Earliest Due
+                  - generic "Resize column" [ref=e969]
+              - columnheader "Timer" [ref=e970] [cursor=pointer]:
+                - generic [ref=e971]:
+                  - text: Timer
+                  - generic "Resize column" [ref=e972]
+              - columnheader "Tasks" [ref=e973] [cursor=pointer]:
+                - generic [ref=e974]:
+                  - text: Tasks
+                  - generic "Resize column" [ref=e975]
+              - columnheader [ref=e976]:
+                - button "Edit List View" [ref=e979] [cursor=pointer]:
+                  - img [ref=e980]
+          - rowgroup [ref=e982]:
+            - row "This card has 0 notifications Different language of Getting Started? Getting Started This card has a description This card has 0 attachments This card has 0 comments" [ref=e983] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e984]:
+                - generic [ref=e985]:
+                  - generic "This card has 0 notifications"
+              - cell "Different language of Getting Started?" [ref=e986]:
+                - generic "Different language of Getting Started?" [ref=e987]
+              - cell [ref=e988]:
+                - button "Add Label" [ref=e990]:
+                  - img [ref=e991]
+              - cell [ref=e993]:
+                - button "Add Member" [ref=e995]:
+                  - img [ref=e996]
+              - cell "Getting Started" [ref=e998]:
+                - generic "Getting Started" [ref=e1001]
+              - cell "This card has a description" [ref=e1002]:
+                - img "This card has a description" [ref=e1004]
+              - cell "This card has 0 attachments" [ref=e1006]:
+                - generic [ref=e1007]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1008]:
+                - generic [ref=e1009]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1010]:
+                - button "Add Due Date" [ref=e1012]:
+                  - img [ref=e1013]
+              - cell [ref=e1015]
+              - cell [ref=e1017]:
+                - button "Edit Timer" [ref=e1019]:
+                  - img [ref=e1020]
+              - cell [ref=e1022]:
+                - button "Add Task" [ref=e1024]:
+                  - img [ref=e1025]
+              - cell [ref=e1027]:
+                - button "Edit Card" [ref=e1029]:
+                  - img [ref=e1030]
+            - row "This card has 0 notifications Getting Started Getting Started This card has a description This card has 0 attachments This card has 0 comments" [ref=e1032] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1033]:
+                - generic [ref=e1034]:
+                  - generic "This card has 0 notifications"
+              - cell "Getting Started" [ref=e1035]:
+                - generic "Getting Started" [ref=e1036]
+              - cell [ref=e1037]:
+                - button "Add Label" [ref=e1039]:
+                  - img [ref=e1040]
+              - cell [ref=e1042]:
+                - button "Add Member" [ref=e1044]:
+                  - img [ref=e1045]
+              - cell "Getting Started" [ref=e1047]:
+                - generic "Getting Started" [ref=e1050]
+              - cell "This card has a description" [ref=e1051]:
+                - img "This card has a description" [ref=e1053]
+              - cell "This card has 0 attachments" [ref=e1055]:
+                - generic [ref=e1056]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1057]:
+                - generic [ref=e1058]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1059]:
+                - button "Add Due Date" [ref=e1061]:
+                  - img [ref=e1062]
+              - cell [ref=e1064]
+              - cell [ref=e1066]:
+                - button "Edit Timer" [ref=e1068]:
+                  - img [ref=e1069]
+              - cell [ref=e1071]:
+                - button "Add Task" [ref=e1073]:
+                  - img [ref=e1074]
+              - cell [ref=e1076]:
+                - button "Edit Card" [ref=e1078]:
+                  - img [ref=e1079]
+            - row "This card has 0 notifications Useful key combinations Unique Feature Getting Started This card has a description This card has 0 attachments This card has 0 comments" [ref=e1081] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1082]:
+                - generic [ref=e1083]:
+                  - generic "This card has 0 notifications"
+              - cell "Useful key combinations" [ref=e1084]:
+                - generic "Useful key combinations" [ref=e1085]
+              - cell "Unique Feature" [ref=e1086]:
+                - generic "Unique Feature" [ref=e1089]
+              - cell [ref=e1090]:
+                - button "Add Member" [ref=e1092]:
+                  - img [ref=e1093]
+              - cell "Getting Started" [ref=e1095]:
+                - generic "Getting Started" [ref=e1098]
+              - cell "This card has a description" [ref=e1099]:
+                - img "This card has a description" [ref=e1101]
+              - cell "This card has 0 attachments" [ref=e1103]:
+                - generic [ref=e1104]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1105]:
+                - generic [ref=e1106]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1107]:
+                - button "Add Due Date" [ref=e1109]:
+                  - img [ref=e1110]
+              - cell [ref=e1112]
+              - cell [ref=e1114]:
+                - button "Edit Timer" [ref=e1116]:
+                  - img [ref=e1117]
+              - cell [ref=e1119]:
+                - button "Add Task" [ref=e1121]:
+                  - img [ref=e1122]
+              - cell [ref=e1124]:
+                - button "Edit Card" [ref=e1126]:
+                  - img [ref=e1127]
+            - row "This card has 0 notifications Work efficiently Best Practices Unique Feature Getting Started This card has a description This card has 0 attachments This card has 0 comments" [ref=e1129] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1130]:
+                - generic [ref=e1131]:
+                  - generic "This card has 0 notifications"
+              - cell "Work efficiently" [ref=e1132]:
+                - generic "Work efficiently" [ref=e1133]
+              - cell "Best Practices Unique Feature" [ref=e1134]:
+                - generic [ref=e1135]:
+                  - generic "Best Practices" [ref=e1137]
+                  - generic "Unique Feature" [ref=e1139]
+              - cell [ref=e1140]:
+                - button "Add Member" [ref=e1142]:
+                  - img [ref=e1143]
+              - cell "Getting Started" [ref=e1145]:
+                - generic "Getting Started" [ref=e1148]
+              - cell "This card has a description" [ref=e1149]:
+                - img "This card has a description" [ref=e1151]
+              - cell "This card has 0 attachments" [ref=e1153]:
+                - generic [ref=e1154]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1155]:
+                - generic [ref=e1156]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1157]:
+                - button "Add Due Date" [ref=e1159]:
+                  - img [ref=e1160]
+              - cell [ref=e1162]
+              - cell [ref=e1164]:
+                - button "Edit Timer" [ref=e1166]:
+                  - img [ref=e1167]
+              - cell [ref=e1169]:
+                - button "Add Task" [ref=e1171]:
+                  - img [ref=e1172]
+              - cell [ref=e1174]:
+                - button "Edit Card" [ref=e1176]:
+                  - img [ref=e1177]
+            - row "This card has 0 notifications 4ga Boards Website Useful Links This card has a description This card has 0 attachments This card has 0 comments" [ref=e1179] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1180]:
+                - generic [ref=e1181]:
+                  - generic "This card has 0 notifications"
+              - cell "4ga Boards Website" [ref=e1182]:
+                - generic "4ga Boards Website" [ref=e1183]
+              - cell [ref=e1184]:
+                - button "Add Label" [ref=e1186]:
+                  - img [ref=e1187]
+              - cell [ref=e1189]:
+                - button "Add Member" [ref=e1191]:
+                  - img [ref=e1192]
+              - cell "Useful Links" [ref=e1194]:
+                - generic "Useful Links" [ref=e1197]
+              - cell "This card has a description" [ref=e1198]:
+                - img "This card has a description" [ref=e1200]
+              - cell "This card has 0 attachments" [ref=e1202]:
+                - generic [ref=e1203]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1204]:
+                - generic [ref=e1205]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1206]:
+                - button "Add Due Date" [ref=e1208]:
+                  - img [ref=e1209]
+              - cell [ref=e1211]
+              - cell [ref=e1213]:
+                - button "Edit Timer" [ref=e1215]:
+                  - img [ref=e1216]
+              - cell [ref=e1218]:
+                - button "Add Task" [ref=e1220]:
+                  - img [ref=e1221]
+              - cell [ref=e1223]:
+                - button "Edit Card" [ref=e1225]:
+                  - img [ref=e1226]
+            - row "This card has 0 notifications Documentation Docs Useful Links This card has a description This card has 0 attachments This card has 0 comments" [ref=e1228] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1229]:
+                - generic [ref=e1230]:
+                  - generic "This card has 0 notifications"
+              - cell "Documentation" [ref=e1231]:
+                - generic "Documentation" [ref=e1232]
+              - cell "Docs" [ref=e1233]:
+                - generic "Docs" [ref=e1236]
+              - cell [ref=e1237]:
+                - button "Add Member" [ref=e1239]:
+                  - img [ref=e1240]
+              - cell "Useful Links" [ref=e1242]:
+                - generic "Useful Links" [ref=e1245]
+              - cell "This card has a description" [ref=e1246]:
+                - img "This card has a description" [ref=e1248]
+              - cell "This card has 0 attachments" [ref=e1250]:
+                - generic [ref=e1251]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1252]:
+                - generic [ref=e1253]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1254]:
+                - button "Add Due Date" [ref=e1256]:
+                  - img [ref=e1257]
+              - cell [ref=e1259]
+              - cell [ref=e1261]:
+                - button "Edit Timer" [ref=e1263]:
+                  - img [ref=e1264]
+              - cell [ref=e1266]:
+                - button "Add Task" [ref=e1268]:
+                  - img [ref=e1269]
+              - cell [ref=e1271]:
+                - button "Edit Card" [ref=e1273]:
+                  - img [ref=e1274]
+            - row "This card has 0 notifications GitHub Useful Links This card has a description This card has 0 attachments This card has 0 comments" [ref=e1276] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1277]:
+                - generic [ref=e1278]:
+                  - generic "This card has 0 notifications"
+              - cell "GitHub" [ref=e1279]:
+                - generic "GitHub" [ref=e1280]
+              - cell [ref=e1281]:
+                - button "Add Label" [ref=e1283]:
+                  - img [ref=e1284]
+              - cell [ref=e1286]:
+                - button "Add Member" [ref=e1288]:
+                  - img [ref=e1289]
+              - cell "Useful Links" [ref=e1291]:
+                - generic "Useful Links" [ref=e1294]
+              - cell "This card has a description" [ref=e1295]:
+                - img "This card has a description" [ref=e1297]
+              - cell "This card has 0 attachments" [ref=e1299]:
+                - generic [ref=e1300]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1301]:
+                - generic [ref=e1302]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1303]:
+                - button "Add Due Date" [ref=e1305]:
+                  - img [ref=e1306]
+              - cell [ref=e1308]
+              - cell [ref=e1310]:
+                - button "Edit Timer" [ref=e1312]:
+                  - img [ref=e1313]
+              - cell [ref=e1315]:
+                - button "Add Task" [ref=e1317]:
+                  - img [ref=e1318]
+              - cell [ref=e1320]:
+                - button "Edit Card" [ref=e1322]:
+                  - img [ref=e1323]
+            - row "This card has 0 notifications Enjoying 4ga Boards? Useful Links This card has a description 1 This card has 0 comments" [ref=e1325] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1326]:
+                - generic [ref=e1327]:
+                  - generic "This card has 0 notifications"
+              - cell "Enjoying 4ga Boards?" [ref=e1328]:
+                - generic "Enjoying 4ga Boards?" [ref=e1329]
+              - cell [ref=e1330]:
+                - button "Add Label" [ref=e1332]:
+                  - img [ref=e1333]
+              - cell [ref=e1335]:
+                - button "Add Member" [ref=e1337]:
+                  - img [ref=e1338]
+              - cell "Useful Links" [ref=e1340]:
+                - generic "Useful Links" [ref=e1343]
+              - cell "This card has a description" [ref=e1344]:
+                - img "This card has a description" [ref=e1346]
+              - cell "1" [ref=e1348]:
+                - generic "This card has 1 attachment" [ref=e1350]: "1"
+              - cell "This card has 0 comments" [ref=e1351]:
+                - generic [ref=e1352]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1353]:
+                - button "Add Due Date" [ref=e1355]:
+                  - img [ref=e1356]
+              - cell [ref=e1358]
+              - cell [ref=e1360]:
+                - button "Edit Timer" [ref=e1362]:
+                  - img [ref=e1363]
+              - cell [ref=e1365]:
+                - button "Add Task" [ref=e1367]:
+                  - img [ref=e1368]
+              - cell [ref=e1370]:
+                - button "Edit Card" [ref=e1372]:
+                  - img [ref=e1373]
+            - row "This card has 0 notifications Projects/boards filtering Basics This card has a description This card has 0 attachments This card has 0 comments" [ref=e1375] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1376]:
+                - generic [ref=e1377]:
+                  - generic "This card has 0 notifications"
+              - cell "Projects/boards filtering" [ref=e1378]:
+                - generic "Projects/boards filtering" [ref=e1379]
+              - cell [ref=e1380]:
+                - button "Add Label" [ref=e1382]:
+                  - img [ref=e1383]
+              - cell [ref=e1385]:
+                - button "Add Member" [ref=e1387]:
+                  - img [ref=e1388]
+              - cell "Basics" [ref=e1390]:
+                - generic "Basics" [ref=e1393]
+              - cell "This card has a description" [ref=e1394]:
+                - img "This card has a description" [ref=e1396]
+              - cell "This card has 0 attachments" [ref=e1398]:
+                - generic [ref=e1399]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1400]:
+                - generic [ref=e1401]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1402]:
+                - button "Add Due Date" [ref=e1404]:
+                  - img [ref=e1405]
+              - cell [ref=e1407]
+              - cell [ref=e1409]:
+                - button "Edit Timer" [ref=e1411]:
+                  - img [ref=e1412]
+              - cell [ref=e1414]:
+                - button "Add Task" [ref=e1416]:
+                  - img [ref=e1417]
+              - cell [ref=e1419]:
+                - button "Edit Card" [ref=e1421]:
+                  - img [ref=e1422]
+            - row "This card has 0 notifications Navigating across the board Basics This card has a description This card has 0 attachments This card has 0 comments" [ref=e1424] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1425]:
+                - generic [ref=e1426]:
+                  - generic "This card has 0 notifications"
+              - cell "Navigating across the board" [ref=e1427]:
+                - generic "Navigating across the board" [ref=e1428]
+              - cell [ref=e1429]:
+                - button "Add Label" [ref=e1431]:
+                  - img [ref=e1432]
+              - cell [ref=e1434]:
+                - button "Add Member" [ref=e1436]:
+                  - img [ref=e1437]
+              - cell "Basics" [ref=e1439]:
+                - generic "Basics" [ref=e1442]
+              - cell "This card has a description" [ref=e1443]:
+                - img "This card has a description" [ref=e1445]
+              - cell "This card has 0 attachments" [ref=e1447]:
+                - generic [ref=e1448]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1449]:
+                - generic [ref=e1450]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1451]:
+                - button "Add Due Date" [ref=e1453]:
+                  - img [ref=e1454]
+              - cell [ref=e1456]
+              - cell [ref=e1458]:
+                - button "Edit Timer" [ref=e1460]:
+                  - img [ref=e1461]
+              - cell [ref=e1463]:
+                - button "Add Task" [ref=e1465]:
+                  - img [ref=e1466]
+              - cell [ref=e1468]:
+                - button "Edit Card" [ref=e1470]:
+                  - img [ref=e1471]
+            - row "This card has 0 notifications Board menu (filtering, members) Basics This card has a description This card has 0 attachments This card has 0 comments" [ref=e1473] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1474]:
+                - generic [ref=e1475]:
+                  - generic "This card has 0 notifications"
+              - cell "Board menu (filtering, members)" [ref=e1476]:
+                - generic "Board menu (filtering, members)" [ref=e1477]
+              - cell [ref=e1478]:
+                - button "Add Label" [ref=e1480]:
+                  - img [ref=e1481]
+              - cell [ref=e1483]:
+                - button "Add Member" [ref=e1485]:
+                  - img [ref=e1486]
+              - cell "Basics" [ref=e1488]:
+                - generic "Basics" [ref=e1491]
+              - cell "This card has a description" [ref=e1492]:
+                - img "This card has a description" [ref=e1494]
+              - cell "This card has 0 attachments" [ref=e1496]:
+                - generic [ref=e1497]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1498]:
+                - generic [ref=e1499]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1500]:
+                - button "Add Due Date" [ref=e1502]:
+                  - img [ref=e1503]
+              - cell [ref=e1505]
+              - cell [ref=e1507]:
+                - button "Edit Timer" [ref=e1509]:
+                  - img [ref=e1510]
+              - cell [ref=e1512]:
+                - button "Add Task" [ref=e1514]:
+                  - img [ref=e1515]
+              - cell [ref=e1517]:
+                - button "Edit Card" [ref=e1519]:
+                  - img [ref=e1520]
+            - row "This card has 0 notifications Add users to the board Basics This card has a description This card has 0 attachments This card has 0 comments" [ref=e1522] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1523]:
+                - generic [ref=e1524]:
+                  - generic "This card has 0 notifications"
+              - cell "Add users to the board" [ref=e1525]:
+                - generic "Add users to the board" [ref=e1526]
+              - cell [ref=e1527]:
+                - button "Add Label" [ref=e1529]:
+                  - img [ref=e1530]
+              - cell [ref=e1532]:
+                - button "Add Member" [ref=e1534]:
+                  - img [ref=e1535]
+              - cell "Basics" [ref=e1537]:
+                - generic "Basics" [ref=e1540]
+              - cell "This card has a description" [ref=e1541]:
+                - img "This card has a description" [ref=e1543]
+              - cell "This card has 0 attachments" [ref=e1545]:
+                - generic [ref=e1546]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1547]:
+                - generic [ref=e1548]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1549]:
+                - button "Add Due Date" [ref=e1551]:
+                  - img [ref=e1552]
+              - cell [ref=e1554]
+              - cell [ref=e1556]:
+                - button "Edit Timer" [ref=e1558]:
+                  - img [ref=e1559]
+              - cell [ref=e1561]:
+                - button "Add Task" [ref=e1563]:
+                  - img [ref=e1564]
+              - cell [ref=e1566]:
+                - button "Edit Card" [ref=e1568]:
+                  - img [ref=e1569]
+            - row "This card has 0 notifications Collapse/Expand lists Unique Feature Basics This card has a description This card has 0 attachments This card has 0 comments" [ref=e1571] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1572]:
+                - generic [ref=e1573]:
+                  - generic "This card has 0 notifications"
+              - cell "Collapse/Expand lists" [ref=e1574]:
+                - generic "Collapse/Expand lists" [ref=e1575]
+              - cell "Unique Feature" [ref=e1576]:
+                - generic "Unique Feature" [ref=e1579]
+              - cell [ref=e1580]:
+                - button "Add Member" [ref=e1582]:
+                  - img [ref=e1583]
+              - cell "Basics" [ref=e1585]:
+                - generic "Basics" [ref=e1588]
+              - cell "This card has a description" [ref=e1589]:
+                - img "This card has a description" [ref=e1591]
+              - cell "This card has 0 attachments" [ref=e1593]:
+                - generic [ref=e1594]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1595]:
+                - generic [ref=e1596]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1597]:
+                - button "Add Due Date" [ref=e1599]:
+                  - img [ref=e1600]
+              - cell [ref=e1602]
+              - cell [ref=e1604]:
+                - button "Edit Timer" [ref=e1606]:
+                  - img [ref=e1607]
+              - cell [ref=e1609]:
+                - button "Add Task" [ref=e1611]:
+                  - img [ref=e1612]
+              - cell [ref=e1614]:
+                - button "Edit Card" [ref=e1616]:
+                  - img [ref=e1617]
+            - row "This card has 0 notifications You will see this card only after you expand the list Collapsed list This card has 0 attachments This card has 0 comments" [ref=e1619] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1620]:
+                - generic [ref=e1621]:
+                  - generic "This card has 0 notifications"
+              - cell "You will see this card only after you expand the list" [ref=e1622]:
+                - generic "You will see this card only after you expand the list" [ref=e1623]
+              - cell [ref=e1624]:
+                - button "Add Label" [ref=e1626]:
+                  - img [ref=e1627]
+              - cell [ref=e1629]:
+                - button "Add Member" [ref=e1631]:
+                  - img [ref=e1632]
+              - cell "Collapsed list" [ref=e1634]:
+                - generic "Collapsed list" [ref=e1637]
+              - cell [ref=e1638]
+              - cell "This card has 0 attachments" [ref=e1640]:
+                - generic [ref=e1641]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1642]:
+                - generic [ref=e1643]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1644]:
+                - button "Add Due Date" [ref=e1646]:
+                  - img [ref=e1647]
+              - cell [ref=e1649]
+              - cell [ref=e1651]:
+                - button "Edit Timer" [ref=e1653]:
+                  - img [ref=e1654]
+              - cell [ref=e1656]:
+                - button "Add Task" [ref=e1658]:
+                  - img [ref=e1659]
+              - cell [ref=e1661]:
+                - button "Edit Card" [ref=e1663]:
+                  - img [ref=e1664]
+            - row "This card has 0 notifications Go to Settings Docs Settings This card has a description This card has 0 attachments This card has 0 comments" [ref=e1666] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1667]:
+                - generic [ref=e1668]:
+                  - generic "This card has 0 notifications"
+              - cell "Go to Settings" [ref=e1669]:
+                - generic "Go to Settings" [ref=e1670]
+              - cell "Docs" [ref=e1671]:
+                - generic "Docs" [ref=e1674]
+              - cell [ref=e1675]:
+                - button "Add Member" [ref=e1677]:
+                  - img [ref=e1678]
+              - cell "Settings" [ref=e1680]:
+                - generic "Settings" [ref=e1683]
+              - cell "This card has a description" [ref=e1684]:
+                - img "This card has a description" [ref=e1686]
+              - cell "This card has 0 attachments" [ref=e1688]:
+                - generic [ref=e1689]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1690]:
+                - generic [ref=e1691]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1692]:
+                - button "Add Due Date" [ref=e1694]:
+                  - img [ref=e1695]
+              - cell [ref=e1697]
+              - cell [ref=e1699]:
+                - button "Edit Timer" [ref=e1701]:
+                  - img [ref=e1702]
+              - cell [ref=e1704]:
+                - button "Add Task" [ref=e1706]:
+                  - img [ref=e1707]
+              - cell [ref=e1709]:
+                - button "Edit Card" [ref=e1711]:
+                  - img [ref=e1712]
+            - row "This card has 0 notifications How to change language? Settings This card has a description This card has 0 attachments This card has 0 comments" [ref=e1714] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1715]:
+                - generic [ref=e1716]:
+                  - generic "This card has 0 notifications"
+              - cell "How to change language?" [ref=e1717]:
+                - generic "How to change language?" [ref=e1718]
+              - cell [ref=e1719]:
+                - button "Add Label" [ref=e1721]:
+                  - img [ref=e1722]
+              - cell [ref=e1724]:
+                - button "Add Member" [ref=e1726]:
+                  - img [ref=e1727]
+              - cell "Settings" [ref=e1729]:
+                - generic "Settings" [ref=e1732]
+              - cell "This card has a description" [ref=e1733]:
+                - img "This card has a description" [ref=e1735]
+              - cell "This card has 0 attachments" [ref=e1737]:
+                - generic [ref=e1738]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1739]:
+                - generic [ref=e1740]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1741]:
+                - button "Add Due Date" [ref=e1743]:
+                  - img [ref=e1744]
+              - cell [ref=e1746]
+              - cell [ref=e1748]:
+                - button "Edit Timer" [ref=e1750]:
+                  - img [ref=e1751]
+              - cell [ref=e1753]:
+                - button "Add Task" [ref=e1755]:
+                  - img [ref=e1756]
+              - cell [ref=e1758]:
+                - button "Edit Card" [ref=e1760]:
+                  - img [ref=e1761]
+            - row "This card has 0 notifications Too wide sidebar? Do you want to hide it? Unique Feature Settings This card has a description This card has 0 attachments This card has 0 comments" [ref=e1763] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1764]:
+                - generic [ref=e1765]:
+                  - generic "This card has 0 notifications"
+              - cell "Too wide sidebar? Do you want to hide it?" [ref=e1766]:
+                - generic "Too wide sidebar? Do you want to hide it?" [ref=e1767]
+              - cell "Unique Feature" [ref=e1768]:
+                - generic "Unique Feature" [ref=e1771]
+              - cell [ref=e1772]:
+                - button "Add Member" [ref=e1774]:
+                  - img [ref=e1775]
+              - cell "Settings" [ref=e1777]:
+                - generic "Settings" [ref=e1780]
+              - cell "This card has a description" [ref=e1781]:
+                - img "This card has a description" [ref=e1783]
+              - cell "This card has 0 attachments" [ref=e1785]:
+                - generic [ref=e1786]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1787]:
+                - generic [ref=e1788]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1789]:
+                - button "Add Due Date" [ref=e1791]:
+                  - img [ref=e1792]
+              - cell [ref=e1794]
+              - cell [ref=e1796]:
+                - button "Edit Timer" [ref=e1798]:
+                  - img [ref=e1799]
+              - cell [ref=e1801]:
+                - button "Add Task" [ref=e1803]:
+                  - img [ref=e1804]
+              - cell [ref=e1806]:
+                - button "Edit Card" [ref=e1808]:
+                  - img [ref=e1809]
+            - row "This card has 0 notifications Cards Cards This card has a description This card has 0 attachments This card has 0 comments" [ref=e1811] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1812]:
+                - generic [ref=e1813]:
+                  - generic "This card has 0 notifications"
+              - cell "Cards" [ref=e1814]:
+                - generic "Cards" [ref=e1815]
+              - cell [ref=e1816]:
+                - button "Add Label" [ref=e1818]:
+                  - img [ref=e1819]
+              - cell [ref=e1821]:
+                - button "Add Member" [ref=e1823]:
+                  - img [ref=e1824]
+              - cell "Cards" [ref=e1826]:
+                - generic "Cards" [ref=e1829]
+              - cell "This card has a description" [ref=e1830]:
+                - img "This card has a description" [ref=e1832]
+              - cell "This card has 0 attachments" [ref=e1834]:
+                - generic [ref=e1835]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1836]:
+                - generic [ref=e1837]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1838]:
+                - button "Add Due Date" [ref=e1840]:
+                  - img [ref=e1841]
+              - cell [ref=e1843]
+              - cell [ref=e1845]:
+                - button "Edit Timer" [ref=e1847]:
+                  - img [ref=e1848]
+              - cell [ref=e1850]:
+                - button "Add Task" [ref=e1852]:
+                  - img [ref=e1853]
+              - cell [ref=e1855]:
+                - button "Edit Card" [ref=e1857]:
+                  - img [ref=e1858]
+            - row "This card has 0 notifications Moving cards Cards This card has a description This card has 0 attachments This card has 0 comments" [ref=e1860] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1861]:
+                - generic [ref=e1862]:
+                  - generic "This card has 0 notifications"
+              - cell "Moving cards" [ref=e1863]:
+                - generic "Moving cards" [ref=e1864]
+              - cell [ref=e1865]:
+                - button "Add Label" [ref=e1867]:
+                  - img [ref=e1868]
+              - cell [ref=e1870]:
+                - button "Add Member" [ref=e1872]:
+                  - img [ref=e1873]
+              - cell "Cards" [ref=e1875]:
+                - generic "Cards" [ref=e1878]
+              - cell "This card has a description" [ref=e1879]:
+                - img "This card has a description" [ref=e1881]
+              - cell "This card has 0 attachments" [ref=e1883]:
+                - generic [ref=e1884]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1885]:
+                - generic [ref=e1886]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1887]:
+                - button "Add Due Date" [ref=e1889]:
+                  - img [ref=e1890]
+              - cell [ref=e1892]
+              - cell [ref=e1894]:
+                - button "Edit Timer" [ref=e1896]:
+                  - img [ref=e1897]
+              - cell [ref=e1899]:
+                - button "Add Task" [ref=e1901]:
+                  - img [ref=e1902]
+              - cell [ref=e1904]:
+                - button "Edit Card" [ref=e1906]:
+                  - img [ref=e1907]
+            - row "This card has 0 notifications Members Z1 Cards This card has a description This card has 0 attachments This card has 0 comments" [ref=e1909] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1910]:
+                - generic [ref=e1911]:
+                  - generic "This card has 0 notifications"
+              - cell "Members" [ref=e1912]:
+                - generic "Members" [ref=e1913]
+              - cell [ref=e1914]:
+                - button "Add Label" [ref=e1916]:
+                  - img [ref=e1917]
+              - cell "Z1" [ref=e1919]:
+                - generic "z1491861920" [ref=e1922]: Z1
+              - cell "Cards" [ref=e1923]:
+                - generic "Cards" [ref=e1926]
+              - cell "This card has a description" [ref=e1927]:
+                - img "This card has a description" [ref=e1929]
+              - cell "This card has 0 attachments" [ref=e1931]:
+                - generic [ref=e1932]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1933]:
+                - generic [ref=e1934]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1935]:
+                - button "Add Due Date" [ref=e1937]:
+                  - img [ref=e1938]
+              - cell [ref=e1940]
+              - cell [ref=e1942]:
+                - button "Edit Timer" [ref=e1944]:
+                  - img [ref=e1945]
+              - cell [ref=e1947]:
+                - button "Add Task" [ref=e1949]:
+                  - img [ref=e1950]
+              - cell [ref=e1952]:
+                - button "Edit Card" [ref=e1954]:
+                  - img [ref=e1955]
+            - row "This card has 0 notifications Labels Sample Label Cards This card has a description This card has 0 attachments This card has 0 comments" [ref=e1957] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e1958]:
+                - generic [ref=e1959]:
+                  - generic "This card has 0 notifications"
+              - cell "Labels" [ref=e1960]:
+                - generic "Labels" [ref=e1961]
+              - cell "Sample Label" [ref=e1962]:
+                - generic "Sample Label" [ref=e1965]
+              - cell [ref=e1966]:
+                - button "Add Member" [ref=e1968]:
+                  - img [ref=e1969]
+              - cell "Cards" [ref=e1971]:
+                - generic "Cards" [ref=e1974]
+              - cell "This card has a description" [ref=e1975]:
+                - img "This card has a description" [ref=e1977]
+              - cell "This card has 0 attachments" [ref=e1979]:
+                - generic [ref=e1980]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e1981]:
+                - generic [ref=e1982]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e1983]:
+                - button "Add Due Date" [ref=e1985]:
+                  - img [ref=e1986]
+              - cell [ref=e1988]
+              - cell [ref=e1990]:
+                - button "Edit Timer" [ref=e1992]:
+                  - img [ref=e1993]
+              - cell [ref=e1995]:
+                - button "Add Task" [ref=e1997]:
+                  - img [ref=e1998]
+              - cell [ref=e2000]:
+                - button "Edit Card" [ref=e2002]:
+                  - img [ref=e2003]
+            - row "This card has 0 notifications Due Date Cards This card has a description This card has 0 attachments This card has 0 comments 17.10.2024 17.10.2024" [ref=e2005] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e2006]:
+                - generic [ref=e2007]:
+                  - generic "This card has 0 notifications"
+              - cell "Due Date" [ref=e2008]:
+                - generic "Due Date" [ref=e2009]
+              - cell [ref=e2010]:
+                - button "Add Label" [ref=e2012]:
+                  - img [ref=e2013]
+              - cell [ref=e2015]:
+                - button "Add Member" [ref=e2017]:
+                  - img [ref=e2018]
+              - cell "Cards" [ref=e2020]:
+                - generic "Cards" [ref=e2023]
+              - cell "This card has a description" [ref=e2024]:
+                - img "This card has a description" [ref=e2026]
+              - cell "This card has 0 attachments" [ref=e2028]:
+                - generic [ref=e2029]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e2030]:
+                - generic [ref=e2031]:
+                  - generic "This card has 0 comments"
+              - cell "17.10.2024" [ref=e2032]:
+                - generic "17.10.2024" [ref=e2035]
+              - cell "17.10.2024" [ref=e2036]:
+                - 'generic "The closest due date for card: 17.10.2024" [ref=e2039]': 17.10.2024
+              - cell [ref=e2040]:
+                - button "Edit Timer" [ref=e2042]:
+                  - img [ref=e2043]
+              - cell [ref=e2045]:
+                - button "Add Task" [ref=e2047]:
+                  - img [ref=e2048]
+              - cell [ref=e2050]:
+                - button "Edit Card" [ref=e2052]:
+                  - img [ref=e2053]
+            - row "This card has 0 notifications Timer Cards This card has a description This card has 0 attachments This card has 0 comments 1:12:05" [ref=e2055] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e2056]:
+                - generic [ref=e2057]:
+                  - generic "This card has 0 notifications"
+              - cell "Timer" [ref=e2058]:
+                - generic "Timer" [ref=e2059]
+              - cell [ref=e2060]:
+                - button "Add Label" [ref=e2062]:
+                  - img [ref=e2063]
+              - cell [ref=e2065]:
+                - button "Add Member" [ref=e2067]:
+                  - img [ref=e2068]
+              - cell "Cards" [ref=e2070]:
+                - generic "Cards" [ref=e2073]
+              - cell "This card has a description" [ref=e2074]:
+                - img "This card has a description" [ref=e2076]
+              - cell "This card has 0 attachments" [ref=e2078]:
+                - generic [ref=e2079]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e2080]:
+                - generic [ref=e2081]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e2082]:
+                - button "Add Due Date" [ref=e2084]:
+                  - img [ref=e2085]
+              - cell [ref=e2087]
+              - cell "1:12:05" [ref=e2089]:
+                - generic "Start Timer" [ref=e2091]:
+                  - generic [ref=e2092]:
+                    - img [ref=e2093]
+                    - text: 1:12:05
+              - cell [ref=e2095]:
+                - button "Add Task" [ref=e2097]:
+                  - img [ref=e2098]
+              - cell [ref=e2100]:
+                - button "Edit Card" [ref=e2102]:
+                  - img [ref=e2103]
+            - row "This card has 0 notifications Notifications Cards This card has a description This card has 0 attachments This card has 0 comments" [ref=e2105] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e2106]:
+                - generic [ref=e2107]:
+                  - generic "This card has 0 notifications"
+              - cell "Notifications" [ref=e2108]:
+                - generic "Notifications" [ref=e2109]
+              - cell [ref=e2110]:
+                - button "Add Label" [ref=e2112]:
+                  - img [ref=e2113]
+              - cell [ref=e2115]:
+                - button "Add Member" [ref=e2117]:
+                  - img [ref=e2118]
+              - cell "Cards" [ref=e2120]:
+                - generic "Cards" [ref=e2123]
+              - cell "This card has a description" [ref=e2124]:
+                - img "This card has a description" [ref=e2126]
+              - cell "This card has 0 attachments" [ref=e2128]:
+                - generic [ref=e2129]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e2130]:
+                - generic [ref=e2131]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e2132]:
+                - button "Add Due Date" [ref=e2134]:
+                  - img [ref=e2135]
+              - cell [ref=e2137]
+              - cell [ref=e2139]:
+                - button "Edit Timer" [ref=e2141]:
+                  - img [ref=e2142]
+              - cell [ref=e2144]:
+                - button "Add Task" [ref=e2146]:
+                  - img [ref=e2147]
+              - cell [ref=e2149]:
+                - button "Edit Card" [ref=e2151]:
+                  - img [ref=e2152]
+            - 'row "This card has 0 notifications Tasks Cards This card has a description This card has 0 attachments This card has 0 comments 17.10.2024 Closest due date for unfinished task: 17.10.2024 1/4" [ref=e2154] [cursor=pointer]':
+              - cell "This card has 0 notifications" [ref=e2155]:
+                - generic [ref=e2156]:
+                  - generic "This card has 0 notifications"
+              - cell "Tasks" [ref=e2157]:
+                - generic "Tasks" [ref=e2158]
+              - cell [ref=e2159]:
+                - button "Add Label" [ref=e2161]:
+                  - img [ref=e2162]
+              - cell [ref=e2164]:
+                - button "Add Member" [ref=e2166]:
+                  - img [ref=e2167]
+              - cell "Cards" [ref=e2169]:
+                - generic "Cards" [ref=e2172]
+              - cell "This card has a description" [ref=e2173]:
+                - img "This card has a description" [ref=e2175]
+              - cell "This card has 0 attachments" [ref=e2177]:
+                - generic [ref=e2178]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e2179]:
+                - generic [ref=e2180]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e2181]:
+                - button "Add Due Date" [ref=e2183]:
+                  - img [ref=e2184]
+              - cell "17.10.2024" [ref=e2186]:
+                - 'generic "The closest due date for card: 17.10.2024" [ref=e2189]': 17.10.2024
+              - cell [ref=e2190]:
+                - button "Edit Timer" [ref=e2192]:
+                  - img [ref=e2193]
+              - 'cell "Closest due date for unfinished task: 17.10.2024 1/4" [ref=e2195]':
+                - generic [ref=e2201]:
+                  - 'generic "Closest due date for unfinished task: 17.10.2024" [ref=e2202]':
+                    - img [ref=e2203]
+                  - button "1/4" [ref=e2206]:
+                    - text: 1/4
+                    - img [ref=e2207]
+              - cell [ref=e2209]:
+                - button "Edit Card" [ref=e2211]:
+                  - img [ref=e2212]
+            - row "This card has 0 notifications Attachments Cards This card has a description 2 This card has 0 comments" [ref=e2214] [cursor=pointer]:
+              - cell "This card has 0 notifications" [ref=e2215]:
+                - generic [ref=e2216]:
+                  - generic "This card has 0 notifications"
+              - cell "Attachments" [ref=e2217]:
+                - generic "Attachments" [ref=e2218]
+              - cell [ref=e2219]:
+                - button "Add Label" [ref=e2221]:
+                  - img [ref=e2222]
+              - cell [ref=e2224]:
+                - button "Add Member" [ref=e2226]:
+                  - img [ref=e2227]
+              - cell "Cards" [ref=e2229]:
+                - generic "Cards" [ref=e2232]
+              - cell "This card has a description" [ref=e2233]:
+                - img "This card has a description" [ref=e2235]
+              - cell "2" [ref=e2237]:
+                - generic "This card has 2 attachments" [ref=e2239]: "2"
+              - cell "This card has 0 comments" [ref=e2240]:
+                - generic [ref=e2241]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e2242]:
+                - button "Add Due Date" [ref=e2244]:
+                  - img [ref=e2245]
+              - cell [ref=e2247]
+              - cell [ref=e2249]:
+                - button "Edit Timer" [ref=e2251]:
+                  - img [ref=e2252]
+              - cell [ref=e2254]:
+                - button "Add Task" [ref=e2256]:
+                  - img [ref=e2257]
+              - cell [ref=e2259]:
+                - button "Edit Card" [ref=e2261]:
+                  - img [ref=e2262]
+            - 'row "This card has 0 notifications Text editor: Description and Comments Description/Comments Text editor This card has a description This card has 0 attachments 1" [ref=e2264] [cursor=pointer]':
+              - cell "This card has 0 notifications" [ref=e2265]:
+                - generic [ref=e2266]:
+                  - generic "This card has 0 notifications"
+              - 'cell "Text editor: Description and Comments" [ref=e2267]':
+                - 'generic "Text editor: Description and Comments" [ref=e2268]'
+              - cell [ref=e2269]:
+                - button "Add Label" [ref=e2271]:
+                  - img [ref=e2272]
+              - cell [ref=e2274]:
+                - button "Add Member" [ref=e2276]:
+                  - img [ref=e2277]
+              - cell "Description/Comments Text editor" [ref=e2279]:
+                - generic "Description/Comments Text editor" [ref=e2282]
+              - cell "This card has a description" [ref=e2283]:
+                - img "This card has a description" [ref=e2285]
+              - cell "This card has 0 attachments" [ref=e2287]:
+                - generic [ref=e2288]:
+                  - generic "This card has 0 attachments"
+              - cell "1" [ref=e2289]:
+                - generic "This card has 1 comment" [ref=e2291]: "1"
+              - cell [ref=e2292]:
+                - button "Add Due Date" [ref=e2294]:
+                  - img [ref=e2295]
+              - cell [ref=e2297]
+              - cell [ref=e2299]:
+                - button "Edit Timer" [ref=e2301]:
+                  - img [ref=e2302]
+              - cell [ref=e2304]:
+                - button "Add Task" [ref=e2306]:
+                  - img [ref=e2307]
+              - cell [ref=e2309]:
+                - button "Edit Card" [ref=e2311]:
+                  - img [ref=e2312]
+            - 'row "This card has 0 notifications Description: Local changes Description/Comments Text editor This card has a description This card has 0 attachments This card has 0 comments" [ref=e2314] [cursor=pointer]':
+              - cell "This card has 0 notifications" [ref=e2315]:
+                - generic [ref=e2316]:
+                  - generic "This card has 0 notifications"
+              - 'cell "Description: Local changes" [ref=e2317]':
+                - 'generic "Description: Local changes" [ref=e2318]'
+              - cell [ref=e2319]:
+                - button "Add Label" [ref=e2321]:
+                  - img [ref=e2322]
+              - cell [ref=e2324]:
+                - button "Add Member" [ref=e2326]:
+                  - img [ref=e2327]
+              - cell "Description/Comments Text editor" [ref=e2329]:
+                - generic "Description/Comments Text editor" [ref=e2332]
+              - cell "This card has a description" [ref=e2333]:
+                - img "This card has a description" [ref=e2335]
+              - cell "This card has 0 attachments" [ref=e2337]:
+                - generic [ref=e2338]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e2339]:
+                - generic [ref=e2340]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e2341]:
+                - button "Add Due Date" [ref=e2343]:
+                  - img [ref=e2344]
+              - cell [ref=e2346]
+              - cell [ref=e2348]:
+                - button "Edit Timer" [ref=e2350]:
+                  - img [ref=e2351]
+              - cell [ref=e2353]:
+                - button "Add Task" [ref=e2355]:
+                  - img [ref=e2356]
+              - cell [ref=e2358]:
+                - button "Edit Card" [ref=e2360]:
+                  - img [ref=e2361]
+            - 'row "This card has 0 notifications Text editor: View options Description/Comments Text editor This card has a description This card has 0 attachments This card has 0 comments" [ref=e2363] [cursor=pointer]':
+              - cell "This card has 0 notifications" [ref=e2364]:
+                - generic [ref=e2365]:
+                  - generic "This card has 0 notifications"
+              - 'cell "Text editor: View options" [ref=e2366]':
+                - 'generic "Text editor: View options" [ref=e2367]'
+              - cell [ref=e2368]:
+                - button "Add Label" [ref=e2370]:
+                  - img [ref=e2371]
+              - cell [ref=e2373]:
+                - button "Add Member" [ref=e2375]:
+                  - img [ref=e2376]
+              - cell "Description/Comments Text editor" [ref=e2378]:
+                - generic "Description/Comments Text editor" [ref=e2381]
+              - cell "This card has a description" [ref=e2382]:
+                - img "This card has a description" [ref=e2384]
+              - cell "This card has 0 attachments" [ref=e2386]:
+                - generic [ref=e2387]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e2388]:
+                - generic [ref=e2389]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e2390]:
+                - button "Add Due Date" [ref=e2392]:
+                  - img [ref=e2393]
+              - cell [ref=e2395]
+              - cell [ref=e2397]:
+                - button "Edit Timer" [ref=e2399]:
+                  - img [ref=e2400]
+              - cell [ref=e2402]:
+                - button "Add Task" [ref=e2404]:
+                  - img [ref=e2405]
+              - cell [ref=e2407]:
+                - button "Edit Card" [ref=e2409]:
+                  - img [ref=e2410]
+            - 'row "This card has 0 notifications Text editor: Advanced features Description/Comments Text editor This card has a description This card has 0 attachments This card has 0 comments" [ref=e2412] [cursor=pointer]':
+              - cell "This card has 0 notifications" [ref=e2413]:
+                - generic [ref=e2414]:
+                  - generic "This card has 0 notifications"
+              - 'cell "Text editor: Advanced features" [ref=e2415]':
+                - 'generic "Text editor: Advanced features" [ref=e2416]'
+              - cell [ref=e2417]:
+                - button "Add Label" [ref=e2419]:
+                  - img [ref=e2420]
+              - cell [ref=e2422]:
+                - button "Add Member" [ref=e2424]:
+                  - img [ref=e2425]
+              - cell "Description/Comments Text editor" [ref=e2427]:
+                - generic "Description/Comments Text editor" [ref=e2430]
+              - cell "This card has a description" [ref=e2431]:
+                - img "This card has a description" [ref=e2433]
+              - cell "This card has 0 attachments" [ref=e2435]:
+                - generic [ref=e2436]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e2437]:
+                - generic [ref=e2438]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e2439]:
+                - button "Add Due Date" [ref=e2441]:
+                  - img [ref=e2442]
+              - cell [ref=e2444]
+              - cell [ref=e2446]:
+                - button "Edit Timer" [ref=e2448]:
+                  - img [ref=e2449]
+              - cell [ref=e2451]:
+                - button "Add Task" [ref=e2453]:
+                  - img [ref=e2454]
+              - cell [ref=e2456]:
+                - button "Edit Card" [ref=e2458]:
+                  - img [ref=e2459]
+            - 'row "This card has 0 notifications Text editor: GitHub Unique Feature Description/Comments Text editor This card has a description This card has 0 attachments This card has 0 comments" [ref=e2461] [cursor=pointer]':
+              - cell "This card has 0 notifications" [ref=e2462]:
+                - generic [ref=e2463]:
+                  - generic "This card has 0 notifications"
+              - 'cell "Text editor: GitHub" [ref=e2464]':
+                - 'generic "Text editor: GitHub" [ref=e2465]'
+              - cell "Unique Feature" [ref=e2466]:
+                - generic "Unique Feature" [ref=e2469]
+              - cell [ref=e2470]:
+                - button "Add Member" [ref=e2472]:
+                  - img [ref=e2473]
+              - cell "Description/Comments Text editor" [ref=e2475]:
+                - generic "Description/Comments Text editor" [ref=e2478]
+              - cell "This card has a description" [ref=e2479]:
+                - img "This card has a description" [ref=e2481]
+              - cell "This card has 0 attachments" [ref=e2483]:
+                - generic [ref=e2484]:
+                  - generic "This card has 0 attachments"
+              - cell "This card has 0 comments" [ref=e2485]:
+                - generic [ref=e2486]:
+                  - generic "This card has 0 comments"
+              - cell [ref=e2487]:
+                - button "Add Due Date" [ref=e2489]:
+                  - img [ref=e2490]
+              - cell [ref=e2492]
+              - cell [ref=e2494]:
+                - button "Edit Timer" [ref=e2496]:
+                  - img [ref=e2497]
+              - cell [ref=e2499]:
+                - button "Add Task" [ref=e2501]:
+                  - img [ref=e2502]
+              - cell [ref=e2504]:
+                - button "Edit Card" [ref=e2506]:
+                  - img [ref=e2507]
+        - generic [ref=e2509]:
+          - button "First Page" [disabled] [ref=e2510]:
+            - img [ref=e2511]
+          - button "Previous Page" [disabled] [ref=e2514]:
+            - img [ref=e2515]
+          - textbox "1" [ref=e2517]
+          - generic [ref=e2518]: /1
+          - button "Next Page" [disabled] [ref=e2519]:
+            - img [ref=e2520]
+          - button "Last Page" [disabled] [ref=e2522]:
+            - img [ref=e2523]
+          - generic [ref=e2527]:
+            - textbox "all per page" [ref=e2528]
+            - button "Open dropdown" [ref=e2529] [cursor=pointer]:
+              - img [ref=e2530]
+          - button "Edit List View" [ref=e2533] [cursor=pointer]:
+            - img [ref=e2534]
+          - generic [ref=e2536]:
+            - button "Add List" [ref=e2538] [cursor=pointer]:
+              - img [ref=e2539]
+              - generic [ref=e2541]: Add List
+            - button "Add Card" [ref=e2543] [cursor=pointer]:
+              - img [ref=e2544]
+              - generic [ref=e2546]: Add Card

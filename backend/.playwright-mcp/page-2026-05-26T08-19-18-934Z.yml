@@ -1,0 +1,465 @@
+- generic [ref=e2]:
+  - generic [ref=e5]:
+    - link "4ga Boards" [ref=e6] [cursor=pointer]:
+      - /url: /
+      - button "4ga Boards" [ref=e7]:
+        - img "4ga Boards" [ref=e8]
+    - generic "Getting started" [ref=e147]
+    - generic [ref=e10]:
+      - link "Star 4ga Boards on GitHub! Your support speeds up development" [ref=e11] [cursor=pointer]:
+        - /url: https://github.com/RARgames/4gaBoards
+        - img [ref=e12]
+        - generic [ref=e14]:
+          - generic [ref=e15]: Star 4ga Boards on GitHub!
+          - generic [ref=e16]: Your support speeds up development
+      - link "We'd love to hear your feedback! It means a lot for us" [ref=e18] [cursor=pointer]:
+        - /url: https://forms.gle/FqjR7uhBp9Gn2fu26
+        - img [ref=e19]
+        - generic [ref=e21]:
+          - generic [ref=e22]: We'd love to hear your feedback!
+          - generic [ref=e23]: It means a lot for us
+    - generic [ref=e24]:
+      - link "Settings" [ref=e25] [cursor=pointer]:
+        - /url: /settings
+        - button "Settings" [ref=e26]:
+          - img [ref=e27]
+      - 'link "Settings: Users" [ref=e29] [cursor=pointer]':
+        - /url: /settings/users
+        - 'button "Settings: Users" [ref=e30]':
+          - img [ref=e31]
+      - button "Notifications" [ref=e34] [cursor=pointer]:
+        - img [ref=e35]
+      - button "Z1" [ref=e38] [cursor=pointer]:
+        - generic [ref=e39]: Z1
+  - generic [ref=e41]:
+    - button "Hide Sidebar" [ref=e42] [cursor=pointer]:
+      - img [ref=e43]
+    - generic [ref=e45]:
+      - generic [ref=e48]:
+        - textbox "Filter projects..." [ref=e49]
+        - button "P" [ref=e50] [cursor=pointer]:
+          - generic [ref=e51]: P
+          - img [ref=e52]
+      - generic [ref=e117]:
+        - generic [ref=e118]:
+          - button "Hide boards" [ref=e132] [cursor=pointer]:
+            - img [ref=e120]
+          - link "Getting started" [ref=e122] [cursor=pointer]:
+            - /url: /projects/1782743791292122327
+            - button "Getting started" [ref=e123]
+          - button "Edit Project" [ref=e125] [cursor=pointer]:
+            - img [ref=e126]
+          - dialog [ref=e153]:
+            - button "Rename Project" [active] [ref=e154] [cursor=pointer]:
+              - img [ref=e155]
+              - text: Rename Project
+            - link "Project Settings" [ref=e157] [cursor=pointer]:
+              - /url: /projects/1782743791292122327/settings
+              - button "Project Settings" [ref=e158]:
+                - img [ref=e159]
+                - text: Project Settings
+            - button "Check Activity" [ref=e161] [cursor=pointer]:
+              - img [ref=e162]
+              - text: Check Activity
+            - button "Add Board" [ref=e164] [cursor=pointer]:
+              - img [ref=e165]
+              - text: Add Board
+        - generic [ref=e135]:
+          - button "Reorder boards within the project" [ref=e136]:
+            - button "Reorder boards within the project" [ref=e137] [cursor=pointer]:
+              - img [ref=e138]
+          - link "Learn 4ga Boards" [ref=e140] [cursor=pointer]:
+            - /url: /boards/1782743791409562843
+            - button "Learn 4ga Boards" [ref=e141]
+          - button "Edit Board" [ref=e143] [cursor=pointer]:
+            - img [ref=e144]
+      - generic [ref=e67]:
+        - button "Add Project" [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - text: Add Project
+        - button "Add Board" [ref=e73] [cursor=pointer]:
+          - img [ref=e74]
+          - text: Add Board
+    - generic [ref=e169]:
+      - generic [ref=e170]:
+        - button "Unsubscribe" [ref=e171] [cursor=pointer]:
+          - img [ref=e172]
+        - generic "Learn 4ga Boards" [ref=e174]
+        - generic [ref=e175]: 31 cards
+        - img "Not connected to GitHub" [ref=e178]
+        - generic [ref=e181]:
+          - generic "z1491861920" [ref=e184]: Z1
+          - button "Add user" [ref=e186] [cursor=pointer]:
+            - img [ref=e187]
+        - generic [ref=e189]:
+          - textbox "Filter cards..." [ref=e192]
+          - generic [ref=e193]:
+            - button "Match Case [Alt+C]" [ref=e194] [cursor=pointer]:
+              - img [ref=e195]
+            - button "Any Match [Alt+V]" [ref=e198] [cursor=pointer]:
+              - img [ref=e199]
+          - button "Filter By Members" [ref=e203] [cursor=pointer]:
+            - img [ref=e205]
+          - button "Filter By Labels" [ref=e209] [cursor=pointer]:
+            - img [ref=e211]
+          - button "Filter by Notifications" [ref=e214] [cursor=pointer]:
+            - img [ref=e216]
+          - button "Filter by Due Date" [ref=e220] [cursor=pointer]:
+            - img [ref=e222]
+        - generic [ref=e225]:
+          - button "Switch to Board View" [ref=e226] [cursor=pointer]:
+            - img [ref=e227]
+          - button "Switch to List View" [ref=e229] [cursor=pointer]:
+            - img [ref=e230]
+        - link "Project Settings" [ref=e233] [cursor=pointer]:
+          - /url: /projects/1782743791292122327/settings
+          - button "Project Settings" [ref=e234]:
+            - img [ref=e235]
+        - button "Edit Board" [ref=e239] [cursor=pointer]:
+          - img [ref=e240]
+        - link "Back to Project" [ref=e243] [cursor=pointer]:
+          - /url: /projects/1782743791292122327
+          - button "Back to Project" [ref=e244]:
+            - img [ref=e245]
+      - generic [ref=e249]:
+        - generic [ref=e251]:
+          - button "Collapse List Getting Started Edit List 4 cards" [ref=e252]:
+            - button "Collapse List" [ref=e253] [cursor=pointer]:
+              - img [ref=e254]
+            - generic "Getting Started" [ref=e256] [cursor=pointer]
+            - button "Edit List" [ref=e259] [cursor=pointer]:
+              - img [ref=e260]
+            - generic [ref=e262]: 4 cards
+          - generic [ref=e266]:
+            - button "Different language of Getting Started? This card has a description Edit Card" [ref=e267] [cursor=pointer]:
+              - generic [ref=e268]:
+                - generic [ref=e269]:
+                  - generic "Different language of Getting Started?" [ref=e272]
+                  - img "This card has a description" [ref=e276]
+                - button "Edit Card" [ref=e280]:
+                  - img [ref=e281]
+            - button "Getting Started This card has a description Edit Card" [ref=e283] [cursor=pointer]:
+              - generic [ref=e284]:
+                - generic [ref=e285]:
+                  - generic "Getting Started" [ref=e288]
+                  - img "This card has a description" [ref=e292]
+                - button "Edit Card" [ref=e296]:
+                  - img [ref=e297]
+            - button "Useful key combinations Unique Feature This card has a description Edit Card" [ref=e299] [cursor=pointer]:
+              - generic [ref=e300]:
+                - generic [ref=e301]:
+                  - generic "Useful key combinations" [ref=e304]
+                  - generic [ref=e305]:
+                    - generic "Unique Feature" [ref=e308]
+                    - img "This card has a description" [ref=e311]
+                - button "Edit Card" [ref=e315]:
+                  - img [ref=e316]
+            - button "Work efficiently Best Practices Unique Feature This card has a description Edit Card" [ref=e318] [cursor=pointer]:
+              - generic [ref=e319]:
+                - generic [ref=e320]:
+                  - generic "Work efficiently" [ref=e323]
+                  - generic [ref=e324]:
+                    - generic [ref=e325]:
+                      - generic "Best Practices" [ref=e327]
+                      - generic "Unique Feature" [ref=e329]
+                    - img "This card has a description" [ref=e332]
+                - button "Edit Card" [ref=e336]:
+                  - img [ref=e337]
+          - button "Add card" [ref=e340] [cursor=pointer]:
+            - img [ref=e341]
+            - generic [ref=e343]: Add card
+        - generic [ref=e345]:
+          - button "Collapse List Useful Links Edit List 4 cards" [ref=e346]:
+            - button "Collapse List" [ref=e347] [cursor=pointer]:
+              - img [ref=e348]
+            - generic "Useful Links" [ref=e350] [cursor=pointer]
+            - button "Edit List" [ref=e353] [cursor=pointer]:
+              - img [ref=e354]
+            - generic [ref=e356]: 4 cards
+          - generic [ref=e360]:
+            - button "4ga Boards Website This card has a description Edit Card" [ref=e361] [cursor=pointer]:
+              - generic [ref=e362]:
+                - generic [ref=e363]:
+                  - generic "4ga Boards Website" [ref=e366]
+                  - img "This card has a description" [ref=e370]
+                - button "Edit Card" [ref=e374]:
+                  - img [ref=e375]
+            - button "Documentation Docs This card has a description Edit Card" [ref=e377] [cursor=pointer]:
+              - generic [ref=e378]:
+                - generic [ref=e379]:
+                  - generic "Documentation" [ref=e382]
+                  - generic [ref=e383]:
+                    - generic "Docs" [ref=e386]
+                    - img "This card has a description" [ref=e389]
+                - button "Edit Card" [ref=e393]:
+                  - img [ref=e394]
+            - button "GitHub This card has a description Edit Card" [ref=e396] [cursor=pointer]:
+              - generic [ref=e397]:
+                - generic [ref=e398]:
+                  - generic "GitHub" [ref=e401]
+                  - img "This card has a description" [ref=e405]
+                - button "Edit Card" [ref=e409]:
+                  - img [ref=e410]
+            - button "Enjoying 4ga Boards? This card has a description This card has 1 attachment Edit Card" [ref=e412] [cursor=pointer]:
+              - generic [ref=e413]:
+                - generic [ref=e414]:
+                  - generic "Enjoying 4ga Boards?" [ref=e417]
+                  - generic [ref=e419]:
+                    - img "This card has a description" [ref=e421]
+                    - img "This card has 1 attachment" [ref=e424]
+                - button "Edit Card" [ref=e428]:
+                  - img [ref=e429]
+          - button "Add card" [ref=e432] [cursor=pointer]:
+            - img [ref=e433]
+            - generic [ref=e435]: Add card
+        - generic [ref=e437]:
+          - button "Collapse List Basics Edit List 5 cards" [ref=e438]:
+            - button "Collapse List" [ref=e439] [cursor=pointer]:
+              - img [ref=e440]
+            - generic "Basics" [ref=e442] [cursor=pointer]
+            - button "Edit List" [ref=e445] [cursor=pointer]:
+              - img [ref=e446]
+            - generic [ref=e448]: 5 cards
+          - generic [ref=e452]:
+            - button "Projects/boards filtering This card has a description Edit Card" [ref=e453] [cursor=pointer]:
+              - generic [ref=e454]:
+                - generic [ref=e455]:
+                  - generic "Projects/boards filtering" [ref=e458]
+                  - img "This card has a description" [ref=e462]
+                - button "Edit Card" [ref=e466]:
+                  - img [ref=e467]
+            - button "Navigating across the board This card has a description Edit Card" [ref=e469] [cursor=pointer]:
+              - generic [ref=e470]:
+                - generic [ref=e471]:
+                  - generic "Navigating across the board" [ref=e474]
+                  - img "This card has a description" [ref=e478]
+                - button "Edit Card" [ref=e482]:
+                  - img [ref=e483]
+            - button "Board menu (filtering, members) This card has a description Edit Card" [ref=e485] [cursor=pointer]:
+              - generic [ref=e486]:
+                - generic [ref=e487]:
+                  - generic "Board menu (filtering, members)" [ref=e490]
+                  - img "This card has a description" [ref=e494]
+                - button "Edit Card" [ref=e498]:
+                  - img [ref=e499]
+            - button "Add users to the board This card has a description Edit Card" [ref=e501] [cursor=pointer]:
+              - generic [ref=e502]:
+                - generic [ref=e503]:
+                  - generic "Add users to the board" [ref=e506]
+                  - img "This card has a description" [ref=e510]
+                - button "Edit Card" [ref=e514]:
+                  - img [ref=e515]
+            - button "Collapse/Expand lists Unique Feature This card has a description Edit Card" [ref=e517] [cursor=pointer]:
+              - generic [ref=e518]:
+                - generic [ref=e519]:
+                  - generic "Collapse/Expand lists" [ref=e522]
+                  - generic [ref=e523]:
+                    - generic "Unique Feature" [ref=e526]
+                    - img "This card has a description" [ref=e529]
+                - button "Edit Card" [ref=e533]:
+                  - img [ref=e534]
+          - button "Add card" [ref=e537] [cursor=pointer]:
+            - img [ref=e538]
+            - generic [ref=e540]: Add card
+        - button "Expand List Empty collapsed list 0 cards Add Card" [ref=e543]:
+          - generic [ref=e544]:
+            - button "Expand List" [ref=e545] [cursor=pointer]:
+              - img [ref=e546]
+            - generic "Empty collapsed list" [ref=e548]
+            - generic [ref=e549]: 0 cards
+            - button "Add Card" [ref=e551] [cursor=pointer]:
+              - img [ref=e552]
+        - button "Expand List Collapsed list 1 card Add Card" [ref=e556]:
+          - generic [ref=e557]:
+            - button "Expand List" [ref=e558] [cursor=pointer]:
+              - img [ref=e559]
+            - generic "Collapsed list" [ref=e561]
+            - generic [ref=e562]: 1 card
+            - button "Add Card" [ref=e564] [cursor=pointer]:
+              - img [ref=e565]
+        - generic [ref=e568]:
+          - button "Collapse List Settings Edit List 3 cards" [ref=e569]:
+            - button "Collapse List" [ref=e570] [cursor=pointer]:
+              - img [ref=e571]
+            - generic "Settings" [ref=e573] [cursor=pointer]
+            - button "Edit List" [ref=e576] [cursor=pointer]:
+              - img [ref=e577]
+            - generic [ref=e579]: 3 cards
+          - generic [ref=e583]:
+            - button "Go to Settings Docs This card has a description Edit Card" [ref=e584] [cursor=pointer]:
+              - generic [ref=e585]:
+                - generic [ref=e586]:
+                  - generic "Go to Settings" [ref=e589]
+                  - generic [ref=e590]:
+                    - generic "Docs" [ref=e593]
+                    - img "This card has a description" [ref=e596]
+                - button "Edit Card" [ref=e600]:
+                  - img [ref=e601]
+            - button "How to change language? This card has a description Edit Card" [ref=e603] [cursor=pointer]:
+              - generic [ref=e604]:
+                - generic [ref=e605]:
+                  - generic "How to change language?" [ref=e608]
+                  - img "This card has a description" [ref=e612]
+                - button "Edit Card" [ref=e616]:
+                  - img [ref=e617]
+            - button "Too wide sidebar? Do you want to hide it? Unique Feature This card has a description Edit Card" [ref=e619] [cursor=pointer]:
+              - generic [ref=e620]:
+                - generic [ref=e621]:
+                  - generic "Too wide sidebar? Do you want to hide it?" [ref=e624]
+                  - generic [ref=e625]:
+                    - generic "Unique Feature" [ref=e628]
+                    - img "This card has a description" [ref=e631]
+                - button "Edit Card" [ref=e635]:
+                  - img [ref=e636]
+          - button "Add card" [ref=e639] [cursor=pointer]:
+            - img [ref=e640]
+            - generic [ref=e642]: Add card
+        - generic [ref=e644]:
+          - button "Collapse List Cards Edit List 9 cards" [ref=e645]:
+            - button "Collapse List" [ref=e646] [cursor=pointer]:
+              - img [ref=e647]
+            - generic "Cards" [ref=e649] [cursor=pointer]
+            - button "Edit List" [ref=e652] [cursor=pointer]:
+              - img [ref=e653]
+            - generic [ref=e655]: 9 cards
+          - generic [ref=e659]:
+            - button "Cards This card has a description Edit Card" [ref=e660] [cursor=pointer]:
+              - generic [ref=e661]:
+                - generic [ref=e662]:
+                  - generic "Cards" [ref=e665]
+                  - img "This card has a description" [ref=e669]
+                - button "Edit Card" [ref=e673]:
+                  - img [ref=e674]
+            - button "Moving cards This card has a description Edit Card" [ref=e676] [cursor=pointer]:
+              - generic [ref=e677]:
+                - generic [ref=e678]:
+                  - generic "Moving cards" [ref=e681]
+                  - img "This card has a description" [ref=e685]
+                - button "Edit Card" [ref=e689]:
+                  - img [ref=e690]
+            - button "Members This card has a description Z1 Edit Card" [ref=e692] [cursor=pointer]:
+              - generic [ref=e693]:
+                - generic [ref=e694]:
+                  - generic "Members" [ref=e697]
+                  - generic [ref=e698]:
+                    - img "This card has a description" [ref=e701]
+                    - generic "z1491861920" [ref=e707]: Z1
+                - button "Edit Card" [ref=e710]:
+                  - img [ref=e711]
+            - button "Labels Sample Label This card has a description Edit Card" [ref=e713] [cursor=pointer]:
+              - generic [ref=e714]:
+                - generic [ref=e715]:
+                  - generic "Labels" [ref=e718]
+                  - generic [ref=e719]:
+                    - generic "Sample Label" [ref=e722]
+                    - img "This card has a description" [ref=e725]
+                - button "Edit Card" [ref=e729]:
+                  - img [ref=e730]
+            - button "Due Date This card has a description 17.10.2024 Edit Card" [ref=e732] [cursor=pointer]:
+              - generic [ref=e733]:
+                - generic [ref=e734]:
+                  - generic "Due Date" [ref=e737]
+                  - generic [ref=e739]:
+                    - img "This card has a description" [ref=e741]
+                    - generic "17.10.2024" [ref=e745]
+                - button "Edit Card" [ref=e748]:
+                  - img [ref=e749]
+            - button "Timer This card has a description 1:12:05 Edit Card" [ref=e751] [cursor=pointer]:
+              - generic [ref=e752]:
+                - generic [ref=e753]:
+                  - generic "Timer" [ref=e756]
+                  - generic [ref=e758]:
+                    - img "This card has a description" [ref=e760]
+                    - generic "Start Timer" [ref=e763]:
+                      - generic [ref=e764]:
+                        - img [ref=e765]
+                        - text: 1:12:05
+                - button "Edit Card" [ref=e769]:
+                  - img [ref=e770]
+            - button "Notifications This card has a description Edit Card" [ref=e772] [cursor=pointer]:
+              - generic [ref=e773]:
+                - generic [ref=e774]:
+                  - generic "Notifications" [ref=e777]
+                  - img "This card has a description" [ref=e781]
+                - button "Edit Card" [ref=e785]:
+                  - img [ref=e786]
+            - 'button "Tasks Closest due date for unfinished task: 17.10.2024 1/4 This card has a description Edit Card" [ref=e788] [cursor=pointer]':
+              - generic [ref=e789]:
+                - generic [ref=e790]:
+                  - generic "Tasks" [ref=e793]
+                  - generic [ref=e794]:
+                    - generic [ref=e799]:
+                      - 'generic "Closest due date for unfinished task: 17.10.2024" [ref=e800]':
+                        - img [ref=e801]
+                      - button "1/4" [ref=e804]:
+                        - text: 1/4
+                        - img [ref=e805]
+                    - img "This card has a description" [ref=e809]
+                - button "Edit Card" [ref=e813]:
+                  - img [ref=e814]
+            - button "Attachments This card has a description This card has 2 attachments Edit Card" [ref=e816] [cursor=pointer]:
+              - generic [ref=e817]:
+                - generic [ref=e818]:
+                  - generic "Attachments" [ref=e821]
+                  - generic [ref=e823]:
+                    - img "This card has a description" [ref=e825]
+                    - img "This card has 2 attachments" [ref=e828]
+                - button "Edit Card" [ref=e832]:
+                  - img [ref=e833]
+          - button "Add card" [ref=e836] [cursor=pointer]:
+            - img [ref=e837]
+            - generic [ref=e839]: Add card
+        - generic [ref=e841]:
+          - button "Collapse List Description/Comments Text editor Edit List 5 cards" [ref=e842]:
+            - button "Collapse List" [ref=e843] [cursor=pointer]:
+              - img [ref=e844]
+            - generic "Description/Comments Text editor" [ref=e846] [cursor=pointer]
+            - button "Edit List" [ref=e849] [cursor=pointer]:
+              - img [ref=e850]
+            - generic [ref=e852]: 5 cards
+          - generic [ref=e856]:
+            - 'button "Text editor: Description and Comments This card has a description This card has 1 comment Edit Card" [ref=e857] [cursor=pointer]':
+              - generic [ref=e858]:
+                - generic [ref=e859]:
+                  - 'generic "Text editor: Description and Comments" [ref=e862]'
+                  - generic [ref=e864]:
+                    - img "This card has a description" [ref=e866]
+                    - img "This card has 1 comment" [ref=e869]
+                - button "Edit Card" [ref=e873]:
+                  - img [ref=e874]
+            - 'button "Description: Local changes This card has a description Edit Card" [ref=e876] [cursor=pointer]':
+              - generic [ref=e877]:
+                - generic [ref=e878]:
+                  - 'generic "Description: Local changes" [ref=e881]'
+                  - img "This card has a description" [ref=e885]
+                - button "Edit Card" [ref=e889]:
+                  - img [ref=e890]
+            - 'button "Text editor: View options This card has a description Edit Card" [ref=e892] [cursor=pointer]':
+              - generic [ref=e893]:
+                - generic [ref=e894]:
+                  - 'generic "Text editor: View options" [ref=e897]'
+                  - img "This card has a description" [ref=e901]
+                - button "Edit Card" [ref=e905]:
+                  - img [ref=e906]
+            - 'button "Text editor: Advanced features This card has a description Edit Card" [ref=e908] [cursor=pointer]':
+              - generic [ref=e909]:
+                - generic [ref=e910]:
+                  - 'generic "Text editor: Advanced features" [ref=e913]'
+                  - img "This card has a description" [ref=e917]
+                - button "Edit Card" [ref=e921]:
+                  - img [ref=e922]
+            - 'button "Text editor: GitHub Unique Feature This card has a description Edit Card" [ref=e924] [cursor=pointer]':
+              - generic [ref=e925]:
+                - generic [ref=e926]:
+                  - 'generic "Text editor: GitHub" [ref=e929]'
+                  - generic [ref=e930]:
+                    - generic "Unique Feature" [ref=e933]
+                    - img "This card has a description" [ref=e936]
+                - button "Edit Card" [ref=e940]:
+                  - img [ref=e941]
+          - button "Add card" [ref=e944] [cursor=pointer]:
+            - img [ref=e945]
+            - generic [ref=e947]: Add card
+        - button "Add list" [ref=e949] [cursor=pointer]:
+          - img [ref=e950]
+          - generic [ref=e952]: Add list

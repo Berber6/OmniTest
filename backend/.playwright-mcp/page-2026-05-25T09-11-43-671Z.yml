@@ -1,0 +1,42 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e5]:
+        - img [ref=e6]
+        - generic [ref=e10]:
+          - heading "OmniTest" [level=1] [ref=e11]
+          - paragraph [ref=e12]: 智能全维测试
+      - navigation [ref=e13]:
+        - link "总览" [ref=e14] [cursor=pointer]:
+          - /url: /
+          - img [ref=e15]
+          - text: 总览
+        - link "功能特征" [ref=e20] [cursor=pointer]:
+          - /url: /features
+          - img [ref=e21]
+          - text: 功能特征
+        - link "测试场景" [ref=e25] [cursor=pointer]:
+          - /url: /scenarios
+          - img [ref=e26]
+          - text: 测试场景
+        - link "执行记录" [ref=e29] [cursor=pointer]:
+          - /url: /executions
+          - img [ref=e30]
+          - text: 执行记录
+        - link "变异测试" [ref=e33] [cursor=pointer]:
+          - /url: /mutations
+          - img [ref=e34]
+          - text: 变异测试
+      - generic [ref=e43]:
+        - button "中文 / English" [ref=e44]:
+          - img [ref=e45]
+          - generic [ref=e49]: 中文 / English
+        - generic [ref=e50]:
+          - img [ref=e51]
+          - text: 实时更新已断开
+    - main [ref=e58]:
+      - generic [ref=e61]:
+        - heading "404" [level=1] [ref=e62]
+        - heading "This page could not be found." [level=2] [ref=e64]
+  - button "Open Next.js Dev Tools" [ref=e70] [cursor=pointer]:
+    - img [ref=e71]

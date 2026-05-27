@@ -1,0 +1,93 @@
+- generic [ref=e2]:
+  - generic [ref=e39]:
+    - link "4ga Boards" [ref=e137] [cursor=pointer]:
+      - /url: /
+      - button "4ga Boards" [ref=e138]:
+        - img "4ga Boards" [ref=e139]
+    - generic "Dashboard" [ref=e40]
+    - generic [ref=e41]:
+      - link "Star 4ga Boards on GitHub! Your support speeds up development" [ref=e42] [cursor=pointer]:
+        - /url: https://github.com/RARgames/4gaBoards
+        - img [ref=e43]
+        - generic [ref=e45]:
+          - generic [ref=e46]: Star 4ga Boards on GitHub!
+          - generic [ref=e47]: Your support speeds up development
+      - link "We'd love to hear your feedback! It means a lot for us" [ref=e49] [cursor=pointer]:
+        - /url: https://forms.gle/FqjR7uhBp9Gn2fu26
+        - img [ref=e50]
+        - generic [ref=e52]:
+          - generic [ref=e53]: We'd love to hear your feedback!
+          - generic [ref=e54]: It means a lot for us
+    - generic [ref=e55]:
+      - link "Settings" [ref=e56] [cursor=pointer]:
+        - /url: /settings
+        - button "Settings" [ref=e57]:
+          - img [ref=e58]
+      - 'link "Settings: Users" [ref=e60] [cursor=pointer]':
+        - /url: /settings/users
+        - 'button "Settings: Users" [ref=e61]':
+          - img [ref=e62]
+      - button "Notifications" [ref=e65] [cursor=pointer]:
+        - img [ref=e66]
+      - button "Z1" [ref=e69] [cursor=pointer]:
+        - generic [ref=e70]: Z1
+  - generic [ref=e72]:
+    - button "Hide Sidebar" [ref=e73] [cursor=pointer]:
+      - img [ref=e74]
+    - generic [ref=e76]:
+      - generic [ref=e79]:
+        - textbox "Filter projects..." [ref=e80]
+        - button "P" [ref=e81] [cursor=pointer]:
+          - generic [ref=e82]: P
+          - img [ref=e83]
+      - generic [ref=e88]:
+        - button "Show boards" [ref=e140] [cursor=pointer]:
+          - img [ref=e90]
+        - link "Getting started" [ref=e92] [cursor=pointer]:
+          - /url: /projects/1782743791292122327
+          - button "Getting started" [ref=e93]
+        - button "Edit Project" [ref=e95] [cursor=pointer]:
+          - img [ref=e96]
+      - generic [ref=e111]:
+        - button "Add Project" [ref=e113] [cursor=pointer]:
+          - img [ref=e114]
+          - text: Add Project
+        - button "Add Board" [ref=e117] [cursor=pointer]:
+          - img [ref=e118]
+          - text: Add Board
+        - dialog [ref=e144]:
+          - button "Close" [ref=e145] [cursor=pointer]:
+            - img [ref=e146]
+          - generic [ref=e149]: Add Board
+          - generic [ref=e151]:
+            - generic [ref=e152]: Name
+            - textbox "Enter board name..." [active] [ref=e153]
+            - generic [ref=e154]:
+              - generic [ref=e155]: Project
+              - generic [ref=e157]:
+                - textbox "Select project" [ref=e158]
+                - button "Open dropdown" [ref=e159] [cursor=pointer]:
+                  - img [ref=e160]
+            - generic [ref=e162]:
+              - generic [ref=e163]:
+                - generic [ref=e164]: Template
+                - button "Manage Templates" [ref=e165] [cursor=pointer]:
+                  - img [ref=e166]
+              - generic [ref=e169]:
+                - textbox "Empty" [ref=e170]
+                - button "Open dropdown" [ref=e171] [cursor=pointer]:
+                  - img [ref=e172]
+            - generic [ref=e174]:
+              - button "Import" [ref=e175] [cursor=pointer]:
+                - img [ref=e176]
+                - text: Import
+              - button "Add Board" [ref=e178] [cursor=pointer]
+    - generic [ref=e121]:
+      - generic [ref=e122]:
+        - generic [ref=e124]: Showing 1 Project [1 Board]
+        - button "Add Project" [ref=e128] [cursor=pointer]:
+          - img [ref=e129]
+          - text: Add Project
+      - link "Getting started" [ref=e133] [cursor=pointer]:
+        - /url: /projects/1782743791292122327
+        - generic "Getting started" [ref=e135]
