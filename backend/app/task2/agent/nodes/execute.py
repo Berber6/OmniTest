@@ -1,0 +1,552 @@
+"""Execution node for the LangGraph agent graph.
+
+Calls the MCP Client to execute the planned actions via Playwright MCP.
+Uses multiprocessing to isolate MCP connections from LangGraph's anyio,
+preventing cancel scope conflicts between MCP SDK's anyio and
+LangGraph's internal anyio usage.
+
+The MCP execution runs in a child process with its own event loop,
+returning results via a multiprocessing pipe.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import multiprocessing
+import os
+import re
+import tempfile
+from typing import Any
+
+from app.task2.agent.state import AgentState
+
+logger = logging.getLogger(__name__)
+
+# 需要动态解析 target 参数的交互工具集合
+# 这些工具的 args 中可能包含空值或描述性占位符（如"邮箱输入框"),
+# 执行引擎会先调用 browser_snapshot 然后从快照中解析真实的 eN 引用
+INTERACTIVE_TOOL_NAMES = frozenset({
+    "browser_click", "browser_type", "browser_hover",
+    "browser_select_option", "browser_fill_form",
+})
+
+
+def _write_result(path: str, data: dict) -> None:
+    """Write result data to a temp file as JSON. Used by child process
+    to send results back — avoids multiprocessing.Pipe buffer deadlock
+    when screenshot data (base64 images) exceeds the pipe's capacity."""
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+
+def _read_result(path: str) -> dict | None:
+    """Read result data from temp file. Returns None if file doesn't
+    exist or is empty."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        if not content:
+            return None
+        return json.loads(content)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def _check_browser_available() -> bool:
+    """检查系统是否有可用的浏览器（Chrome/Chromium）。"""
+    import shutil
+    browser_commands = ["google-chrome", "chrome", "chromium", "chromium-browser"]
+    for cmd in browser_commands:
+        if shutil.which(cmd):
+            return True
+
+    playwright_cache = os.path.expanduser("~/.cache/ms-playwright")
+    if os.path.isdir(playwright_cache):
+        for entry in os.listdir(playwright_cache):
+            if entry.startswith("chromium") or entry.startswith("chrome"):
+                full_path = os.path.join(playwright_cache, entry)
+                if os.path.isdir(full_path) and os.listdir(full_path):
+                    return True
+
+    return False
+
+
+def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, conn) -> None:
+    """Run MCP execution in a child process with its own event loop.
+
+    This completely isolates MCP SDK's anyio from LangGraph's anyio.
+    The child process creates its own asyncio event loop, connects to
+    MCP servers, executes all plan actions, and writes results to a
+    temp file (avoids Pipe buffer deadlock with large screenshot data).
+
+    Args:
+        plan_json: JSON string of the plan actions list.
+        scenario_json: JSON string of the scenario dict.
+        output_file: Path to temp file for writing results (avoids pipe deadlock).
+        conn: multiprocessing Pipe connection for small error signals only.
+    """
+    import asyncio
+    import logging
+
+    # Set up file-based logging for child process diagnostics
+    child_logger = logging.getLogger("mcp_execute_child")
+    child_logger.setLevel(logging.INFO)
+    fh = logging.FileHandler("/tmp/mcp_execute_child.log")
+    fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    child_logger.addHandler(fh)
+
+    # Clear proxy vars in child process
+    for key in list(os.environ.keys()):
+        if "proxy" in key.lower():
+            del os.environ[key]
+
+    # Add conda lib path for browser dependencies
+    import shutil
+    conda_lib = os.path.join(
+        os.path.dirname(os.path.dirname(shutil.which("python") or "")), "lib"
+    )
+    if os.path.isdir(conda_lib):
+        existing_ld = os.environ.get("LD_LIBRARY_PATH", "")
+        if conda_lib not in existing_ld:
+            os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:{existing_ld}"
+
+    # Set Chrome path
+    chrome_path = os.path.expanduser(
+        "~/.cache/ms-playwright/chromium-148.0.7778.96/chrome-linux64/chrome"
+    )
+    if os.path.isfile(chrome_path):
+        os.environ["PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"] = chrome_path
+        os.environ["CHROME_PATH"] = chrome_path
+        child_logger.info("Chrome path set: %s", chrome_path)
+    else:
+        child_logger.warning("Chrome not found at expected path")
+
+    child_logger.info("Child process started, plan has %d actions", len(json.loads(plan_json)))
+
+    async def _run():
+        from app.task2.agent.mcp_client import MCPClient
+        from app.task2.agent.snapshot_resolver import resolve_ref_from_snapshot
+        from mcp import types as mcp_types
+
+        plan = json.loads(plan_json)
+        scenario = json.loads(scenario_json)
+
+        mcp_client = MCPClient()
+        child_logger.info("Attempting MCP connection...")
+        try:
+            await asyncio.wait_for(mcp_client.connect(servers=["playwright", "memory"]), timeout=60)
+            child_logger.info("MCP client connected in child process")
+            # Log available tools
+            all_tools = await mcp_client.list_all_tools()
+            for server, tools in all_tools.items():
+                tool_names = [t.name for t in tools]
+                child_logger.info("Server '%s' tools: %s", server, tool_names)
+        except asyncio.TimeoutError:
+            child_logger.error("MCP connection timed out")
+            conn.send("error")
+            _write_result(output_file, {"error": "MCP连接超时（60秒）"})
+            return
+        except Exception as exc:
+            child_logger.error("MCP connection failed: %s", exc)
+            conn.send("error")
+            _write_result(output_file, {"error": f"MCP连接失败: {exc}"})
+            return
+
+        executed_steps = []
+        screenshots = []
+        current_page_state = {}
+
+        # Store scenario in memory
+        try:
+            await mcp_client.call_tool(
+                "memory", "store_context",
+                {"key": "current_scenario", "data": json.dumps(scenario)},
+            )
+        except Exception:
+            pass
+
+        for idx, action in enumerate(plan):
+            tool_name = action.get("tool", "")
+            args = action.get("args", {})
+            description = action.get("description", "")
+
+            if not tool_name:
+                tool_name = action.get("tool_name", "")
+            if not args:
+                args = action.get("parameters", {})
+
+            logger.info("Executing %d/%d: %s — %s", idx + 1, len(plan), tool_name, description)
+            child_logger.info("Executing %d/%d: %s — %s", idx + 1, len(plan), tool_name, description)
+
+            step_result = {
+                "step_number": idx + 1,
+                "action": {"tool": tool_name, "args": dict(args), "description": description},
+                "page_state": None,
+                "screenshot": "",
+                "success": False,
+                "error": None,
+            }
+
+            # 兼容旧参数名：将 "ref" 映射为 Playwright MCP 的 "target"
+            if "ref" in args and "target" not in args:
+                args["target"] = args.pop("ref")
+
+            # --- 动态 ref 解析：交互工具的 target 需要从快照中解析 ---
+            if tool_name in INTERACTIVE_TOOL_NAMES:
+                target_value = args.get("target", "")
+                # 判断是否需要解析：target 为空、描述性占位符、或不是有效的 eN 格式
+                needs_resolution = (
+                    not target_value
+                    or not re.match(r'^e\d+$', target_value)
+                )
+                if needs_resolution:
+                    child_logger.info("Target '%s' 需要解析 — 先调用 browser_snapshot", target_value or "(空)")
+                    try:
+                        snapshot_text = await asyncio.wait_for(
+                            mcp_client.call_tool_text("playwright", "browser_snapshot", {}),
+                            timeout=15,
+                        )
+                        # 如果快照返回空的 YAML 代码块（页面可能正在加载），等待2秒后重试
+                        if snapshot_text and '```yaml\n\n```' in snapshot_text:
+                            child_logger.info("快照为空（页面可能正在加载），等待2秒后重试")
+                            await asyncio.sleep(2)
+                            snapshot_text = await asyncio.wait_for(
+                                mcp_client.call_tool_text("playwright", "browser_snapshot", {}),
+                                timeout=15,
+                            )
+                        child_logger.info("快照内容(前300字符): %s", snapshot_text[:300] if snapshot_text else "(空)")
+                        resolved_ref = resolve_ref_from_snapshot(
+                            snapshot_text, target_value or description,
+                        )
+                        if resolved_ref:
+                            child_logger.info("解析成功: '%s' → '%s'", target_value or description, resolved_ref)
+                            args["target"] = resolved_ref
+                            # 同步更新 step_result 中的 args
+                            step_result["action"]["args"]["target"] = resolved_ref
+                        else:
+                            child_logger.warning("无法从快照解析 target '%s'", target_value or description)
+                            step_result["success"] = False
+                            step_result["error"] = f"无法从快照中解析目标元素: '{target_value or description}'"
+                            executed_steps.append(step_result)
+                            continue
+                    except asyncio.TimeoutError:
+                        child_logger.warning("Snapshot 解析超时 (15s)")
+                    except Exception as exc:
+                        child_logger.warning("Snapshot 解析失败: %s", exc)
+
+            try:
+                # For screenshot steps, use call_tool to capture image data
+                # (call_tool_text only returns text, missing base64 image blocks)
+                if tool_name == "browser_take_screenshot":
+                    content_blocks = await asyncio.wait_for(
+                        mcp_client.call_tool("playwright", tool_name, args),
+                        timeout=15,
+                    )
+                    result_text = ""
+                    for block in content_blocks:
+                        if isinstance(block, mcp_types.TextContent):
+                            result_text += block.text
+                        elif isinstance(block, mcp_types.ImageContent):
+                            screenshots.append(block.data)
+                    child_logger.info("Tool %s returned %d blocks, %d chars text", tool_name, len(content_blocks), len(result_text))
+                else:
+                    result_text = await mcp_client.call_tool_text(
+                        "playwright", tool_name, args,
+                    )
+                    child_logger.info("Tool %s returned %d chars", tool_name, len(result_text) if result_text else 0)
+
+                step_result["success"] = True
+
+                # Capture page state after interactive actions
+                if tool_name in ("browser_click", "browser_type", "browser_navigate",
+                                 "browser_select", "browser_hover", "browser_press"):
+                    page_state = await _capture_page_state(mcp_client, screenshots)
+                    # 如果交互后快照为空，等待2秒后重新获取
+                    snap_content = page_state.get("snapshot", "")
+                    if snap_content and '```yaml\n\n```' in snap_content:
+                        child_logger.info("交互后快照为空（页面正在加载），等待2秒后重试")
+                        await asyncio.sleep(2)
+                        retry_snap = await asyncio.wait_for(
+                            mcp_client.call_tool_text("playwright", "browser_snapshot", {}),
+                            timeout=10,
+                        )
+                        page_state["snapshot"] = retry_snap
+                        # 重新提取 URL 和 title
+                        for line in retry_snap.split("\n"):
+                            if line.startswith("- Page URL:"):
+                                page_state["url"] = line.replace("- Page URL:", "").strip()
+                            elif line.startswith("- Page Title:"):
+                                page_state["title"] = line.replace("- Page Title:", "").strip()
+                    step_result["page_state"] = page_state
+                    current_page_state.update(page_state)
+
+                if tool_name == "browser_snapshot":
+                    # 如果快照返回空的 YAML（页面可能还在加载），等待2秒后重试
+                    if result_text and '```yaml\n\n```' in result_text:
+                        child_logger.info("快照为空（页面可能正在加载），等待2秒后重试")
+                        await asyncio.sleep(2)
+                        result_text = await mcp_client.call_tool_text(
+                            "playwright", "browser_snapshot", {},
+                        )
+                        child_logger.info("重试快照: %d chars", len(result_text) if result_text else 0)
+                        # 同步更新 step_result 中的 page_state
+                        step_result["page_state"] = {"snapshot": result_text}
+                    current_page_state["snapshot"] = result_text
+
+            except Exception as exc:
+                step_result["error"] = str(exc)
+                logger.error("Action %d failed: %s: %s", idx, tool_name, exc)
+                try:
+                    page_state = await _capture_page_state(mcp_client, screenshots)
+                    step_result["page_state"] = page_state
+                    current_page_state.update(page_state)
+                except Exception:
+                    pass
+
+            executed_steps.append(step_result)
+
+        # Write results to temp file (avoids pipe buffer deadlock with screenshots)
+        _write_result(output_file, {
+            "executed_steps": executed_steps,
+            "screenshots": screenshots,
+            "current_page_state": current_page_state,
+        })
+        # Send small signal via pipe so parent knows results are ready
+        conn.send("done")
+        child_logger.info("Results written to file and signal sent, %d steps, %d screenshots",
+                          len(executed_steps), len(screenshots))
+
+        # Force exit after sending results — MCP disconnect may hang due to anyio cleanup
+        # os._exit bypasses Python cleanup (atexit, __del__, etc) and terminates immediately
+        child_logger.info("Force exiting child process to avoid anyio cleanup hang")
+        os._exit(0)
+
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(_run())
+        loop.close()
+    except Exception as exc:
+        child_logger.error("Child process async execution failed: %s", exc)
+        try:
+            conn.send("error")
+            _write_result(output_file, {"error": f"子进程执行失败: {exc}"})
+        except Exception:
+            pass
+
+
+async def _capture_page_state(mcp_client, screenshots: list[str]) -> dict[str, Any]:
+    """Capture current page state: screenshot and accessibility snapshot.
+
+    Only uses tools that exist in Playwright MCP:
+    - browser_take_screenshot for visual capture (not browser_screenshot)
+    - browser_snapshot for accessibility snapshot (includes URL, title)
+
+    Each call has a 10s timeout to prevent hanging.
+    """
+    page_state: dict[str, Any] = {}
+
+    try:
+        screenshot_result = await asyncio.wait_for(
+            mcp_client.call_tool("playwright", "browser_take_screenshot", {}),
+            timeout=10,
+        )
+        for block in screenshot_result:
+            if hasattr(block, "data") and block.type == "image":
+                screenshots.append(block.data)
+            elif hasattr(block, "text") and block.type == "text":
+                # Only append real base64 image data, skip error messages
+                text = block.text
+                if text and not text.startswith("###") and len(text) > 100:
+                    screenshots.append(text)
+    except asyncio.TimeoutError:
+        logger.warning("Screenshot capture timed out (10s)")
+    except Exception as exc:
+        logger.warning("Failed to capture screenshot: %s", exc)
+
+    try:
+        snapshot_content = await asyncio.wait_for(
+            mcp_client.call_tool_text("playwright", "browser_snapshot", {}),
+            timeout=10,
+        )
+        page_state["snapshot"] = snapshot_content
+        for line in snapshot_content.split("\n"):
+            if line.startswith("- Page URL:"):
+                page_state["url"] = line.replace("- Page URL:", "").strip()
+            elif line.startswith("- Page Title:"):
+                page_state["title"] = line.replace("- Page Title:", "").strip()
+    except asyncio.TimeoutError:
+        logger.warning("Snapshot capture timed out (10s)")
+    except Exception as exc:
+        logger.warning("Failed to get page snapshot: %s", exc)
+
+    return page_state
+
+
+async def execute_node(state: AgentState) -> dict:
+    """LangGraph node: execute the planned actions via MCP.
+
+    Uses multiprocessing to isolate MCP SDK's anyio from LangGraph's
+    anyio, preventing cancel scope conflicts. The MCP execution runs
+    in a child process with its own asyncio event loop and sends
+    results back through a pipe.
+
+    Args:
+        state: Current AgentState with plan, scenario, and optionally
+               current_page_state.
+
+    Returns:
+        Partial state update dict with executed_steps, screenshots,
+        and current_page_state updated.
+    """
+    plan = state.get("plan", [])
+    scenario = state.get("scenario", {})
+    existing_steps = state.get("executed_steps", [])
+    existing_screenshots = state.get("screenshots", [])
+
+    if not plan:
+        logger.warning("Execute node received empty plan — nothing to execute")
+        return {
+            "executed_steps": existing_steps,
+            "screenshots": existing_screenshots,
+            "current_page_state": {},
+        }
+
+    if not _check_browser_available():
+        logger.warning("No browser available — using degraded mode")
+        return _build_degraded_result(
+            existing_steps, existing_screenshots, plan,
+            "浏览器不可用（未安装Chrome/Chromium），使用降级模式执行",
+        )
+
+    # Run MCP execution in a child process to avoid anyio cancel scope conflicts
+    logger.info("Starting MCP execution in child process (plan has %d actions)", len(plan))
+
+    plan_json = json.dumps(plan)
+    scenario_json = json.dumps(scenario)
+
+    logger.info("MCP execute: spawning child process for plan with %d actions", len(plan))
+
+    # Use temp file for result transfer (avoids Pipe buffer deadlock with large screenshots)
+    result_file = tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False, prefix="mcp_exec_",
+    )
+    result_path = result_file.name
+    result_file.close()
+
+    # Pipe only used for small signals ("done" / "error"), not for large data
+    parent_conn, child_conn = multiprocessing.Pipe()
+
+    ctx = multiprocessing.get_context("spawn")
+    process = ctx.Process(
+        target=_mcp_execute_process,
+        args=(plan_json, scenario_json, result_path, child_conn),
+    )
+
+    try:
+        process.start()
+
+        # Wait for child process to complete (with timeout)
+        process.join(timeout=180)
+
+        if process.is_alive():
+            logger.warning("MCP child process timed out (180s) — terminating")
+            process.terminate()
+            process.join(timeout=5)
+            if process.is_alive():
+                process.kill()
+            # Try to read partial results from file even after timeout
+            partial = _read_result(result_path)
+            try:
+                os.unlink(result_path)
+            except Exception:
+                pass
+            if partial and "error" not in partial:
+                logger.info("Partial results recovered after timeout: %d steps", len(partial.get("executed_steps", [])))
+                return {
+                    "executed_steps": partial.get("executed_steps", []),
+                    "screenshots": partial.get("screenshots", []),
+                    "current_page_state": partial.get("current_page_state", {}),
+                }
+            return _build_degraded_result(
+                existing_steps, existing_screenshots, plan,
+                "MCP执行子进程超时",
+            )
+
+        # Read results from temp file instead of pipe (avoids deadlock)
+        logger.info("Reading results from temp file: %s", result_path)
+        result = _read_result(result_path)
+        logger.info("Read result from file: keys=%s, steps=%d, screenshots=%d",
+                    list(result.keys()) if result else None,
+                    len(result.get("executed_steps", [])) if result else 0,
+                    len(result.get("screenshots", [])) if result else 0)
+        try:
+            os.unlink(result_path)
+        except Exception:
+            pass
+
+        if result is None:
+            logger.warning("MCP child process completed but no result file")
+            return _build_degraded_result(
+                existing_steps, existing_screenshots, plan,
+                "MCP子进程完成但未返回结果",
+            )
+
+        if "error" in result:
+            logger.warning("MCP child process error: %s", result["error"])
+            return _build_degraded_result(
+                existing_steps, existing_screenshots, plan,
+                result["error"],
+            )
+
+        logger.info(
+            "MCP execution complete: %d/%d actions succeeded, %d screenshots",
+            sum(1 for s in result.get("executed_steps", []) if s.get("success")),
+            len(plan),
+            len(result.get("screenshots", [])),
+        )
+
+        return {
+            "executed_steps": result.get("executed_steps", []),
+            "screenshots": result.get("screenshots", []),
+            "current_page_state": result.get("current_page_state", {}),
+        }
+
+    except Exception as exc:
+        logger.error("MCP execution process failed: %s", exc)
+        return _build_degraded_result(
+            existing_steps, existing_screenshots, plan,
+            f"MCP执行进程失败: {exc}",
+        )
+
+
+def _build_degraded_result(
+    existing_steps: list,
+    existing_screenshots: list,
+    plan: list,
+    reason: str,
+) -> dict:
+    """Build a degraded-mode result when MCP/browser is unavailable."""
+    degraded_steps = list(existing_steps) + [
+        {
+            "step_number": i + 1,
+            "action": {
+                "tool": action.get("tool", ""),
+                "args": action.get("args", {}),
+                "description": action.get("description", ""),
+            },
+            "success": False,
+            "error": reason,
+        }
+        for i, action in enumerate(plan)
+    ]
+    return {
+        "executed_steps": degraded_steps,
+        "screenshots": existing_screenshots,
+        "current_page_state": {},
+        "final_result": "fail",
+        "failure_reason": reason,
+        "plan": plan,
+    }
