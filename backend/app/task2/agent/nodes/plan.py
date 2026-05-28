@@ -52,12 +52,34 @@ async def plan_node(state: AgentState) -> dict:
     page_context = state.get("current_page_state", {})
     page_context_text = json.dumps(page_context, indent=2) if page_context else "没有可用的先前页面上下文。"
 
-    # 构建 prompt
+    # Retrieve Memory MCP stored context from previous execution (if available)
+    memory_context = state.get("memory_context", {})
+    memory_context_text = ""
+    if memory_context:
+        # Use Memory MCP context to inform planning
+        page_structure = memory_context.get("page_structure", {})
+        if page_structure:
+            visible_elements = page_structure.get("visible_elements", [])
+            if visible_elements:
+                memory_context_text = "\n## 页面可见元素（来自 Memory MCP）\n" + "\n".join(visible_elements)
+        execution_context = memory_context.get("execution_context", {})
+        if execution_context:
+            memory_context_text += f"\n## 上次执行上下文（来自 Memory MCP）\n成功步骤: {execution_context.get('successful_steps', 0)}, 失败步骤: {execution_context.get('failed_steps', 0)}"
+
+    # Append Memory MCP context to page context
+    full_context = page_context_text + memory_context_text
+
+    # 构建 prompt — 注入凭据到系统提示（用 replace 避免 .format() 与 JSON {} 冲突）
+    system_prompt = PLAN_ACTIONS_SYSTEM_PROMPT.replace(
+        "{login_email}", settings.login_email,
+    ).replace(
+        "{login_password}", settings.login_password,
+    )
     user_prompt = PLAN_ACTIONS_USER_PROMPT_TEMPLATE.format(
         scenario_name=scenario_name,
         steps_text=steps_text,
         expectations_text=expectations_text,
-        page_context_text=page_context_text,
+        page_context_text=full_context,
     )
 
     logger.info("正在规划场景 '%s' (id=%s)，共 %d 个步骤", scenario_name, scenario_id, len(steps))
@@ -67,7 +89,7 @@ async def plan_node(state: AgentState) -> dict:
         response_text = await call_llm(
             model_key="glm_5_1",
             prompt=user_prompt,
-            system_prompt=PLAN_ACTIONS_SYSTEM_PROMPT,
+            system_prompt=system_prompt,
             temperature=0.2,  # 低温度以保证确定性规划
             max_tokens=4096,
             response_format={"type": "json_object"},

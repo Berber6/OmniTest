@@ -11,6 +11,7 @@ from typing import Optional
 import aiohttp
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
 from crawl4ai.async_crawler_strategy import AsyncHTTPCrawlerStrategy
+from crawl4ai.async_dispatcher import MemoryAdaptiveDispatcher, RateLimiter
 
 from .models import CrawledPage
 
@@ -67,7 +68,7 @@ async def crawl_docs(
             logger.info("No new URLs to crawl; returning existing pages")
             return existing_pages
 
-        # Step 2: Crawl only new URLs using HTTP-only strategy
+        # Step 2: Crawl only new URLs using HTTP-only strategy (parallel)
         http_strategy = AsyncHTTPCrawlerStrategy()
         run_config = CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
@@ -75,30 +76,30 @@ async def crawl_docs(
             exclude_external_links=True,
             verbose=False,
         )
+        dispatcher = MemoryAdaptiveDispatcher(
+            max_session_permit=5,
+            rate_limiter=RateLimiter(base_delay=(0.5, 1.5)),
+        )
 
         try:
             async with AsyncWebCrawler(crawler_strategy=http_strategy) as crawler:
-                for url in new_urls:
-                    try:
-                        result = await crawler.arun(
-                            url=url,
-                            config=run_config,
-                        )
+                results = await crawler.arun_many(
+                    urls=new_urls,
+                    config=run_config,
+                    dispatcher=dispatcher,
+                )
 
+                # Process crawl results and collect pages with media for image download
+                pages_with_media: list[tuple[CrawledPage, dict]] = []
+                for result in results:
+                    url = result.url
+                    try:
                         if result.success and result.markdown:
                             content = _extract_markdown_content(result.markdown)
                             content = _filter_markdown_content(content, url)
                             title = ""
                             if result.metadata:
                                 title = result.metadata.get("title", "")
-
-                            # Download images from this page
-                            images_dir = os.path.join(output_dir, "images")
-                            page_images = []
-                            if hasattr(result, "media") and result.media:
-                                page_images = await _download_images(
-                                    result.media, base_url, images_dir,
-                                )
 
                             page = CrawledPage(
                                 url=url,
@@ -107,18 +108,40 @@ async def crawl_docs(
                                 metadata={
                                     "depth": 0 if url == base_url or url == base_url + "/" else 1,
                                 },
-                                images=page_images,
+                                images=[],  # filled in batch download below
                             )
                             pages.append(page)
+
+                            media = result.media if hasattr(result, "media") else {}
+                            if media:
+                                pages_with_media.append((page, media))
+
                             logger.info(
-                                f"Crawled: {url} ({len(page.content)} chars, "
-                                f"{len(page_images)} images)"
+                                f"Crawled: {url} ({len(page.content)} chars)"
                             )
                         else:
                             logger.warning(f"Failed to crawl {url}: no markdown content")
                     except Exception as exc:
-                        logger.error(f"Error crawling {url}: {exc}")
+                        logger.error(f"Error processing {url}: {exc}")
                         continue
+
+                # Step 2b: Batch download images for all pages (shared session, global concurrency limit)
+                if pages_with_media:
+                    images_dir = os.path.join(output_dir, "images")
+                    os.makedirs(images_dir, exist_ok=True)
+                    img_sem = asyncio.Semaphore(8)  # max 8 concurrent image downloads total
+                    async with aiohttp.ClientSession() as img_session:
+                        download_tasks = [
+                            _download_images(media, base_url, images_dir, img_session, img_sem)
+                            for page, media in pages_with_media
+                        ]
+                        image_results = await asyncio.gather(*download_tasks, return_exceptions=True)
+                        for (page, media), img_result in zip(pages_with_media, image_results):
+                            if isinstance(img_result, list):
+                                page.images = img_result
+                                logger.info(f"Images for {page.url}: {len(img_result)} downloaded")
+                            else:
+                                logger.warning(f"Image download failed for {page.url}: {img_result}")
 
         except Exception as exc:
             logger.error(f"Crawl session failed: {exc}")
@@ -624,10 +647,15 @@ async def _download_images(
     media: dict,
     base_url: str,
     images_dir: str,
+    session: Optional[aiohttp.ClientSession] = None,
+    sem: Optional[asyncio.Semaphore] = None,
 ) -> list[dict]:
     """Download same-domain images from a crawl result, returning metadata dicts.
 
     Filters out SVGs, small (<100 byte) images, and navigational elements.
+    Downloads images concurrently with a semaphore for rate control.
+    When called in batch mode, a shared session and global semaphore are
+    passed in to cap total concurrency across all pages.
     """
     base_domain = _extract_domain(base_url)
     raw_images = media.get("images", [])
@@ -659,42 +687,55 @@ async def _download_images(
     if not candidates:
         return []
 
-    os.makedirs(images_dir, exist_ok=True)
+    # Use provided semaphore or default per-page semaphore
+    if sem is None:
+        sem = asyncio.Semaphore(5)
 
-    downloaded: list[dict] = []
-    async with aiohttp.ClientSession() as session:
-        for idx, img in candidates:
-            src = img.get("src", "")
-            if src.startswith("/"):
-                from urllib.parse import urljoin
-                src = urljoin(base_url, src)
-            alt = img.get("alt", "")
-            filename = _image_url_to_filename(src, idx)
-            local_path = os.path.join(images_dir, filename)
+    async def _download_one(s: aiohttp.ClientSession, idx: int, img: dict) -> Optional[dict]:
+        src = img.get("src", "")
+        if src.startswith("/"):
+            from urllib.parse import urljoin
+            src = urljoin(base_url, src)
+        alt = img.get("alt", "")
+        filename = _image_url_to_filename(src, idx)
+        local_path = os.path.join(images_dir, filename)
 
+        async with sem:
             try:
-                resp = await session.get(
+                resp = await s.get(
                     src,
-                    timeout=aiohttp.ClientTimeout(total=10),
+                    timeout=aiohttp.ClientTimeout(total=15),
                 )
                 if resp.status != 200:
-                    continue
+                    return None
                 data = await resp.read()
                 # Skip tiny images (likely icons/spacers)
                 if len(data) < 100:
-                    continue
+                    return None
                 with open(local_path, "wb") as f:
                     f.write(data)
-                # Store path relative to output_dir parent
                 rel_path = os.path.join("images", filename)
-                downloaded.append({
-                    "url": src,
-                    "alt": alt,
-                    "local_path": rel_path,
-                })
+                return {"url": src, "alt": alt, "local_path": rel_path}
             except Exception as exc:
                 logger.debug(f"Failed to download image {src}: {exc}")
-                continue
+                return None
+
+    downloaded: list[dict] = []
+    if session is not None:
+        # Shared session (batch mode) — caller manages session lifecycle
+        tasks = [_download_one(session, idx, img) for idx, img in candidates]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for r in results:
+            if isinstance(r, dict) and r is not None:
+                downloaded.append(r)
+    else:
+        # Standalone mode — create own session
+        async with aiohttp.ClientSession() as s:
+            tasks = [_download_one(s, idx, img) for idx, img in candidates]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for r in results:
+                if isinstance(r, dict) and r is not None:
+                    downloaded.append(r)
 
     return downloaded
 

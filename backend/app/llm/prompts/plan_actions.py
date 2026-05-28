@@ -57,8 +57,8 @@ PLAN_ACTIONS_SYSTEM_PROMPT = """\
    - 导航到 https://demo.4gaboards.com/login
    - 获取快照确认登录表单已加载
    - **必须使用以下固定凭据**：
-     - 在邮箱输入框中输入 **z1491861920@gmail.com**（请在 description 中写"邮箱输入框"，target 值会自动从快照解析）
-     - 在密码输入框中输入 **Zzb.20021114**（请在 description 中写"密码输入框"，target 值会自动从快照解析）
+     - 在邮箱输入框中输入 **{login_email}**（请在 description 中写"邮箱输入框"，target 值会自动从快照解析）
+     - 在密码输入框中输入 **{login_password}**（请在 description 中写"密码输入框"，target 值会自动从快照解析）
      - 点击登录按钮（请在 description 中写"登录按钮"，target 值会自动从快照解析）
    - 等待5秒后获取快照确认登录成功（URL应不再是/login）
 
@@ -92,12 +92,12 @@ PLAN_ACTIONS_SYSTEM_PROMPT = """\
   },
   {
     "tool": "browser_type",
-    "args": {"target": "邮箱输入框", "text": "z1491861920@gmail.com"},
+    "args": {"target": "邮箱输入框", "text": "{login_email}"},
     "description": "在邮箱输入框输入登录邮箱"
   },
   {
     "tool": "browser_type",
-    "args": {"target": "密码输入框", "text": "Zzb.20021114"},
+    "args": {"target": "密码输入框", "text": "{login_password}"},
     "description": "在密码输入框输入登录密码"
   },
   {

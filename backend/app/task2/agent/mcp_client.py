@@ -27,6 +27,31 @@ logger = logging.getLogger(__name__)
 # Use "app.xxx" module paths (not "backend.app.xxx") for internal servers
 # ---------------------------------------------------------------------------
 
+def _find_chrome_path() -> str:
+    """Find the Chrome executable path for Playwright MCP.
+
+    Dynamically scans the Playwright cache for any chromium-* directory,
+    avoiding hardcoded version-specific paths that break when Playwright
+    updates. Falls back to system Chrome via shutil.which().
+    """
+    playwright_cache = os.path.expanduser("~/.cache/ms-playwright")
+    if os.path.isdir(playwright_cache):
+        for entry in os.listdir(playwright_cache):
+            if entry.startswith("chromium"):
+                full_path = os.path.join(playwright_cache, entry)
+                # Check for chrome-linux64 or chrome-linux naming patterns
+                for subdir in ["chrome-linux64", "chrome-linux"]:
+                    candidate = os.path.join(full_path, subdir, "chrome")
+                    if os.path.isfile(candidate):
+                        return candidate
+    # Fallback to system Chrome
+    for cmd in ["google-chrome", "chrome", "chromium", "chromium-browser"]:
+        path = shutil.which(cmd)
+        if path:
+            return path
+    return ""
+
+
 # 构建无代理的环境变量：清除 all_proxy 以避免 Playwright 浏览器通过 SOCKS 代理启动
 def _build_clean_env() -> dict[str, str]:
     """构建排除代理、补充库路径的环境变量，确保 Playwright 浏览器可正常启动。
@@ -45,33 +70,13 @@ def _build_clean_env() -> dict[str, str]:
         existing_ld = clean_env.get("LD_LIBRARY_PATH", "")
         if conda_lib not in existing_ld:
             clean_env["LD_LIBRARY_PATH"] = f"{conda_lib}:{existing_ld}"
-    # 指定 Playwright Chrome 路径（从缓存中的 Chrome for Testing）
-    chrome_path = os.path.expanduser(
-        "~/.cache/ms-playwright/chromium-148.0.7778.96/chrome-linux64/chrome"
-    )
-    if os.path.isfile(chrome_path):
+    # 动态查找 Playwright Chrome 路径（不再硬编码版本号）
+    chrome_path = _find_chrome_path()
+    if chrome_path and os.path.isfile(chrome_path):
         clean_env["PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"] = chrome_path
     return clean_env
 
 CLEAN_ENV = _build_clean_env()
-
-def _find_chrome_path() -> str:
-    """Find the Chrome executable path for Playwright MCP."""
-    import os
-    # Check Playwright cache first
-    chrome_in_cache = os.path.expanduser(
-        "~/.cache/ms-playwright/chromium-148.0.7778.96/chrome-linux64/chrome"
-    )
-    if os.path.isfile(chrome_in_cache):
-        return chrome_in_cache
-    # Check system Chrome
-    import shutil
-    for cmd in ["google-chrome", "chrome", "chromium", "chromium-browser"]:
-        path = shutil.which(cmd)
-        if path:
-            return path
-    return ""
-
 
 CHROME_PATH = _find_chrome_path()
 

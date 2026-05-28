@@ -1,5 +1,6 @@
 """测试场景生成器，使用 RAG 检索 + LLM 生成。"""
 
+import asyncio
 import json
 import logging
 import re
@@ -19,6 +20,69 @@ def _resolve_llm_callable(llm_router: Any):
 
 from ..llm.prompts.generate_scenarios import GENERATE_SCENARIOS_PROMPT
 
+# Maximum concurrent LLM calls for scenario generation
+_MAX_CONCURRENT_LLM = 20
+
+
+async def _generate_for_feature(
+    feature: Feature,
+    vector_store: VectorStore,
+    call_llm: Any,
+    n_retrieval_results: int,
+    sem: asyncio.Semaphore,
+) -> list[TestScenario]:
+    """Generate test scenarios for a single feature (runs concurrently)."""
+    logger.info(f"正在为功能特征 '{feature.name}' ({feature.id}) 生成场景")
+
+    # RAG retrieval with URL expansion (run in thread to avoid blocking event loop)
+    retrieval_query = f"{feature.name} {feature.description}"
+    context_chunks = await asyncio.to_thread(
+        vector_store.retrieve_with_url_expand,
+        query=retrieval_query,
+        n_results=n_retrieval_results,
+    )
+
+    if not context_chunks:
+        logger.warning(
+            f"未检索到功能特征 '{feature.id}' 的文档块，"
+            f"使用功能特征的 source_chunks 作为备用上下文"
+        )
+        context_chunks = await asyncio.to_thread(
+            vector_store.retrieve_with_url_expand,
+            query=f"how to {feature.name}",
+            n_results=5,
+        )
+
+    chunks_text = _format_chunks_for_prompt(context_chunks)
+
+    prompt = GENERATE_SCENARIOS_PROMPT.format(
+        feature_id=feature.id,
+        feature_name=feature.name,
+        feature_description=feature.description,
+        chunks=chunks_text,
+    )
+
+    async with sem:
+        try:
+            response = await call_llm(
+                model_key="deepseek_v4_flash",
+                prompt=prompt,
+                temperature=0.3,
+                max_tokens=4096,
+            )
+        except Exception as exc:
+            logger.error(f"功能特征 '{feature.id}' 的场景生成 LLM 调用失败: {exc}")
+            return []
+
+    feature_scenarios = _parse_scenario_response(
+        response, feature.id, context_chunks
+    )
+
+    logger.info(
+        f"为功能特征 '{feature.id}' 生成了 {len(feature_scenarios)} 个场景"
+    )
+    return feature_scenarios
+
 
 async def generate_scenarios(
     features: list[Feature],
@@ -27,6 +91,8 @@ async def generate_scenarios(
     n_retrieval_results: int = 20,
 ) -> list[TestScenario]:
     """Generate test scenarios for each feature using RAG retrieval and LLM generation.
+
+    Runs LLM calls concurrently across features for faster execution.
 
     Args:
         features: List of Feature objects to generate scenarios for.
@@ -42,62 +108,21 @@ async def generate_scenarios(
         logger.warning("未提供功能特征用于场景生成")
         return []
 
-    scenarios: list[TestScenario] = []
     _call_llm = _resolve_llm_callable(llm_router)
+    sem = asyncio.Semaphore(_MAX_CONCURRENT_LLM)
 
-    for feature in features:
-        logger.info(f"正在为功能特征 '{feature.name}' ({feature.id}) 生成场景")
+    tasks = [
+        _generate_for_feature(f, vector_store, _call_llm, n_retrieval_results, sem)
+        for f in features
+    ]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # 为该功能特征检索相关的文档块
-        retrieval_query = f"{feature.name} {feature.description}"
-        context_chunks = vector_store.retrieve(
-            query=retrieval_query,
-            n_results=n_retrieval_results,
-        )
-
-        if not context_chunks:
-            logger.warning(
-                f"未检索到功能特征 '{feature.id}' 的文档块，"
-                f"使用功能特征的 source_chunks 作为备用上下文"
-            )
-            # 备用方案：使用功能特征的来源信息检索
-            context_chunks = vector_store.retrieve(
-                query=f"how to {feature.name}",
-                n_results=5,
-            )
-
-        # 将文档块格式化为 prompt
-        chunks_text = _format_chunks_for_prompt(context_chunks)
-
-        # 构建 prompt
-        prompt = GENERATE_SCENARIOS_PROMPT.format(
-            feature_id=feature.id,
-            feature_name=feature.name,
-            feature_description=feature.description,
-            chunks=chunks_text,
-        )
-
-        # 调用 LLM
-        try:
-            response = await _call_llm(
-                model_key="deepseek_v4_flash",
-                prompt=prompt,
-                temperature=0.3,
-                max_tokens=4096,
-            )
-        except Exception as exc:
-            logger.error(f"功能特征 '{feature.id}' 的场景生成 LLM 调用失败: {exc}")
-            continue
-
-        # 将响应解析为 TestScenario 对象
-        feature_scenarios = _parse_scenario_response(
-            response, feature.id, context_chunks
-        )
-        scenarios.extend(feature_scenarios)
-
-        logger.info(
-            f"为功能特征 '{feature.id}' 生成了 {len(feature_scenarios)} 个场景"
-        )
+    scenarios: list[TestScenario] = []
+    for feature, result in zip(features, results):
+        if isinstance(result, list):
+            scenarios.extend(result)
+        else:
+            logger.warning(f"功能特征 '{feature.id}' 场景生成异常: {result}")
 
     logger.info(f"共生成 {len(scenarios)} 个场景")
     return scenarios

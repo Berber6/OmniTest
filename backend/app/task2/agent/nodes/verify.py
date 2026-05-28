@@ -61,6 +61,15 @@ async def verify_node(state: AgentState) -> dict:
     page_text = current_page_state.get("page_text", "") or current_page_state.get("snapshot", "")
     expectations_text = _format_expectations(expectations)
 
+    # Enhance page text with Memory MCP visible elements context
+    enhanced_page_text = page_text
+    memory_context = state.get("memory_context", {})
+    page_structure = memory_context.get("page_structure", {})
+    if isinstance(page_structure, dict):
+        visible_elements = page_structure.get("visible_elements", [])
+        if visible_elements and enhanced_page_text:
+            enhanced_page_text += "\n\n## 页面可见元素列表\n" + "\n".join(visible_elements)
+
     # 如果所有执行步骤都失败了（浏览器/MCP不可用），直接返回失败，不调用LLM
     all_steps_failed = all(not s.get("success", False) for s in executed_steps) if executed_steps else True
     if all_steps_failed:
@@ -89,12 +98,12 @@ async def verify_node(state: AgentState) -> dict:
         tool_results = {"mcp_skipped": "执行阶段全部失败，无法进行MCP结构化验证"}
         tool_results_text = json.dumps(tool_results, indent=2)
     else:
-        tool_results = await _run_verify_mcp_tools(expectations, page_text, screenshots)
+        tool_results = await _run_verify_mcp_tools(expectations, enhanced_page_text, screenshots)
         tool_results_text = json.dumps(tool_results, indent=2)
 
     # 步骤2：通过 LLM 进行文本验证
     text_result = await _text_verification(
-        expectations_text, page_text, tool_results_text,
+        expectations_text, enhanced_page_text, tool_results_text,
     )
 
     verification_result = text_result

@@ -1,7 +1,8 @@
 """FastAPI application entry point.
 
 Sets up CORS middleware, mounts API routers, initializes the database,
-and provides a WebSocket endpoint for streaming execution progress.
+and provides a WebSocket endpoint for streaming execution progress
+via event-push (no DB polling).
 """
 
 import asyncio
@@ -16,9 +17,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.common_routes import router as common_router
 from app.api.task1_routes import router as task1_router
 from app.api.task2_routes import router as task2_router
+from app.api.import_export_routes import router as io_router
 from app.config import settings
-from app.db.database import init_db, get_session
-from app.db.models import ExecutionRecord
+from app.db.database import init_db
+from app.events import broadcaster
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,7 @@ app.add_middleware(
 app.include_router(common_router)
 app.include_router(task1_router)
 app.include_router(task2_router)
+app.include_router(io_router)
 
 
 @app.get("/", tags=["root"])
@@ -58,20 +61,23 @@ async def root() -> dict:
     return {"message": "Web Test Agent backend is running.", "version": "0.1.0"}
 
 
-# --- Global WebSocket for execution events ---
+# --- Global WebSocket for execution events (event-push) ---
 # Frontend expects /ws/executions at top level (not /api/task2/ws/executions)
 
 @app.websocket("/ws/executions")
 async def global_execution_ws(websocket: WebSocket) -> None:
-    """Global WebSocket endpoint for broadcasting all execution events.
+    """Global WebSocket endpoint — event-push mode.
 
-    Frontend connects to /ws/executions to receive events like
-    execution_started, step_completed, verification_completed,
-    execution_completed, mutation_completed.
+    Subscribes to the in-process EventBroadcaster. When the agent graph
+    or task2 routes publish events (execution_started, step_completed,
+    verification_completed, reflection_started, execution_completed,
+    mutation_completed), they are pushed to this WebSocket immediately.
+
+    No DB polling. Events arrive with ~0 latency.
     """
     await websocket.accept()
-    db_gen = get_session()
-    db = next(db_gen)
+
+    queue = broadcaster.subscribe()
 
     try:
         await websocket.send_json({
@@ -80,23 +86,14 @@ async def global_execution_ws(websocket: WebSocket) -> None:
         })
 
         while True:
-            # Poll for active executions
-            active_records = db.query(ExecutionRecord).filter(
-                ExecutionRecord.status.in_(["planning", "executing", "verifying", "reflecting"])
-            ).all()
-
-            for record in active_records:
-                await websocket.send_json({
-                    "type": "status_update",
-                    "data": {
-                        "execution_id": record.id,
-                        "scenario_id": record.scenario_id,
-                        "status": record.status,
-                    },
-                })
-
-            await asyncio.sleep(3)
+            # Wait for the next event from the broadcaster
+            event = await queue.get()
+            try:
+                await websocket.send_json(event)
+            except Exception as exc:
+                logger.warning("Failed to send WebSocket event: %s", exc)
+                break
     except WebSocketDisconnect:
-        pass
+        logger.info("WebSocket client disconnected")
     finally:
-        db.close()
+        broadcaster.unsubscribe(queue)

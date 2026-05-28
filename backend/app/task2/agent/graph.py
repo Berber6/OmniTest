@@ -17,8 +17,98 @@ from app.task2.agent.nodes.plan import plan_node
 from app.task2.agent.nodes.execute import execute_node
 from app.task2.agent.nodes.verify import verify_node
 from app.task2.agent.nodes.reflect import reflect_node
+from app.events import broadcaster
 
 logger = logging.getLogger(__name__)
+
+# Map node names to execution status for frontend display
+_NODE_STATUS_MAP = {
+    "plan": "planning",
+    "execute": "executing",
+    "verify": "verifying",
+    "reflect": "reflecting",
+}
+
+
+def _update_execution_status(scenario: dict, node_name: str, state: dict) -> None:
+    """Update the execution record's status in the database AND publish
+    a WebSocket event so the frontend sees real-time node transitions.
+
+    Only updates the 'status' field — the full state update happens in
+    task2_routes.py after run_agent completes.
+    """
+    from app.db.database import SessionLocal
+    from app.db.models import ExecutionRecord
+
+    # Find the execution record for this scenario
+    # Use the most recent execution record for this scenario_id
+    scenario_id = scenario.get("id", "")
+    db = SessionLocal()
+    try:
+        record = db.query(ExecutionRecord).filter(
+            ExecutionRecord.scenario_id == scenario_id,
+            ExecutionRecord.status.in_(["planning", "executing", "verifying", "reflecting", "pending"]),
+        ).order_by(ExecutionRecord.started_at.desc()).first()
+
+        if record:
+            new_status = _NODE_STATUS_MAP.get(node_name, "executing")
+            # After verify completes, set to completed/failed based on result
+            if node_name == "verify":
+                if state.get("final_result") == "pass":
+                    new_status = "completed"
+                else:
+                    # Still might go to reflect, so keep as verifying
+                    new_status = "verifying"
+            elif node_name == "reflect":
+                new_status = "reflecting"
+
+            record.status = new_status
+            db.commit()
+            logger.info("Updated execution %s status to '%s' (node: %s)", record.id, new_status, node_name)
+
+            # --- Publish WebSocket event ---
+            if node_name == "execute":
+                # Publish step_completed with latest executed step info
+                executed_steps = state.get("executed_steps", [])
+                if executed_steps:
+                    latest_step = executed_steps[-1] if isinstance(executed_steps, list) else None
+                    broadcaster.publish({
+                        "type": "step_completed",
+                        "execution_id": record.id,
+                        "step_result": latest_step or {},
+                    })
+                else:
+                    broadcaster.publish({
+                        "type": "status_update",
+                        "execution_id": record.id,
+                        "scenario_id": scenario_id,
+                        "status": new_status,
+                    })
+            elif node_name == "verify":
+                broadcaster.publish({
+                    "type": "verification_completed",
+                    "execution_id": record.id,
+                    "verify_result": state.get("verification_result", {}),
+                })
+            elif node_name == "reflect":
+                broadcaster.publish({
+                    "type": "reflection_started",
+                    "execution_id": record.id,
+                    "retry_count": state.get("retry_count", 0),
+                })
+            else:
+                # plan node or fallback — generic status_update
+                broadcaster.publish({
+                    "type": "status_update",
+                    "execution_id": record.id,
+                    "scenario_id": scenario_id,
+                    "status": new_status,
+                })
+    except Exception as exc:
+        logger.warning("Failed to update execution status: %s", exc)
+        db.rollback()
+    finally:
+        db.close()
 
 
 def should_continue_after_verify(state: AgentState) -> str:
@@ -171,22 +261,30 @@ async def run_agent(scenario: dict) -> AgentState:
         "reflection": "",
         "final_result": "",
         "failure_reason": "",
+        "memory_context": {},
     }
 
     logger.info("Starting agent execution for scenario '%s'", scenario.get("name", "Unknown"))
 
-    # Execute node uses multiprocessing for MCP connections,
-    # so no need for thread isolation. Run graph directly.
+    final_state = dict(initial_state)
+
     try:
-        final_state = await compiled_graph.ainvoke(initial_state)
+        # Stream node updates — each chunk is a dict {node_name: state_update}
+        async for chunk in compiled_graph.astream(initial_state):
+            # chunk is like {"plan": {...partial_state...}}
+            for node_name, state_update in chunk.items():
+                logger.info("Node '%s' completed", node_name)
+                # Merge partial state update into final_state
+                final_state.update(state_update)
+
+                # Update execution record status in DB for frontend visibility
+                _update_execution_status(scenario, node_name, final_state)
     except asyncio.CancelledError as exc:
         logger.error("Agent graph execution was cancelled: %s", exc)
-        final_state = dict(initial_state)
         final_state["final_result"] = "fail"
         final_state["failure_reason"] = f"执行被取消: {exc}"
     except Exception as exc:
         logger.error("Agent graph execution failed: %s", exc)
-        final_state = dict(initial_state)
         final_state["final_result"] = "fail"
         final_state["failure_reason"] = f"Agent graph execution failed: {exc}"
 
