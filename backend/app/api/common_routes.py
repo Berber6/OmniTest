@@ -24,22 +24,65 @@ router = APIRouter(tags=["common"])
 async def get_status(db: Session = Depends(get_session)) -> dict:
     """Return a summary of the system's current state.
 
-    Includes counts of features, scenarios, executions, and mutations,
-    as well as configuration info. Matches frontend's SystemStatus type.
+    Includes counts, pipeline status with sub-step progress, and
+    configuration info. Matches frontend's SystemStatus type.
     """
+    from app.api.task1_routes import _crawl_status, _extract_status, _generate_status
+
     features_count = db.query(Feature).count()
     scenarios_count = db.query(TestScenario).count()
     active_executions = db.query(ExecutionRecord).filter(
         ExecutionRecord.status.in_(["planning", "executing", "verifying", "reflecting"])
     ).count()
 
+    # Check if crawl data exists on disk
+    crawled_pages_count = 0
+    crawl_dir = str(settings.data_dir / "crawled_docs")
+    manifest_path = os.path.join(crawl_dir, "manifest.json")
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, "r") as f:
+                manifest = json.load(f)
+                # Manifest can be either a list of page dicts or a dict with "pages" key
+                if isinstance(manifest, list):
+                    crawled_pages_count = len(manifest)
+                elif isinstance(manifest, dict):
+                    crawled_pages_count = len(manifest.get("pages", []))
+        except Exception:
+            pass
+
+    # Check if ChromaDB has chunks (use existing instance if available)
+    chromadb_chunk_count = 0
+    try:
+        from app.api.task1_routes import _get_vector_store
+        vs = _get_vector_store()
+        chromadb_chunk_count = vs.count()
+    except Exception:
+        # VectorStore not initialized yet — check collection count directly
+        if os.path.exists(str(settings.chroma_path)):
+            try:
+                import chromadb
+                client = chromadb.PersistentClient(path=str(settings.chroma_path))
+                coll = client.get_or_create_collection(
+                    name=settings.chroma_collection_name,
+                )
+                chromadb_chunk_count = coll.count()
+            except Exception:
+                pass
+
     return {
         "backend_status": "running",
         "chromadb_status": "connected" if os.path.exists(str(settings.chroma_path)) else "disconnected",
-        "crawl_status": "idle",
         "active_executions": active_executions,
         "features": features_count,
         "scenarios": scenarios_count,
+        "crawled_pages": crawled_pages_count,
+        "chromadb_chunks": chromadb_chunk_count,
+        "pipeline": {
+            "crawl": _crawl_status,
+            "extract": _extract_status,
+            "generate": _generate_status,
+        },
     }
 
 
@@ -69,6 +112,40 @@ async def get_dashboard_stats(db: Session = Depends(get_session)) -> dict:
     ).count()
     mutation_detection_rate = (detected_count / mutation_count * 100) if mutation_count > 0 else 0.0
 
+    # Crawl data counts (from manifest file, no heavy model loading)
+    crawled_pages_count = 0
+    chromadb_chunk_count = 0
+    crawl_dir = str(settings.data_dir / "crawled_docs")
+    manifest_path = os.path.join(crawl_dir, "manifest.json")
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, "r") as f:
+                manifest = json.load(f)
+                if isinstance(manifest, list):
+                    crawled_pages_count = len(manifest)
+                elif isinstance(manifest, dict):
+                    crawled_pages_count = len(manifest.get("pages", []))
+        except Exception:
+            pass
+
+    # ChromaDB chunk count — try existing VectorStore first, fallback to direct client
+    try:
+        from app.api.task1_routes import _get_vector_store
+        vs = _get_vector_store()
+        chromadb_chunk_count = vs.count()
+    except Exception:
+        if os.path.exists(str(settings.chroma_path)):
+            try:
+                import chromadb
+                client = chromadb.PersistentClient(path=str(settings.chroma_path))
+                coll = client.get_or_create_collection(name=settings.chroma_collection_name)
+                chromadb_chunk_count = coll.count()
+            except Exception:
+                pass
+
+    # Pipeline step status
+    from app.api.task1_routes import _crawl_status, _extract_status, _generate_status
+
     return {
         "feature_count": feature_count,
         "scenario_count": scenario_count,
@@ -76,6 +153,13 @@ async def get_dashboard_stats(db: Session = Depends(get_session)) -> dict:
         "success_rate": success_rate,
         "mutation_count": mutation_count,
         "mutation_detection_rate": mutation_detection_rate,
+        "crawled_pages": crawled_pages_count,
+        "chromadb_chunks": chromadb_chunk_count,
+        "pipeline": {
+            "crawl": _crawl_status,
+            "extract": _extract_status,
+            "generate": _generate_status,
+        },
     }
 
 

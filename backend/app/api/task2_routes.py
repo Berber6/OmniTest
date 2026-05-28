@@ -1,16 +1,13 @@
-"""Task2 API routes: execution, mutation, WebSocket streaming."""
+"""Task2 API routes: execution, mutation."""
 
 import asyncio
 import json
 import logging
-import os
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.database import get_session
@@ -23,6 +20,7 @@ from app.task2.models import (
 from app.task2.agent.graph import run_agent
 from app.task2.mutation import generate_mutations, run_mutation_test
 from app.config import settings
+from app.events import broadcaster
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +73,13 @@ async def execute_scenario(
     db.add(record)
     db.commit()
 
+    # Publish execution_started event for WebSocket push
+    broadcaster.publish({
+        "type": "execution_started",
+        "execution_id": execution_id,
+        "scenario_id": scenario_id,
+    })
+
     # Build scenario dict for the agent
     scenario_dict = {
         "id": scenario.id,
@@ -120,6 +125,14 @@ async def execute_scenario(
                     bg_db.commit()
                     logger.info("Background agent execution completed: id=%s, result=%s", execution_id, final_result)
 
+                    # Publish execution_completed event for WebSocket push
+                    broadcaster.publish({
+                        "type": "execution_completed",
+                        "execution_id": execution_id,
+                        "final_result": final_result,
+                        "failure_reason": result_state.get("failure_reason", ""),
+                    })
+
             except Exception as exc:
                 logger.error(f"Background agent execution failed: {exc}")
                 bg_record = bg_db.query(ExecutionRecord).filter(ExecutionRecord.id == execution_id).first()
@@ -129,6 +142,14 @@ async def execute_scenario(
                     bg_record.final_result = "fail"
                     bg_record.failure_reason = str(exc)
                     bg_db.commit()
+
+                    # Publish execution_completed event for WebSocket push
+                    broadcaster.publish({
+                        "type": "execution_completed",
+                        "execution_id": execution_id,
+                        "final_result": "fail",
+                        "failure_reason": str(exc),
+                    })
             finally:
                 bg_db.close()
                 logger.info("Agent execution semaphore released: id=%s", execution_id)
@@ -574,110 +595,5 @@ def _mutation_result_to_dict(m: MutationResultORM) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# WebSocket endpoints
+# WebSocket endpoints — redirect to global /ws/executions (event-push)
 # ---------------------------------------------------------------------------
-
-@router.websocket("/ws/execution/{id}")
-async def execution_ws(websocket: WebSocket, id: str) -> None:
-    """Stream execution progress in real time via WebSocket."""
-    await websocket.accept()
-    db_gen = get_session()
-    db = next(db_gen)
-
-    try:
-        await websocket.send_json({
-            "type": "connected",
-            "data": {"execution_id": id},
-        })
-
-        while True:
-            record = db.query(ExecutionRecord).filter(ExecutionRecord.id == id).first()
-            if not record:
-                await websocket.send_json({
-                    "type": "error",
-                    "data": {"message": f"Execution '{id}' not found"},
-                })
-                break
-
-            await websocket.send_json({
-                "type": "status_update",
-                "data": {
-                    "status": record.status,
-                    "final_result": record.final_result,
-                    "retry_count": record.retry_count,
-                },
-            })
-
-            if record.status in ("completed", "failed"):
-                await websocket.send_json({
-                    "type": "execution_completed",
-                    "data": {
-                        "execution_id": id,
-                        "final_result": record.final_result,
-                        "failure_reason": record.failure_reason,
-                    },
-                })
-                break
-
-            await asyncio.sleep(2)
-    except WebSocketDisconnect:
-        pass
-    finally:
-        db.close()
-
-
-@router.websocket("/ws/executions")
-async def global_execution_ws(websocket: WebSocket) -> None:
-    """Global WebSocket endpoint for broadcasting all execution events.
-
-    Frontend connects to /ws/executions to receive events like
-    execution_started, step_completed, verification_completed,
-    execution_completed, mutation_completed.
-    """
-    await websocket.accept()
-    db_gen = get_session()
-    db = next(db_gen)
-
-    try:
-        await websocket.send_json({
-            "type": "connected",
-            "data": {"message": "Connected to global execution events stream"},
-        })
-
-        while True:
-            # Poll for active/changed executions
-            active_records = db.query(ExecutionRecord).filter(
-                ExecutionRecord.status.in_(["planning", "executing", "verifying", "reflecting"])
-            ).all()
-
-            for record in active_records:
-                await websocket.send_json({
-                    "type": "status_update",
-                    "data": {
-                        "execution_id": record.id,
-                        "scenario_id": record.scenario_id,
-                        "status": record.status,
-                    },
-                })
-
-            # Also check for recently completed executions
-            completed_records = db.query(ExecutionRecord).filter(
-                ExecutionRecord.status.in_(["completed", "failed"])
-            ).limit(20).all()
-
-            for record in completed_records:
-                await websocket.send_json({
-                    "type": "execution_completed",
-                    "data": {
-                        "execution_id": record.id,
-                        "scenario_id": record.scenario_id,
-                        "final_result": record.final_result,
-                        "failure_reason": record.failure_reason,
-                    },
-                })
-
-            await asyncio.sleep(3)
-    except WebSocketDisconnect:
-        pass
-    finally:
-        db.close()

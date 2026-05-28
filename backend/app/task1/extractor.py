@@ -1,5 +1,6 @@
 """功能特征提取器，使用 RAG 检索 + LLM 生成。"""
 
+import asyncio
 import json
 import logging
 import re
@@ -12,19 +13,25 @@ logger = logging.getLogger(__name__)
 
 
 def _resolve_llm_callable(llm_router: Any):
-    """从模块或直接可调用对象中解析 LLM 调用函数。
-
-    路由层直接传入 call_llm 函数，而原始设计期望一个带 call_llm 属性的模块。
-    此辅助函数处理这两种情况。
-    """
+    """从模块或直接可调用对象中解析 LLM 调用函数。"""
     if callable(llm_router) and not hasattr(llm_router, 'call_llm'):
-        # It's already the call_llm function itself
         return llm_router
-    # It's a module or object with a call_llm method
     return llm_router.call_llm
 
-# Import the prompt template
 from ..llm.prompts.extract_features import EXTRACT_FEATURES_PROMPT
+
+
+async def _retrieve_for_query(
+    query: str,
+    vector_store: VectorStore,
+    n_results: int,
+) -> list[DocumentChunk]:
+    """Retrieve chunks for a single query (runs concurrently via asyncio.to_thread)."""
+    return await asyncio.to_thread(
+        vector_store.retrieve_with_url_expand,
+        query=query,
+        n_results=n_results,
+    )
 
 
 async def extract_features(
@@ -33,6 +40,9 @@ async def extract_features(
     n_retrieval_results: int = 20,
 ) -> list[Feature]:
     """Extract features from documentation using RAG retrieval and LLM generation.
+
+    Retrieval queries run concurrently via asyncio.to_thread to avoid
+    blocking the event loop during ChromaDB lookups.
 
     Args:
         vector_store: Initialized VectorStore for document retrieval.
@@ -43,8 +53,7 @@ async def extract_features(
     Returns:
         List of Feature objects extracted from the documentation.
     """
-    # 步骤1：使用多个查询检索广泛的文档上下文以获得更好的覆盖
-    logger.info("正在检索文档上下文用于功能特征提取")
+    logger.info("正在并发检索文档上下文用于功能特征提取")
 
     retrieval_queries = [
         "4gaboards 用户手册 Board 卡片 列表 视图 快捷键",
@@ -54,15 +63,17 @@ async def extract_features(
         "4gaboards 账号 登录 注册 项目 成员 权限",
     ]
 
-    # 从每个查询中检索并去重
+    # Concurrent retrieval
+    retrieval_tasks = [
+        _retrieve_for_query(q, vector_store, n_retrieval_results)
+        for q in retrieval_queries
+    ]
+    retrieval_results = await asyncio.gather(*retrieval_tasks)
+
+    # Deduplicate
     seen_ids: set[str] = set()
     context_chunks: list[DocumentChunk] = []
-
-    for query in retrieval_queries:
-        chunks = vector_store.retrieve(
-            query=query,
-            n_results=n_retrieval_results,
-        )
+    for chunks in retrieval_results:
         for chunk in chunks:
             if chunk.id not in seen_ids:
                 seen_ids.add(chunk.id)
@@ -74,12 +85,12 @@ async def extract_features(
         logger.error("未检索到文档块，无法提取功能特征")
         return []
 
-    # 步骤2：将文档块格式化为 prompt
+    # Format chunks into prompt
     chunks_text = _format_chunks_for_prompt(context_chunks)
 
     prompt = EXTRACT_FEATURES_PROMPT.format(chunks=chunks_text)
 
-    # 步骤3：调用 LLM
+    # Call LLM
     logger.info("正在调用 LLM 进行功能特征提取")
     _call_llm = _resolve_llm_callable(llm_router)
     try:
@@ -93,7 +104,7 @@ async def extract_features(
         logger.error(f"功能特征提取的 LLM 调用失败: {exc}")
         return []
 
-    # 步骤4：将 LLM 响应解析为 Feature 对象
+    # Parse response
     features = _parse_feature_response(response, context_chunks)
     logger.info(f"提取了 {len(features)} 个功能特征")
 
@@ -101,10 +112,7 @@ async def extract_features(
 
 
 def _format_chunks_for_prompt(chunks: list[DocumentChunk]) -> str:
-    """将文档块格式化为带标签的文本用于 LLM prompt。
-
-    每个文档块标注其 ID，以便 LLM 引用它作为来源依据。
-    """
+    """将文档块格式化为带标签的文本用于 LLM prompt。"""
     parts: list[str] = []
     for chunk in chunks:
         part = f"[Chunk ID: {chunk.id}]\nSource: {chunk.source_url}\nTitle: {chunk.title}\n\n{chunk.content}"
@@ -116,11 +124,7 @@ def _parse_feature_response(
     response: str,
     context_chunks: list[DocumentChunk],
 ) -> list[Feature]:
-    """将 LLM 响应字符串解析为 Feature 对象列表。
-
-    尝试从响应中提取 JSON，处理常见的格式问题（markdown 包装、额外文本）。
-    """
-    # Try to extract JSON from the response
+    """将 LLM 响应字符串解析为 Feature 对象列表。"""
     json_str = _extract_json(response)
     if not json_str:
         logger.error("无法从 LLM 响应中提取 JSON 用于功能特征提取")
@@ -138,12 +142,10 @@ def _parse_feature_response(
         logger.warning("解析后的 JSON 中未找到功能特征")
         return []
 
-    # 构建查找表用于验证 source_chunk 引用
     chunk_ids = {chunk.id for chunk in context_chunks}
 
     features: list[Feature] = []
     for feat_data in features_data:
-        # 验证并清理 source_chunks
         source_chunks = feat_data.get("source_chunks", [])
         valid_source_chunks = [sc for sc in source_chunks if sc in chunk_ids]
 
@@ -160,10 +162,7 @@ def _parse_feature_response(
 
 
 def _extract_json(text: str) -> Optional[str]:
-    """从可能包含 markdown 包装或额外内容的文本中提取 JSON 字符串。
-
-    查找 ```json ... ``` 包装的 JSON 块或原始 JSON 对象。
-    """
+    """从可能包含 markdown 包装或额外内容的文本中提取 JSON 字符串。"""
     # Try markdown-wrapped JSON first
     json_block_match = re.search(r"```json\s*\n(.*?)\n```", text, re.DOTALL)
     if json_block_match:

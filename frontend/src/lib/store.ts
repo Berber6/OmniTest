@@ -166,7 +166,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ loadingStatus: true });
     try {
       const status = await api.getStatus();
-      set({ systemStatus: status, loadingStatus: false });
+      set({
+        systemStatus: status,
+        loadingStatus: false,
+        // Also update pipeline step status from system status
+        crawlStatus: (status.pipeline?.crawl as CrawlStatus | null) ?? null,
+        extractStatus: (status.pipeline?.extract as ExtractStatus | null) ?? null,
+        generateStatus: (status.pipeline?.generate as GenerateStatus | null) ?? null,
+      });
     } catch {
       set({ loadingStatus: false });
     }
@@ -186,6 +193,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         } catch {
           // ignore polling errors
         }
+        get().fetchSystemStatus(); // refresh data counts
         await new Promise((r) => setTimeout(r, 1500));
       }
       set({ crawling: false });
@@ -211,6 +219,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         } catch {
           // ignore polling errors
         }
+        get().fetchSystemStatus();
         await new Promise((r) => setTimeout(r, 1500));
       }
       set({ extracting: false });
@@ -236,6 +245,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         } catch {
           // ignore polling errors
         }
+        get().fetchSystemStatus();
         await new Promise((r) => setTimeout(r, 1500));
       }
       set({ generating: false });

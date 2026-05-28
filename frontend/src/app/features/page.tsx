@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -20,10 +20,12 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GitBranch, Network } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { GitBranch, Network, Download, Upload } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { FeatureTree } from "@/components/FeatureTree";
 import { useI18n } from "@/lib/useI18n";
+import { ImportExportDialog } from "@/components/ImportExportDialog";
 
 function getCategoryColor(category: string): string {
   const colors: Record<string, string> = {
@@ -48,6 +50,9 @@ export default function FeaturesPage() {
   } = useAppStore();
   const { t } = useI18n();
 
+  const [exportOpen, setExportOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
   useEffect(() => {
     fetchFeatures();
     fetchScenarios();
@@ -65,15 +70,30 @@ export default function FeaturesPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-3">
-        <GitBranch className="h-6 w-6 text-blue-500" />
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">
-            {t("features.title")}
-          </h2>
-          <p className="text-muted-foreground">{t("features.subtitle")}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <GitBranch className="h-6 w-6 text-blue-500" />
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">
+              {t("features.title")}
+            </h2>
+            <p className="text-muted-foreground">{t("features.subtitle")}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setExportOpen(true)}>
+            <Download className="h-3 w-3" />
+            {t("io.export")}
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setImportOpen(true)}>
+            <Upload className="h-3 w-3" />
+            {t("io.import")}
+          </Button>
         </div>
       </div>
+
+      <ImportExportDialog dataType="features" mode="export" open={exportOpen} onOpenChange={setExportOpen} />
+      <ImportExportDialog dataType="features" mode="import" open={importOpen} onOpenChange={setImportOpen} />
 
       <Tabs defaultValue="tree">
         <TabsList>

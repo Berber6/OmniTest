@@ -202,6 +202,69 @@ export async function exportResults(format: string = "json"): Promise<Blob> {
   return res.blob();
 }
 
+// ── Import/Export (per-type) ──
+
+export interface ImportResult {
+  success: boolean;
+  imported_count: number;
+  skipped_count?: number;
+  message: string;
+  results?: Record<string, unknown>;
+  errors?: string[];
+}
+
+export async function exportFeatures(): Promise<Blob> {
+  const res = await fetch(`${getApiBaseUrl()}/api/io/export/features`);
+  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
+  return res.blob();
+}
+
+export async function exportScenarios(): Promise<Blob> {
+  const res = await fetch(`${getApiBaseUrl()}/api/io/export/scenarios`);
+  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
+  return res.blob();
+}
+
+export async function exportExecutions(includeScreenshots: boolean = true): Promise<Blob> {
+  const res = await fetch(`${getApiBaseUrl()}/api/io/export/executions?include_screenshots=${includeScreenshots}`);
+  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
+  return res.blob();
+}
+
+export async function exportBundle(includeScreenshots: boolean = true): Promise<Blob> {
+  const res = await fetch(`${getApiBaseUrl()}/api/io/export/all?include_screenshots=${includeScreenshots}`);
+  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
+  return res.blob();
+}
+
+export async function importFeatures(data: unknown): Promise<ImportResult> {
+  return fetchApi<ImportResult>("/api/io/import/features", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function importScenarios(data: unknown): Promise<ImportResult> {
+  return fetchApi<ImportResult>("/api/io/import/scenarios", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function importExecutions(data: unknown): Promise<ImportResult> {
+  return fetchApi<ImportResult>("/api/io/import/executions", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function importBundle(data: unknown): Promise<ImportResult> {
+  return fetchApi<ImportResult>("/api/io/import/bundle", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 // ── Screenshots ──
 
 export function getScreenshotUrl(path: string): string {

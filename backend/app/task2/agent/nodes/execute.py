@@ -33,6 +33,36 @@ INTERACTIVE_TOOL_NAMES = frozenset({
 })
 
 
+def _summarize_snapshot(snapshot: str) -> str:
+    """Extract a brief summary from the accessibility snapshot YAML."""
+    if not snapshot:
+        return "无可用快照"
+    lines = snapshot.split("\n")
+    # Extract key info: URL, title, top-level elements
+    summary_lines = []
+    for line in lines[:50]:  # First 50 lines give a good overview
+        if line.strip() and not line.startswith("```"):
+            summary_lines.append(line.strip())
+    return "\n".join(summary_lines[:20])  # Keep it concise
+
+
+def _extract_visible_elements(snapshot: str) -> list[str]:
+    """Extract visible element descriptions from accessibility snapshot."""
+    if not snapshot:
+        return []
+    elements = []
+    for line in snapshot.split("\n"):
+        # Snapshot elements have format like: "- button \"Login\" [ref=e5]"
+        # or: "- textbox \"Email\" [ref=e3]"
+        if line.strip().startswith("- ") and "[ref=" in line:
+            # Extract the element type and name
+            match = re.match(r'-\s+(\w+)\s+"([^"]+)"\s+\[ref=(\w+)\]', line.strip())
+            if match:
+                elem_type, elem_name, elem_ref = match.groups()
+                elements.append(f"{elem_type}: {elem_name} (ref={elem_ref})")
+    return elements[:30]  # Limit to 30 most relevant elements
+
+
 def _write_result(path: str, data: dict) -> None:
     """Write result data to a temp file as JSON. Used by child process
     to send results back — avoids multiprocessing.Pipe buffer deadlock
@@ -112,16 +142,33 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
         if conda_lib not in existing_ld:
             os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:{existing_ld}"
 
-    # Set Chrome path
-    chrome_path = os.path.expanduser(
-        "~/.cache/ms-playwright/chromium-148.0.7778.96/chrome-linux64/chrome"
-    )
-    if os.path.isfile(chrome_path):
+    # Dynamic Chrome path discovery (no hardcoded version)
+    chrome_path = ""
+    playwright_cache = os.path.expanduser("~/.cache/ms-playwright")
+    if os.path.isdir(playwright_cache):
+        for entry in os.listdir(playwright_cache):
+            if entry.startswith("chromium"):
+                full_path = os.path.join(playwright_cache, entry)
+                # Check for chrome-linux64 or chrome-linux naming
+                for subdir in ["chrome-linux64", "chrome-linux"]:
+                    candidate = os.path.join(full_path, subdir, "chrome")
+                    if os.path.isfile(candidate):
+                        chrome_path = candidate
+                        break
+                if chrome_path:
+                    break
+    if not chrome_path:
+        for cmd in ["google-chrome", "chrome", "chromium", "chromium-browser"]:
+            found = shutil.which(cmd)
+            if found:
+                chrome_path = found
+                break
+    if chrome_path:
         os.environ["PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"] = chrome_path
         os.environ["CHROME_PATH"] = chrome_path
         child_logger.info("Chrome path set: %s", chrome_path)
     else:
-        child_logger.warning("Chrome not found at expected path")
+        child_logger.warning("Chrome not found via dynamic search")
 
     child_logger.info("Child process started, plan has %d actions", len(json.loads(plan_json)))
 
@@ -307,11 +354,46 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
 
             executed_steps.append(step_result)
 
+        # Store execution context in Memory MCP for subsequent nodes
+        try:
+            await mcp_client.call_tool(
+                "memory", "store_context",
+                {"key": "execution_context", "data": json.dumps({
+                    "executed_steps_count": len(executed_steps),
+                    "successful_steps": sum(1 for s in executed_steps if s.get("success")),
+                    "failed_steps": sum(1 for s in executed_steps if not s.get("success")),
+                    "current_url": current_page_state.get("url", ""),
+                    "page_title": current_page_state.get("title", ""),
+                })},
+            )
+            await mcp_client.call_tool(
+                "memory", "store_context",
+                {"key": "page_structure", "data": json.dumps({
+                    "snapshot_summary": _summarize_snapshot(current_page_state.get("snapshot", "")),
+                    "visible_elements": _extract_visible_elements(current_page_state.get("snapshot", "")),
+                })},
+            )
+        except Exception as exc:
+            child_logger.warning("Failed to store execution context in Memory MCP: %s", exc)
+
+        # Retrieve stored Memory MCP context to include in results for main process
+        memory_context = {}
+        try:
+            stored = await mcp_client.call_tool_text("memory", "retrieve_context", {"key": "page_structure"})
+            if stored and "No context found" not in stored:
+                memory_context["page_structure"] = json.loads(stored) if stored.startswith("{") else stored
+            stored = await mcp_client.call_tool_text("memory", "retrieve_context", {"key": "execution_context"})
+            if stored and "No context found" not in stored:
+                memory_context["execution_context"] = json.loads(stored) if stored.startswith("{") else stored
+        except Exception:
+            pass
+
         # Write results to temp file (avoids pipe buffer deadlock with screenshots)
         _write_result(output_file, {
             "executed_steps": executed_steps,
             "screenshots": screenshots,
             "current_page_state": current_page_state,
+            "memory_context": memory_context,
         })
         # Send small signal via pipe so parent knows results are ready
         conn.send("done")
@@ -412,6 +494,7 @@ async def execute_node(state: AgentState) -> dict:
             "executed_steps": existing_steps,
             "screenshots": existing_screenshots,
             "current_page_state": {},
+            "memory_context": state.get("memory_context", {}),
         }
 
     if not _check_browser_available():
@@ -469,6 +552,7 @@ async def execute_node(state: AgentState) -> dict:
                     "executed_steps": partial.get("executed_steps", []),
                     "screenshots": partial.get("screenshots", []),
                     "current_page_state": partial.get("current_page_state", {}),
+                    "memory_context": partial.get("memory_context", {}),
                 }
             return _build_degraded_result(
                 existing_steps, existing_screenshots, plan,
@@ -512,6 +596,7 @@ async def execute_node(state: AgentState) -> dict:
             "executed_steps": result.get("executed_steps", []),
             "screenshots": result.get("screenshots", []),
             "current_page_state": result.get("current_page_state", {}),
+            "memory_context": result.get("memory_context", {}),
         }
 
     except Exception as exc:

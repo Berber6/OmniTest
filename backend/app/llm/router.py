@@ -191,6 +191,7 @@ async def call_llm_with_vision(
     model_key: str,
     prompt: str,
     image: str,
+    system_prompt: Optional[str] = None,
     **kwargs: Any,
 ) -> str:
     """Call a vision-capable LLM with an image input."""
@@ -210,15 +211,16 @@ async def call_llm_with_vision(
         b64 = image if image.startswith("data:") else f"data:image/png;base64,{image}"
         image_content = {"type": "image_url", "image_url": {"url": b64}}
 
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt},
-                image_content,
-            ],
-        }
-    ]
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({
+        "role": "user",
+        "content": [
+            {"type": "text", "text": prompt},
+            image_content,
+        ],
+    })
 
     model_keys = [model_key] + FALLBACK_MAP.get(model_key, [])
 
@@ -228,12 +230,13 @@ async def call_llm_with_vision(
             logger.warning(f"Unknown model key '{mk}', skipping fallback.")
             continue
 
+        litellm_kwargs = {k: v for k, v in kwargs.items() if k != "system_prompt"}
         result = await _call_with_retries_vision(
             model=config["model"],
             api_base=config["api_base"],
             api_key=effective_api_key,
             messages=messages,
-            **kwargs,
+            **litellm_kwargs,
         )
         if result is not None:
             return result

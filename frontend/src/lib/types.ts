@@ -134,16 +134,40 @@ export interface DashboardStats {
   success_rate: number;
   mutation_count: number;
   mutation_detection_rate: number;
+  crawled_pages: number;
+  chromadb_chunks: number;
+  pipeline: {
+    crawl: CrawlStatus;
+    extract: ExtractStatus;
+    generate: GenerateStatus;
+  };
 }
 
 // ── Agent Status ──
 
+export interface PipelineStepStatus {
+  status: "idle" | "crawling" | "extracting" | "generating" | "completed" | "failed";
+  step: string;  // sub-step: downloading, parsing, storing, retrieving, llm_call, saving, completed, failed, ""
+  features_extracted?: number;
+  scenarios_generated?: number;
+  pages_crawled?: number;
+  total_pages?: number;
+  error?: string | null;
+}
+
 export interface SystemStatus {
   backend_status: "running" | "stopped" | "error";
   chromadb_status: "connected" | "disconnected";
-  crawl_status: "idle" | "crawling" | "completed" | "failed";
-  last_crawl_time?: string;
   active_executions: number;
+  features: number;
+  scenarios: number;
+  crawled_pages: number;
+  chromadb_chunks: number;
+  pipeline: {
+    crawl: PipelineStepStatus;
+    extract: PipelineStepStatus;
+    generate: PipelineStepStatus;
+  };
 }
 
 // ── WebSocket Event Types ──
@@ -160,6 +184,7 @@ export type WebSocketEvent =
 
 export interface CrawlStatus {
   status: "idle" | "crawling" | "completed" | "failed";
+  step?: string;
   pages_crawled?: number;
   total_pages?: number;
   error?: string;
@@ -167,12 +192,14 @@ export interface CrawlStatus {
 
 export interface ExtractStatus {
   status: "idle" | "extracting" | "completed" | "failed";
+  step?: string;
   features_extracted?: number;
   error?: string;
 }
 
 export interface GenerateStatus {
   status: "idle" | "generating" | "completed" | "failed";
+  step?: string;
   scenarios_generated?: number;
   error?: string;
 }

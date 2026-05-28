@@ -36,6 +36,7 @@ _vector_store: Optional[VectorStore] = None
 # Module-level state for crawl tracking
 _crawl_status: dict = {
     "status": "idle",
+    "step": "",
     "pages_crawled": 0,
     "total_pages": 0,
     "error": None,
@@ -43,12 +44,14 @@ _crawl_status: dict = {
 
 _extract_status: dict = {
     "status": "idle",
+    "step": "",
     "features_extracted": 0,
     "error": None,
 }
 
 _generate_status: dict = {
     "status": "idle",
+    "step": "",
     "scenarios_generated": 0,
     "error": None,
 }
@@ -78,7 +81,7 @@ async def delete_crawled_docs() -> dict:
     if _vector_store is not None:
         _vector_store.reset()
         _vector_store = None
-    _crawl_status = {"status": "idle", "pages_crawled": 0, "total_pages": 0, "error": None}
+    _crawl_status = {"status": "idle", "step": "", "pages_crawled": 0, "total_pages": 0, "error": None}
     return {"success": True, "message": "Crawled documents deleted"}
 
 
@@ -101,20 +104,21 @@ async def crawl(request: CrawlRequest) -> dict:
     Returns ApiResponse with crawl result data.
     """
     global _crawl_status
-    _crawl_status = {"status": "crawling", "pages_crawled": 0, "total_pages": 0, "error": None}
+    _crawl_status = {"status": "crawling", "step": "downloading", "pages_crawled": 0, "total_pages": 0, "error": None}
 
     try:
         settings.ensure_dirs()
         # Step 1: Crawl (incremental — returns merged list)
         existing_before = load_crawled_pages(str(settings.data_dir / "crawled_docs"))
         existing_count = len(existing_before)
+        _crawl_status["step"] = "downloading"
         pages = await crawl_docs(
             base_url=request.url,
             output_dir=str(settings.data_dir / "crawled_docs"),
         )
         new_pages_crawled = len(pages) - existing_count
         if not pages:
-            _crawl_status = {"status": "failed", "pages_crawled": 0, "total_pages": 0, "error": "No pages were successfully crawled"}
+            _crawl_status = {"status": "failed", "step": "downloading", "pages_crawled": 0, "total_pages": 0, "error": "No pages were successfully crawled"}
             return {
                 "success": False,
                 "data": {
@@ -128,11 +132,12 @@ async def crawl(request: CrawlRequest) -> dict:
             }
 
         # Step 2: Parse and chunk
+        _crawl_status["step"] = "parsing"
         chunks = parse_and_chunk(
             docs_dir=str(settings.data_dir / "crawled_docs"),
         )
         if not chunks:
-            _crawl_status = {"status": "failed", "pages_crawled": len(pages), "total_pages": len(pages), "error": "Failed to parse pages"}
+            _crawl_status = {"status": "failed", "step": "parsing", "pages_crawled": len(pages), "total_pages": len(pages), "error": "Failed to parse pages"}
             return {
                 "success": False,
                 "data": {
@@ -145,12 +150,15 @@ async def crawl(request: CrawlRequest) -> dict:
                 "error": "Failed to parse crawled pages into chunks",
             }
 
-        # Step 3: Store in ChromaDB
+        # Step 3: Store in ChromaDB (reset first to avoid duplicate chunks from random hash IDs)
+        _crawl_status["step"] = "storing"
         vs = _get_vector_store()
+        vs.reset()
         vs.add_documents(chunks)
 
         _crawl_status = {
             "status": "completed",
+            "step": "completed",
             "pages_crawled": len(pages),
             "total_pages": len(pages),
             "error": None,
@@ -169,7 +177,7 @@ async def crawl(request: CrawlRequest) -> dict:
         }
     except Exception as exc:
         logger.error(f"Crawl pipeline failed: {exc}")
-        _crawl_status = {"status": "failed", "pages_crawled": 0, "total_pages": 0, "error": str(exc)}
+        _crawl_status = {"status": "failed", "step": "failed", "pages_crawled": 0, "total_pages": 0, "error": str(exc)}
         return {
             "success": False,
             "data": {
@@ -191,26 +199,29 @@ async def do_extract_features(
 ) -> dict:
     """Run LLM-based feature extraction over the ChromaDB chunks."""
     global _extract_status
-    _extract_status = {"status": "extracting", "features_extracted": 0, "error": None}
+    _extract_status = {"status": "extracting", "step": "retrieving", "features_extracted": 0, "error": None}
 
     try:
         vs = _get_vector_store()
         if vs.count() == 0:
-            _extract_status = {"status": "failed", "features_extracted": 0, "error": "No document chunks in ChromaDB. Run /crawl first."}
+            _extract_status = {"status": "failed", "step": "retrieving", "features_extracted": 0, "error": "No document chunks in ChromaDB. Run /crawl first."}
             return {
                 "success": False,
                 "error": "No document chunks in ChromaDB. Run /crawl first.",
             }
 
-        _extract_status = {"status": "extracting", "features_extracted": 0, "error": None}
+        _extract_status = {"status": "extracting", "step": "llm_call", "features_extracted": 0, "error": None}
         features = await extract_features(vs, call_llm)
         if not features:
-            _extract_status = {"status": "failed", "features_extracted": 0, "error": "Feature extraction produced no results"}
+            _extract_status = {"status": "failed", "step": "llm_call", "features_extracted": 0, "error": "Feature extraction produced no results"}
             return {
                 "success": False,
                 "error": "Feature extraction produced no results",
             }
 
+        # Clear old features before writing new ones
+        _extract_status["step"] = "saving"
+        db.query(FeatureORM).delete()
         # Persist to SQLite
         for f in features:
             orm = FeatureORM(
@@ -220,7 +231,7 @@ async def do_extract_features(
                 description=f.description,
                 source_chunks=json.dumps(f.source_chunks),
             )
-            db.merge(orm)
+            db.add(orm)
         db.commit()
 
         # Validate granularity
@@ -240,7 +251,7 @@ async def do_extract_features(
             for f in features
         ]
 
-        _extract_status = {"status": "completed", "features_extracted": len(features), "error": None}
+        _extract_status = {"status": "completed", "step": "completed", "features_extracted": len(features), "error": None}
 
         return {
             "success": True,
@@ -249,7 +260,7 @@ async def do_extract_features(
         }
     except Exception as exc:
         logger.error(f"Feature extraction failed: {exc}")
-        _extract_status = {"status": "failed", "features_extracted": 0, "error": str(exc)}
+        _extract_status = {"status": "failed", "step": "failed", "features_extracted": 0, "error": str(exc)}
         return {
             "success": False,
             "error": f"Extraction failed: {str(exc)}",
@@ -269,12 +280,12 @@ async def do_generate_scenarios(
     Returns ApiResponse<TestScenario[]> with the generated scenarios array.
     """
     global _generate_status
-    _generate_status = {"status": "generating", "scenarios_generated": 0, "error": None}
+    _generate_status = {"status": "generating", "step": "retrieving", "scenarios_generated": 0, "error": None}
 
     try:
         vs = _get_vector_store()
         if vs.count() == 0:
-            _generate_status = {"status": "failed", "scenarios_generated": 0, "error": "No document chunks in ChromaDB. Run /crawl first."}
+            _generate_status = {"status": "failed", "step": "retrieving", "scenarios_generated": 0, "error": "No document chunks in ChromaDB. Run /crawl first."}
             return {
                 "success": False,
                 "error": "No document chunks in ChromaDB. Run /crawl first.",
@@ -287,7 +298,7 @@ async def do_generate_scenarios(
         orm_features = query.all()
 
         if not orm_features:
-            _generate_status = {"status": "failed", "scenarios_generated": 0, "error": "No features found. Run /extract-features first."}
+            _generate_status = {"status": "failed", "step": "retrieving", "scenarios_generated": 0, "error": "No features found. Run /extract-features first."}
             return {
                 "success": False,
                 "error": "No features found. Run /extract-features first.",
@@ -305,14 +316,18 @@ async def do_generate_scenarios(
             for f in orm_features
         ]
 
+        _generate_status["step"] = "llm_call"
         scenarios = await generate_scenarios(pydantic_features, vs, call_llm)
         if not scenarios:
-            _generate_status = {"status": "failed", "scenarios_generated": 0, "error": "Scenario generation produced no results"}
+            _generate_status = {"status": "failed", "step": "llm_call", "scenarios_generated": 0, "error": "Scenario generation produced no results"}
             return {
                 "success": False,
                 "error": "Scenario generation produced no results",
             }
 
+        # Clear old scenarios before writing new ones
+        _generate_status["step"] = "saving"
+        db.query(TestScenarioORM).delete()
         # Persist to SQLite
         for s in scenarios:
             orm = TestScenarioORM(
@@ -322,7 +337,7 @@ async def do_generate_scenarios(
                 steps_json=json.dumps([step.model_dump() for step in s.steps]),
                 expectations_json=json.dumps([exp.model_dump() for exp in s.expectations]),
             )
-            db.merge(orm)
+            db.add(orm)
         db.commit()
 
         # Validate granularity
@@ -342,7 +357,7 @@ async def do_generate_scenarios(
             for s in scenarios
         ]
 
-        _generate_status = {"status": "completed", "scenarios_generated": len(scenarios), "error": None}
+        _generate_status = {"status": "completed", "step": "completed", "scenarios_generated": len(scenarios), "error": None}
 
         return {
             "success": True,
@@ -351,7 +366,7 @@ async def do_generate_scenarios(
         }
     except Exception as exc:
         logger.error(f"Scenario generation failed: {exc}")
-        _generate_status = {"status": "failed", "scenarios_generated": 0, "error": str(exc)}
+        _generate_status = {"status": "failed", "step": "failed", "scenarios_generated": 0, "error": str(exc)}
         return {
             "success": False,
             "error": f"Generation failed: {str(exc)}",

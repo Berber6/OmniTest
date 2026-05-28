@@ -33,11 +33,14 @@ import {
   CheckSquare,
   X,
   Play,
+  Download,
+  Upload,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { AgentStatus } from "@/lib/types";
 import { deleteExecution as deleteExecutionApi } from "@/lib/api";
 import { useI18n } from "@/lib/useI18n";
+import { ImportExportDialog } from "@/components/ImportExportDialog";
 
 function formatDateTime(isoString: string): string {
   let normalized = isoString;
@@ -123,6 +126,9 @@ export default function ExecutionsPage() {
   } = useAppStore();
   const { t } = useI18n();
 
+  const [exportOpen, setExportOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+
   // 多选模式：点击"多选"按钮进入，此时按钮变为"批量删除"
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -193,15 +199,30 @@ export default function ExecutionsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-3">
-        <Play className="h-6 w-6 text-purple-500" />
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">
-            {t("executions.title")}
-          </h2>
-          <p className="text-muted-foreground">{t("executions.subtitle")}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Play className="h-6 w-6 text-purple-500" />
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight">
+              {t("executions.title")}
+            </h2>
+            <p className="text-muted-foreground">{t("executions.subtitle")}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setExportOpen(true)}>
+            <Download className="h-3 w-3" />
+            {t("io.export")}
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1" onClick={() => setImportOpen(true)}>
+            <Upload className="h-3 w-3" />
+            {t("io.import")}
+          </Button>
         </div>
       </div>
+
+      <ImportExportDialog dataType="executions" mode="export" open={exportOpen} onOpenChange={setExportOpen} />
+      <ImportExportDialog dataType="executions" mode="import" open={importOpen} onOpenChange={setImportOpen} />
 
       {loadingExecutions ? (
         <div className="space-y-2">
@@ -285,7 +306,7 @@ export default function ExecutionsPage() {
                       />
                     </TableHead>
                   )}
-                  <TableHead className="w-[80px]">{t("table.id")}</TableHead>
+                  <TableHead className="w-[160px]">{t("table.id")}</TableHead>
                   <TableHead className="w-[240px]">{t("table.scenario")}</TableHead>
                   <TableHead>{t("table.status")}</TableHead>
                   <TableHead>{t("table.result")}</TableHead>

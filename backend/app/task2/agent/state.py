@@ -27,3 +27,4 @@ class AgentState(TypedDict):
     reflection: str             # Reflection analysis text from the REFLECT node
     final_result: str           # Final result: "pass" or "fail"
     failure_reason: str         # Detailed failure reason when result is "fail"
+    memory_context: dict       # Context stored/retrieved via Memory MCP

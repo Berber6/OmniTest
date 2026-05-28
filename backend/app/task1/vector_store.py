@@ -174,6 +174,86 @@ class VectorStore:
         """Return the number of documents in the collection."""
         return self._collection.count()
 
+    def retrieve_with_url_expand(
+        self,
+        query: str,
+        n_results: int = 5,
+        max_distance: float = 0.50,
+    ) -> list[DocumentChunk]:
+        """Retrieve chunks and expand to include all chunks from the same URL.
+
+        After retrieving the top-n chunks by relevance, fetches all remaining
+        chunks from each matched URL so the LLM gets complete page context.
+
+        Args:
+            query: Search query text.
+            n_results: Number of initial results to retrieve.
+            max_distance: Maximum cosine distance threshold for initial results.
+        """
+        # Step 1: Normal retrieval
+        seed_chunks = self.retrieve(query, n_results, max_distance)
+        if not seed_chunks:
+            return []
+
+        # Step 2: Collect unique URLs from seed results
+        seed_urls = {chunk.source_url for chunk in seed_chunks}
+        seed_ids = {chunk.id for chunk in seed_chunks}
+
+        # Step 3: Fetch all chunks for each matched URL from ChromaDB
+        all_chunks: list[DocumentChunk] = []
+        seen_ids: set[str] = set()
+
+        # Add seed chunks first (preserving retrieval order)
+        for chunk in seed_chunks:
+            if chunk.id not in seen_ids:
+                all_chunks.append(chunk)
+                seen_ids.add(chunk.id)
+
+        # Then expand: for each URL, get all its chunks
+        for url in seed_urls:
+            try:
+                url_results = self._collection.get(
+                    where={"source_url": url},
+                    include=["documents", "metadatas"],
+                )
+            except Exception as exc:
+                logger.warning(f"Failed to expand URL {url}: {exc}")
+                continue
+
+            if not url_results or not url_results.get("ids"):
+                continue
+
+            for i, doc_id in enumerate(url_results["ids"]):
+                if doc_id in seen_ids:
+                    continue
+
+                content = url_results["documents"][i]
+                metadata = url_results["metadatas"][i] if url_results["metadatas"] else {}
+                source_url = metadata.get("source_url", "")
+                title = metadata.get("title", "")
+                clean_meta = {
+                    k: v for k, v in metadata.items()
+                    if k not in ("source_url", "title")
+                }
+                # Mark expanded chunks (no direct relevance score)
+                clean_meta["expanded_from_url"] = url
+
+                chunk = DocumentChunk(
+                    id=doc_id,
+                    content=content,
+                    source_url=source_url,
+                    title=title,
+                    metadata=clean_meta,
+                )
+                all_chunks.append(chunk)
+                seen_ids.add(doc_id)
+
+        logger.info(
+            f"Retrieved {len(seed_chunks)} seed chunks from {len(seed_urls)} URLs, "
+            f"expanded to {len(all_chunks)} total chunks"
+        )
+        return all_chunks
+
     def reset(self) -> None:
         """Delete and recreate the collection (for re-indexing)."""
         name = self._collection.name
