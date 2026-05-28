@@ -1,2 +1,0 @@
-[      62ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://demo.4gaboards.com/login:0
-[     608ms] [WARNING] Error while trying to use the following icon from the Manifest: https://demo.4gaboards.com/4gaboards192w.png (Download error or resource isn't a valid image) @ https://demo.4gaboards.com/login:0
