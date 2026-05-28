@@ -1,6 +1,0 @@
-[    1737ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://taiga.io/project/getting-started/:0
-[    3265ms] [INFO] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://taiga.io/static/fonts/ubuntu/Ubuntu_500.d3c3b35e6d47.ttf @ https://taiga.io/project/getting-started/:0
-[    3265ms] [INFO] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://taiga.io/static/fonts/ubuntu/Ubuntu_400.84ea7c5c9d2f.ttf @ https://taiga.io/project/getting-started/:0
-[    3265ms] [INFO] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://taiga.io/static/fonts/ubuntu/Ubuntu_700.896a60219f61.ttf @ https://taiga.io/project/getting-started/:0
-[    3265ms] [INFO] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://taiga.io/static/fonts/ubuntu/Ubuntu_300.c9d68f61bf89.ttf @ https://taiga.io/project/getting-started/:0
-[   23610ms] [ERROR] Failed to load resource: the server responded with a status of 451 () @ chrome-error://chromewebdata/:0
