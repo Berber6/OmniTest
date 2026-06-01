@@ -182,6 +182,29 @@ async def serve_screenshot(path: str) -> FileResponse:
     except ValueError:
         raise HTTPException(status_code=403, detail="Access denied: path outside screenshots directory")
 
+
+@router.get("/api/reference-images/{path:path}", summary="Serve reference image files")
+async def serve_reference_image(path: str) -> FileResponse:
+    """Serve a reference image from the crawled_docs/images directory.
+
+    Used for visual_match expectations that compare execution screenshots
+    against crawled reference images.
+
+    Args:
+        path: Relative path to the image file within crawled_docs/images.
+    """
+    images_dir = settings.data_dir / "crawled_docs" / "images"
+    full_path = images_dir / path
+
+    if not full_path.exists():
+        raise HTTPException(status_code=404, detail=f"Reference image '{path}' not found")
+
+    # Security: ensure the path doesn't escape the images directory
+    try:
+        full_path.resolve().relative_to(images_dir.resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access denied: path outside images directory")
+
     # Determine media type from file extension
     ext = full_path.suffix.lower()
     media_types = {

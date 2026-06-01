@@ -64,6 +64,19 @@ def _split_page(
 
     chunks: list[DocumentChunk] = []
     for i, text in enumerate(texts):
+        # Find images whose alt text appears in this chunk's content
+        chunk_images = []
+        if page.images:
+            text_lower = text.lower()
+            for img in page.images:
+                alt = img.get("alt", "")
+                if alt and alt.lower() in text_lower:
+                    chunk_images.append({
+                        "alt": alt,
+                        "local_path": img.get("local_path", ""),
+                        "url": img.get("url", ""),
+                    })
+
         chunk_id = f"{_url_to_chunk_prefix(page.url)}_{i}"
         chunk = DocumentChunk(
             id=chunk_id,
@@ -74,6 +87,7 @@ def _split_page(
                 "chunk_index": i,
                 "total_chunks_in_page": len(texts),
                 "page_title": page.title,
+                "images": chunk_images,
             },
         )
         chunks.append(chunk)
