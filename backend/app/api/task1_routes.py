@@ -23,6 +23,8 @@ from app.task1.vector_store import VectorStore
 from app.task1.extractor import extract_features
 from app.task1.generator import generate_scenarios
 from app.task1.granularity import validate_granularity
+from app.task1.image_store import ImageStore
+from app.task1.ui_registry import UIElementRegistry
 from app.llm.router import call_llm
 from app.config import settings
 
@@ -163,6 +165,15 @@ async def crawl(request: CrawlRequest) -> dict:
             "total_pages": len(pages),
             "error": None,
         }
+
+        # Build image store and UI element registry from manifest
+        manifest_path = str(settings.data_dir / "crawled_docs" / "manifest.json")
+        try:
+            ImageStore.build_from_manifest(manifest_path)
+            UIElementRegistry.build_from_manifest(manifest_path)
+            UIElementRegistry.save(str(settings.data_dir / "crawled_docs" / "ui_registry.json"))
+        except Exception as registry_exc:
+            logger.warning(f"Failed to build image/UI registry: {registry_exc}")
 
         return {
             "success": True,
@@ -465,3 +476,62 @@ async def get_scenario(id: str, db: Session = Depends(get_session)) -> TestScena
         steps=json.loads(orm_scenario.steps_json) if isinstance(orm_scenario.steps_json, str) else (orm_scenario.steps_json or []),
         expectations=json.loads(orm_scenario.expectations_json) if isinstance(orm_scenario.expectations_json, str) else (orm_scenario.expectations_json or []),
     )
+
+
+@router.post("/build-ui-registry-dynamic", summary="Build UI registry from Playwright accessibility trees")
+async def build_ui_registry_dynamic() -> dict:
+    """Phase 2: Use Playwright to visit crawled pages and extract precise UI elements.
+
+    This is an optional enhancement that requires a running browser.
+    It reads the manifest to get page URLs, visits each with Playwright,
+    takes accessibility snapshots, and extracts interactive elements.
+    """
+    manifest_path = str(settings.data_dir / "crawled_docs" / "manifest.json")
+    registry_path = str(settings.data_dir / "crawled_docs" / "ui_registry.json")
+
+    # Load existing text-based registry first
+    try:
+        UIElementRegistry.load(registry_path)
+    except Exception:
+        UIElementRegistry.build_from_manifest(manifest_path)
+
+    # Get page URLs from manifest
+    pages = load_crawled_pages(str(settings.data_dir / "crawled_docs"))
+    if not pages:
+        return {"success": False, "message": "No crawled pages found. Run crawl first."}
+
+    # Use Playwright MCP to visit each page and get accessibility snapshots
+    # This runs in a background process to avoid anyio conflicts
+    pages_data = []
+    try:
+        from app.task2.agent.mcp_client import MCPClient
+        import asyncio
+
+        mcp_client = MCPClient()
+        await asyncio.wait_for(mcp_client.connect(servers=["playwright"]), timeout=30)
+
+        for page in pages[:10]:  # Limit to first 10 pages for performance
+            try:
+                # Navigate to page
+                await mcp_client.call_tool_text("playwright", "browser_navigate", {"url": page.url})
+                # Take accessibility snapshot
+                snapshot_text = await mcp_client.call_tool_text("playwright", "browser_snapshot", {})
+                pages_data.append({"url": page.url, "snapshot_text": snapshot_text})
+            except Exception as page_exc:
+                logger.warning(f"Failed to get snapshot for {page.url}: {page_exc}")
+
+        await mcp_client.disconnect()
+    except Exception as exc:
+        logger.error(f"Playwright MCP connection failed: {exc}")
+        return {"success": False, "message": f"Playwright MCP connection failed: {exc}"}
+
+    # Merge dynamic elements with existing text-based elements
+    UIElementRegistry.build_from_accessibility_pages(pages_data)
+    UIElementRegistry.save(registry_path)
+
+    return {
+        "success": True,
+        "message": f"Extracted UI elements from {len(pages_data)} pages via Playwright",
+        "pages_processed": len(pages_data),
+        "total_elements": len(UIElementRegistry.get_all_elements()),
+    }

@@ -178,12 +178,13 @@ def _parse_snapshot_elements(snapshot_text: str) -> list[dict]:
     return elements
 
 
-def resolve_ref_from_snapshot(snapshot_text: str, description: str) -> str | None:
+def resolve_ref_from_snapshot(snapshot_text: str, description: str, ui_elements: list | None = None) -> str | None:
     """根据人类可读的元素描述，从快照中找到对应的 eN 引用。
 
     Args:
         snapshot_text: browser_snapshot 返回的原始文本
         description: 人类可读描述，如"邮箱输入框"或"登录按钮"
+        ui_elements: Optional list of known UIElement dicts for rule-based boost
 
     Returns:
         匹配的 eN 引用字符串（如 "e12"），未找到则返回 None
@@ -337,6 +338,27 @@ def resolve_ref_from_snapshot(snapshot_text: str, description: str) -> str | Non
                 score -= 5  # 品牌/logo 链接扣分
 
         candidates.append((score, elem))
+
+    # UI element boost: if known UI elements are provided, boost candidates
+    # that match known UI elements for higher confidence matching
+    if ui_elements:
+        boosted = []
+        for s, elem in candidates:
+            boost = 0
+            name_lower_boost = elem["name"].lower()
+            role_lower_boost = elem["role"].lower()
+            for ui_elem in ui_elements:
+                ui_label = ui_elem.get("label", "").lower()
+                ui_desc = ui_elem.get("description", "").lower()
+                ui_role = ui_elem.get("role", "").lower()
+                if ui_label and name_lower_boost == ui_label:
+                    boost += 3
+                elif ui_desc and any(word in name_lower_boost for word in ui_desc.split()):
+                    boost += 2
+                elif ui_role and role_lower_boost == ui_role and ui_label:
+                    boost += 1
+            boosted.append((s + boost, elem))
+        candidates = boosted
 
     # 按分数降序排序
     candidates.sort(key=lambda x: x[0], reverse=True)
