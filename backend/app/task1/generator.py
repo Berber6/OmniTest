@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from .models import DocumentChunk, Feature, Step, Expectation, TestScenario
 from .vector_store import VectorStore
+from .image_store import ImageStore
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +56,25 @@ async def _generate_for_feature(
 
     chunks_text = _format_chunks_for_prompt(context_chunks)
 
+    # Extract image references from chunk metadata for visual_match
+    seen_paths = set()
+    image_refs = []
+    for chunk in context_chunks:
+        if "images" in chunk.metadata and chunk.metadata["images"]:
+            for img in chunk.metadata["images"]:
+                path = img.get("local_path", "")
+                if path and path not in seen_paths:
+                    seen_paths.add(path)
+                    image_refs.append(img)
+
+    images_text = ImageStore.format_for_prompt(image_refs) if image_refs else "暂无参考截图可用。"
+
     prompt = GENERATE_SCENARIOS_PROMPT.format(
         feature_id=feature.id,
         feature_name=feature.name,
         feature_description=feature.description,
         chunks=chunks_text,
+        images=images_text,
     )
 
     async with sem:
@@ -69,6 +84,7 @@ async def _generate_for_feature(
                 prompt=prompt,
                 temperature=0.3,
                 max_tokens=4096,
+                pipeline_stage="generate",
             )
         except Exception as exc:
             logger.error(f"功能特征 '{feature.id}' 的场景生成 LLM 调用失败: {exc}")
@@ -193,6 +209,7 @@ def _parse_scenario_response(
                 type=exp_data.get("type", "page_content"),
                 description=exp_data.get("description", ""),
                 source_chunk_id=source_chunk_id,
+                reference_image=exp_data.get("reference_image"),
             ))
 
         # 使用场景数据中的 feature_id（如果存在），否则使用传入的

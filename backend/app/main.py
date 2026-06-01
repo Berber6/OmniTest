@@ -18,8 +18,11 @@ from app.api.common_routes import router as common_router
 from app.api.task1_routes import router as task1_router
 from app.api.task2_routes import router as task2_router
 from app.api.import_export_routes import router as io_router
+from app.api.settings_routes import router as settings_router
+from app.api.graph_routes import router as graph_router
 from app.config import settings
 from app.db.database import init_db
+from app.db.config_store import ConfigStore
 from app.events import broadcaster
 
 logger = logging.getLogger(__name__)
@@ -27,8 +30,18 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan: create DB tables on startup."""
+    """Application lifespan: create DB tables, ensure config defaults, start token tracker."""
     init_db()
+    ConfigStore.ensure_defaults()
+    # Start token tracker flush loop
+    from app.llm.token_tracker import TokenTracker, drain_sync_buffer
+    asyncio.create_task(TokenTracker.flush_loop(interval=5.0))
+    # Also drain the sync buffer periodically (records from asyncio.to_thread calls)
+    async def _drain_loop():
+        while True:
+            await asyncio.sleep(2.0)
+            await drain_sync_buffer()
+    asyncio.create_task(_drain_loop())
     yield
 
 
@@ -53,6 +66,8 @@ app.include_router(common_router)
 app.include_router(task1_router)
 app.include_router(task2_router)
 app.include_router(io_router)
+app.include_router(settings_router)
+app.include_router(graph_router)
 
 
 @app.get("/", tags=["root"])

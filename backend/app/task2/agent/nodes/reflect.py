@@ -203,6 +203,7 @@ async def reflect_node(state: AgentState) -> dict:
             temperature=0.3,
             max_tokens=4096,
             response_format={"type": "json_object"},
+            pipeline_stage="reflect",
         )
 
         reflection_data = _parse_reflection_response(response)

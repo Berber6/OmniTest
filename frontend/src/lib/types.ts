@@ -18,9 +18,10 @@ export interface Step {
 }
 
 export interface Expectation {
-  type: "page_content" | "url_change" | "element_exists" | "visual_match";
+  type: "page_content" | "url_change" | "element_exists" | "element_visible" | "toast_message" | "visual_match";
   description: string;
   source_chunk_id?: string;
+  reference_image?: string;
 }
 
 export interface TestScenario {
@@ -209,4 +210,89 @@ export interface GenerationStatus {
   features_extracted?: number;
   scenarios_generated?: number;
   error?: string;
+}
+
+// ── Settings & Token Usage Types ──
+
+export interface AppSetting {
+  key: string;
+  value: string;
+  category: string;
+  is_secret: boolean;
+  description: string;
+  is_dynamic: boolean;
+}
+
+export interface TokenUsageSummary {
+  total_tokens: number;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_cost: number;
+  currency: string;
+  call_count: number;
+  per_model: Record<string, {
+    tokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+    cost: number;
+    model_name: string;
+    call_count: number;
+  }>;
+  per_stage: Record<string, {
+    tokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+    cost: number;
+    call_count: number;
+  }>;
+  period_days: number;
+}
+
+export interface TokenUsageDetail {
+  id: string;
+  model_key: string;
+  model_name: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  pipeline_stage: string;
+  cost_estimate: number;
+  currency: string;
+  timestamp: string | null;
+}
+
+// ── Graph (Neo4j) Types ──
+
+export interface GraphNode {
+  id: string;
+  type: "feature" | "scenario" | "execution" | "mutation";
+  label: string;
+  properties: Record<string, unknown>;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  type: string;
+}
+
+export interface DependencyGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  neo4j_enabled: boolean;
+}
+
+export interface FeatureCoverage {
+  feature_id: string;
+  scenarios: { id: string; name: string; status: string }[];
+  executions: { id: string; status: string; final_result: string }[];
+  coverage_rate: number;
+}
+
+export interface CoverageStats {
+  categories: Record<string, {
+    feature_count: number;
+    scenario_count: number;
+    coverage_rate: number;
+  }>;
 }

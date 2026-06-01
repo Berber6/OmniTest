@@ -11,6 +11,8 @@ import type {
   CrawlStatus,
   ExtractStatus,
   GenerateStatus,
+  AppSetting,
+  TokenUsageSummary,
 } from "./types";
 import * as api from "./api";
 import { ExecutionWebSocket } from "./api";
@@ -26,6 +28,8 @@ interface AppState {
   crawlStatus: CrawlStatus | null;
   extractStatus: ExtractStatus | null;
   generateStatus: GenerateStatus | null;
+  settings: AppSetting[];
+  tokenUsageSummary: TokenUsageSummary | null;
 
   // Loading states
   loadingFeatures: boolean;
@@ -34,6 +38,8 @@ interface AppState {
   loadingMutations: boolean;
   loadingStats: boolean;
   loadingStatus: boolean;
+  loadingSettings: boolean;
+  loadingTokenUsage: boolean;
   crawling: boolean;
   extracting: boolean;
   generating: boolean;
@@ -55,6 +61,9 @@ interface AppState {
   fetchMutations: () => Promise<void>;
   fetchDashboardStats: () => Promise<void>;
   fetchSystemStatus: () => Promise<void>;
+  fetchSettings: () => Promise<void>;
+  updateSetting: (key: string, value: string) => Promise<void>;
+  fetchTokenUsageSummary: (stage?: string, model?: string, days?: number) => Promise<void>;
   startCrawl: () => Promise<void>;
   startExtractFeatures: () => Promise<void>;
   startGenerateScenarios: () => Promise<void>;
@@ -80,6 +89,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   crawlStatus: null,
   extractStatus: null,
   generateStatus: null,
+  settings: [],
+  tokenUsageSummary: null,
 
   loadingFeatures: false,
   loadingScenarios: false,
@@ -87,6 +98,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadingMutations: false,
   loadingStats: false,
   loadingStatus: false,
+  loadingSettings: false,
+  loadingTokenUsage: false,
   crawling: false,
   extracting: false,
   generating: false,
@@ -176,6 +189,37 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     } catch {
       set({ loadingStatus: false });
+    }
+  },
+
+  fetchSettings: async () => {
+    set({ loadingSettings: true });
+    try {
+      const result = await api.getSettings();
+      set({ settings: result.data, loadingSettings: false });
+    } catch {
+      set({ loadingSettings: false });
+    }
+  },
+
+  updateSetting: async (key: string, value: string) => {
+    try {
+      await api.updateSetting(key, value);
+      // Refresh settings after update
+      const result = await api.getSettings();
+      set({ settings: result.data });
+    } catch (err) {
+      console.error(`Failed to update setting '${key}':`, err);
+    }
+  },
+
+  fetchTokenUsageSummary: async (stage?: string, model?: string, days?: number) => {
+    set({ loadingTokenUsage: true });
+    try {
+      const result = await api.getTokenUsageSummary(stage, model, days);
+      set({ tokenUsageSummary: result.data, loadingTokenUsage: false });
+    } catch {
+      set({ loadingTokenUsage: false });
     }
   },
 

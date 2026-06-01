@@ -145,6 +145,7 @@ async def generate_mutations(scenario: dict, mutation_types: list[str] | None = 
             temperature=0.5,  # 较高温度以产生创意变异
             max_tokens=4096,
             response_format={"type": "json_object"},
+            pipeline_stage="mutation",
         )
         mutants = _parse_mutations_response(response)
     except Exception as exc:
