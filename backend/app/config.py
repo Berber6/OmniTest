@@ -89,6 +89,13 @@ class Settings(BaseSettings):
     # --- CORS ---
     cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"]
 
+    # --- Neo4j Configuration (optional) ---
+    neo4j_enabled: bool = False
+    neo4j_uri: str = "bolt://localhost:7687"
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = ""
+    neo4j_database: str = "omnitest"
+
     # --- Server ---
     host: str = "0.0.0.0"
     port: int = 8000

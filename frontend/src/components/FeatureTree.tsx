@@ -14,9 +14,11 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Badge } from "@/components/ui/badge";
+import { Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Feature, TestScenario } from "@/lib/types";
 import { useI18n } from "@/lib/useI18n";
+import { useAppStore } from "@/lib/store";
 
 // ── Category color mapping ──
 
@@ -218,6 +220,10 @@ export function FeatureTree({ features, scenarios }: FeatureTreeProps) {
     [features, scenarios, t]
   );
 
+  // Check Neo4j status from dashboard stats
+  const dashboardStats = useAppStore((s) => s.dashboardStats);
+  const neo4jEnabled = (dashboardStats?.pipeline as Record<string, unknown> | undefined)?.neo4j_enabled as boolean | undefined ?? false;
+
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     if (node.data.featureId) {
       window.location.href = `/features/${node.data.featureId}`;
@@ -235,7 +241,15 @@ export function FeatureTree({ features, scenarios }: FeatureTreeProps) {
   }
 
   return (
-    <div className="w-full h-[600px] border rounded-lg bg-white">
+    <div className="w-full h-[600px] border rounded-lg bg-white relative">
+      {neo4jEnabled && (
+        <div className="absolute top-2 right-2 z-10">
+          <Badge variant="secondary" className="gap-1 text-xs">
+            <Database className="h-3 w-3" />
+            Neo4j
+          </Badge>
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}

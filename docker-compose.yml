@@ -48,3 +48,18 @@ services:
 volumes:
   backend_data:
   chroma_data:
+  neo4j_data:
+
+  # Neo4j graph database (optional, only started with --profile graph)
+  neo4j:
+    image: neo4j:5-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/omnitest_password
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - neo4j_data:/data
+    profiles:
+      - graph
