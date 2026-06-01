@@ -11,6 +11,7 @@ import {
   Wifi,
   WifiOff,
   Languages,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/scenarios", labelKey: "nav.scenarios", icon: ClipboardList },
   { href: "/executions", labelKey: "nav.executions", icon: PlayCircle },
   { href: "/mutations", labelKey: "nav.mutations", icon: Bug },
+  { href: "/settings", labelKey: "nav.settings", icon: Settings },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {

@@ -163,6 +163,7 @@ async def _text_verification(
             temperature=0.1,
             max_tokens=2048,
             response_format={"type": "json_object"},
+            pipeline_stage="verify_text",
         )
         logger.info("文本验证 LLM 响应 (前500字符): %s", response[:500] if response else "None")
         # Strip markdown code fences that GLM-5.1 may add despite json_object format
@@ -227,6 +228,7 @@ async def _visual_verification(
             system_prompt=VERIFY_VISUAL_SYSTEM_PROMPT,
             temperature=0.1,
             max_tokens=2048,
+            pipeline_stage="verify_visual",
         )
         result = _parse_verification_json(response)
         result["verification_type"] = "visual"
@@ -249,6 +251,7 @@ async def _run_verify_mcp_tools(
 ) -> dict:
     """使用 Verify MCP 工具进行结构化检查（通过子进程隔离 anyio）。"""
     expectations_json = json.dumps(expectations)
+    screenshots_json = json.dumps(screenshots)
 
     # Use temp file for result transfer (avoids Pipe buffer deadlock)
     result_file = tempfile.NamedTemporaryFile(
@@ -261,7 +264,7 @@ async def _run_verify_mcp_tools(
     ctx = multiprocessing.get_context("spawn")
     process = ctx.Process(
         target=_verify_mcp_process,
-        args=(expectations_json, page_text, result_path, child_conn),
+        args=(expectations_json, page_text, screenshots_json, result_path, child_conn),
     )
 
     try:
@@ -301,7 +304,7 @@ async def _run_verify_mcp_tools(
         return {"mcp_connection_error": str(exc)}
 
 
-def _verify_mcp_process(expectations_json_str: str, page_text_str: str, result_path: str, conn) -> None:
+def _verify_mcp_process(expectations_json_str: str, page_text_str: str, screenshots_json_str: str, result_path: str, conn) -> None:
     """Module-level function for multiprocessing: runs verify MCP in child process.
 
     This is a module-level function because multiprocessing with 'spawn'
@@ -387,6 +390,43 @@ def _verify_mcp_process(expectations_json_str: str, page_text_str: str, result_p
                         results[key] = {"type": "url_check", "passed": False, "detail": tool_result}
                     else:
                         results[key] = {"type": "url_check", "passed": "true" in tool_result.lower() or "found" in tool_result.lower(), "detail": tool_result}
+
+                elif exp_type == "visual_match":
+                    reference_image_path = exp.get("reference_image", "")
+                    if reference_image_path:
+                        # Load the reference image from crawled_docs/images/
+                        from pathlib import Path as _Path
+                        from app.config import settings as _settings
+                        import base64 as _b64
+                        full_img_path = _settings.data_dir / "crawled_docs" / reference_image_path
+                        if full_img_path.exists():
+                            with open(full_img_path, "rb") as img_f:
+                                expected_b64 = _b64.b64encode(img_f.read()).decode()
+                            # Use the last screenshot as actual image for comparison
+                            if screenshots_json_str:
+                                try:
+                                    screenshots_list = json.loads(screenshots_json_str)
+                                    actual_b64 = screenshots_list[-1] if screenshots_list else ""
+                                except Exception:
+                                    actual_b64 = ""
+                            else:
+                                actual_b64 = ""
+                            if actual_b64 and expected_b64:
+                                tool_result = await mcp_client.call_tool_text(
+                                    "verify", "compare_screenshots",
+                                    {"expected_b64": expected_b64, "actual_b64": actual_b64},
+                                )
+                                results[key] = {
+                                    "type": "visual_match_check",
+                                    "passed": "similar" in tool_result.lower() or "true" in tool_result.lower() or "match" in tool_result.lower(),
+                                    "detail": tool_result,
+                                }
+                            else:
+                                results[key] = {"type": "visual_match_check", "passed": False, "detail": "No execution screenshot available for comparison"}
+                        else:
+                            results[key] = {"type": "visual_match_check", "passed": False, "detail": f"Reference image not found: {reference_image_path}"}
+                    else:
+                        results[key] = {"type": "visual_match_check", "passed": False, "detail": "No reference_image specified for visual_match expectation"}
 
             except Exception as exc:
                 results[key] = {"type": exp_type, "passed": False, "detail": f"Verify MCP 调用失败: {exc}"}

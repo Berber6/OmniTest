@@ -4,8 +4,10 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     JSON,
@@ -117,3 +119,32 @@ class MutationResult(Base):
         foreign_keys=[original_scenario_id],
     )
     execution_record: Mapped[Optional["ExecutionRecord"]] = relationship()
+
+
+class AppSetting(Base):
+    """Runtime-configurable application settings stored in DB."""
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String, nullable=False, default="general")
+    is_secret: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    description: Mapped[str] = mapped_column(String, nullable=False, default="")
+
+
+class TokenUsage(Base):
+    """Token usage record for each LLM call."""
+
+    __tablename__ = "token_usage"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    model_key: Mapped[str] = mapped_column(String, nullable=False)
+    model_name: Mapped[str] = mapped_column(String, nullable=False)
+    prompt_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
+    completion_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
+    total_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
+    pipeline_stage: Mapped[str] = mapped_column(String, nullable=False, default="unknown")
+    cost_estimate: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    currency: Mapped[str] = mapped_column(String, nullable=False, default="USD")
+    timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)

@@ -94,9 +94,18 @@ async def call_llm(
     model_key: str,
     prompt: str,
     system_prompt: Optional[str] = None,
+    pipeline_stage: str = "unknown",
     **kwargs: Any,
 ) -> str:
-    """Call an LLM model via LiteLLM with retry and fallback support."""
+    """Call an LLM model via LiteLLM with retry and fallback support.
+
+    Args:
+        model_key: Key in MODEL_MAP (e.g. "deepseek_v4_flash").
+        prompt: User prompt text.
+        system_prompt: Optional system prompt.
+        pipeline_stage: Pipeline stage for token tracking (e.g. "extract", "generate", "plan").
+        **kwargs: Additional LiteLLM kwargs (temperature, max_tokens, etc.).
+    """
     effective_api_key = _get_effective_api_key()
     if not effective_api_key:
         raise LLMRouterError(
@@ -118,6 +127,8 @@ async def call_llm(
             api_key=effective_api_key,
             prompt=prompt,
             system_prompt=system_prompt,
+            pipeline_stage=pipeline_stage,
+            model_key=mk,  # pass through for token tracking
             **kwargs,
         )
         if result is not None:
@@ -137,6 +148,8 @@ async def _call_with_retries(
     api_key: str,
     prompt: str,
     system_prompt: Optional[str] = None,
+    pipeline_stage: str = "unknown",
+    model_key: str = "",
     **kwargs: Any,
 ) -> Optional[str]:
     """Call LiteLLM with exponential backoff retries.
@@ -153,7 +166,7 @@ async def _call_with_retries(
 
     # Remove non-LiteLLM kwargs before passing
     litellm_kwargs = {k: v for k, v in kwargs.items()
-                      if k not in ("system_prompt", "response_format")}
+                      if k not in ("system_prompt", "response_format", "pipeline_stage", "model_key")}
 
     # Disable aiohttp transport to use httpx (more reliable in this environment)
     litellm.disable_aiohttp_transport = True
@@ -179,6 +192,20 @@ async def _call_with_retries(
             # litellm returns a ModelResponse; extract text content
             content = response.choices[0].message.content
             if content:
+                # Capture token usage for tracking
+                if hasattr(response, 'usage') and response.usage and model_key:
+                    try:
+                        from app.llm.token_tracker import record_token_usage
+                        record_token_usage(
+                            model_key=model_key,
+                            model_name=model,
+                            prompt_tokens=response.usage.prompt_tokens or 0,
+                            completion_tokens=response.usage.completion_tokens or 0,
+                            total_tokens=response.usage.total_tokens or 0,
+                            pipeline_stage=pipeline_stage,
+                        )
+                    except Exception as track_exc:
+                        logger.warning(f"Token tracking failed: {track_exc}")
                 return content.strip()
             logger.warning(f"Empty response content on attempt {attempt}")
         except Exception as exc:
@@ -192,9 +219,19 @@ async def call_llm_with_vision(
     prompt: str,
     image: str,
     system_prompt: Optional[str] = None,
+    pipeline_stage: str = "unknown",
     **kwargs: Any,
 ) -> str:
-    """Call a vision-capable LLM with an image input."""
+    """Call a vision-capable LLM with an image input.
+
+    Args:
+        model_key: Key in MODEL_MAP (e.g. "qwen3_vl").
+        prompt: User prompt text.
+        image: Image URL or base64 string.
+        system_prompt: Optional system prompt.
+        pipeline_stage: Pipeline stage for token tracking (e.g. "verify_visual").
+        **kwargs: Additional LiteLLM kwargs.
+    """
     effective_api_key = _get_effective_api_key()
     if not effective_api_key:
         raise LLMRouterError(
@@ -230,12 +267,14 @@ async def call_llm_with_vision(
             logger.warning(f"Unknown model key '{mk}', skipping fallback.")
             continue
 
-        litellm_kwargs = {k: v for k, v in kwargs.items() if k != "system_prompt"}
+        litellm_kwargs = {k: v for k, v in kwargs.items() if k not in ("system_prompt", "pipeline_stage")}
         result = await _call_with_retries_vision(
             model=config["model"],
             api_base=config["api_base"],
             api_key=effective_api_key,
             messages=messages,
+            pipeline_stage=pipeline_stage,
+            model_key=mk,
             **litellm_kwargs,
         )
         if result is not None:
@@ -254,12 +293,16 @@ async def _call_with_retries_vision(
     api_base: str,
     api_key: str,
     messages: list[dict],
+    pipeline_stage: str = "unknown",
+    model_key: str = "",
     **kwargs: Any,
 ) -> Optional[str]:
     """Call LiteLLM with vision messages and exponential backoff retries.
 
     Uses httpx transport for reliability."""
     litellm.disable_aiohttp_transport = True
+    litellm_kwargs = {k: v for k, v in kwargs.items()
+                      if k not in ("pipeline_stage", "model_key")}
 
     for attempt in range(MAX_RETRIES):
         backoff = INITIAL_BACKOFF * (2 ** attempt)
@@ -276,10 +319,24 @@ async def _call_with_retries_vision(
                 messages=messages,
                 api_base=api_base,
                 api_key=api_key,
-                **kwargs,
+                **litellm_kwargs,
             )
             content = response.choices[0].message.content
             if content:
+                # Capture token usage for tracking
+                if hasattr(response, 'usage') and response.usage and model_key:
+                    try:
+                        from app.llm.token_tracker import record_token_usage
+                        record_token_usage(
+                            model_key=model_key,
+                            model_name=model,
+                            prompt_tokens=response.usage.prompt_tokens or 0,
+                            completion_tokens=response.usage.completion_tokens or 0,
+                            total_tokens=response.usage.total_tokens or 0,
+                            pipeline_stage=pipeline_stage,
+                        )
+                    except Exception as track_exc:
+                        logger.warning(f"Token tracking failed: {track_exc}")
                 return content.strip()
             logger.warning(f"Empty vision response content on attempt {attempt}")
         except Exception as exc:

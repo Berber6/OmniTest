@@ -15,6 +15,7 @@ from app.llm.prompts.plan_actions import (
     PLAN_ACTIONS_SYSTEM_PROMPT,
     PLAN_ACTIONS_USER_PROMPT_TEMPLATE,
 )
+from app.task1.ui_registry import UIElementRegistry
 from app.task2.agent.state import AgentState
 
 logger = logging.getLogger(__name__)
@@ -80,6 +81,7 @@ async def plan_node(state: AgentState) -> dict:
         steps_text=steps_text,
         expectations_text=expectations_text,
         page_context_text=full_context,
+        ui_elements=_load_ui_elements_text(),
     )
 
     logger.info("正在规划场景 '%s' (id=%s)，共 %d 个步骤", scenario_name, scenario_id, len(steps))
@@ -93,6 +95,7 @@ async def plan_node(state: AgentState) -> dict:
             temperature=0.2,  # 低温度以保证确定性规划
             max_tokens=4096,
             response_format={"type": "json_object"},
+            pipeline_stage="plan",
         )
 
         plan = _parse_plan_response(response_text)
@@ -211,6 +214,19 @@ def _refine_target(target: str) -> str:
         return "看板项目链接"
 
     return target
+
+
+def _load_ui_elements_text() -> str:
+    """Load UI element registry and format for planner prompt."""
+    registry_path = str(settings.data_dir / "crawled_docs" / "ui_registry.json")
+    try:
+        UIElementRegistry.load(registry_path)
+        elements = UIElementRegistry.get_all_elements()
+        if elements:
+            return UIElementRegistry.format_for_prompt(elements)
+    except Exception:
+        pass
+    return "无可用的已知 UI 元素信息。"
 
 
 def _format_steps(steps: list[dict]) -> str:

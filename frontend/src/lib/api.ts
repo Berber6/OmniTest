@@ -12,6 +12,12 @@ import type {
   ExtractStatus,
   GenerateStatus,
   MutationType,
+  AppSetting,
+  TokenUsageSummary,
+  TokenUsageDetail,
+  DependencyGraph,
+  FeatureCoverage,
+  CoverageStats,
 } from "./types";
 
 // Browser uses same-origin requests (Next.js rewrites proxy to backend)
@@ -266,6 +272,79 @@ export async function importBundle(data: unknown): Promise<ImportResult> {
 }
 
 // ── Screenshots ──
+
+// ── Settings ──
+
+export async function getSettings(): Promise<{ success: boolean; data: AppSetting[]; total: number }> {
+  return fetchApi<{ success: boolean; data: AppSetting[]; total: number }>("/api/settings/");
+}
+
+export async function updateSetting(key: string, value: string): Promise<{ success: boolean; data: AppSetting; message: string }> {
+  return fetchApi<{ success: boolean; data: AppSetting; message: string }>(`/api/settings/${key}?value=${encodeURIComponent(value)}`, {
+    method: "PUT",
+  });
+}
+
+export async function getAvailableModels(): Promise<{
+  success: boolean;
+  data: {
+    current: Record<string, string>;
+    fallbacks: Record<string, string[]>;
+    available_models: Record<string, string>;
+  };
+}> {
+  return fetchApi("/api/settings/models");
+}
+
+export async function getTokenUsageSummary(
+  stage?: string,
+  model?: string,
+  days?: number
+): Promise<{ success: boolean; data: TokenUsageSummary }> {
+  const params = new URLSearchParams();
+  if (stage) params.set("stage", stage);
+  if (model) params.set("model", model);
+  if (days) params.set("days", String(days));
+  return fetchApi<{ success: boolean; data: TokenUsageSummary }>(`/api/settings/token-usage/summary?${params}`);
+}
+
+export async function getTokenUsageDetail(
+  stage?: string,
+  model?: string,
+  limit?: number
+): Promise<{ success: boolean; data: TokenUsageDetail[]; total: number }> {
+  const params = new URLSearchParams();
+  if (stage) params.set("stage", stage);
+  if (model) params.set("model", model);
+  if (limit) params.set("limit", String(limit));
+  return fetchApi<{ success: boolean; data: TokenUsageDetail[]; total: number }>(`/api/settings/token-usage/detail?${params}`);
+}
+
+// ── Graph (Neo4j) ──
+
+export async function getDependencyGraph(): Promise<{ success: boolean; data: DependencyGraph } | null> {
+  try {
+    return await fetchApi<{ success: boolean; data: DependencyGraph }>("/api/graph/dependency-graph");
+  } catch {
+    return null;
+  }
+}
+
+export async function getFeatureCoverage(featureId: string): Promise<{ success: boolean; data: FeatureCoverage } | null> {
+  try {
+    return await fetchApi<{ success: boolean; data: FeatureCoverage }>(`/api/graph/feature-coverage/${featureId}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function getCoverageStats(): Promise<{ success: boolean; data: CoverageStats } | null> {
+  try {
+    return await fetchApi<{ success: boolean; data: CoverageStats }>("/api/graph/coverage-stats");
+  } catch {
+    return null;
+  }
+}
 
 export function getScreenshotUrl(path: string): string {
   if (!path) return "";

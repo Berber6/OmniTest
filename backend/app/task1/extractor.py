@@ -99,6 +99,7 @@ async def extract_features(
             prompt=prompt,
             temperature=0.3,
             max_tokens=8192,
+            pipeline_stage="extract",
         )
     except Exception as exc:
         logger.error(f"功能特征提取的 LLM 调用失败: {exc}")
