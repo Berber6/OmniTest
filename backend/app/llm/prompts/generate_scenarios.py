@@ -29,9 +29,19 @@ GENERATE_SCENARIOS_PROMPT = """\
   - `target`: 对被操作UI元素的中文描述（例如"右上角的'新建Board'按钮"）
 
 - **预期结果（expectation）**：完成步骤后应达到的状态。每个预期结果包含：
-  - `type`: 取值为以下之一："page_content"、"url_change"、"element_exists"、"element_visible"、"toast_message"
+  - `type`: 取值为以下之一："page_content"、"url_change"、"element_exists"、"element_visible"、"toast_message"、"visual_match"
   - `description`: 对应观察内容的中文描述
   - 预期结果是可选的，但强烈建议提供以进行验证。
+
+## visual_match 预期结果
+
+当文档提供了该功能的参考截图时，你应该生成 `visual_match` 类型的预期结果：
+
+- `type`: `"visual_match"`
+- `description`: 对页面应呈现的视觉状态的中文描述（例如"创建Board后的页面应与参考截图视觉一致"）
+- `reference_image`: 参考截图的路径（从下方"参考截图"列表中选择，如 `"images/003_card_create_abc123.png"`）
+
+visual_match 预期结果用于验证执行后的页面截图与文档中的参考截图是否视觉一致。
 
 ## 文档来源追溯要求
 
@@ -63,6 +73,12 @@ GENERATE_SCENARIOS_PROMPT = """\
           "type": "page_content",
           "description": "页面应显示新创建的Board",
           "source_chunk_id": "chunk_id_2"
+        }},
+        {{
+          "type": "visual_match",
+          "description": "创建Board后的页面应与参考截图视觉一致",
+          "reference_image": "images/example_reference.png",
+          "source_chunk_id": "chunk_id_3"
         }}
       ]
     }}
@@ -81,4 +97,8 @@ GENERATE_SCENARIOS_PROMPT = """\
 ## 文档块
 
 {chunks}
+
+## 参考截图
+
+{images}
 """

@@ -44,11 +44,14 @@ class Expectation(BaseModel):
 
     type: str = Field(
         ...,
-        description="Type of expectation: 'page_content', 'url_change', 'element_exists', 'visual_match'",
+        description="Type of expectation: 'page_content', 'url_change', 'element_exists', 'visual_match', 'element_visible', 'toast_message'",
     )
     description: str = Field(..., description="Human-readable description of what should be true")
     source_chunk_id: Optional[str] = Field(
         None, description="ID of the source chunk that this expectation was derived from"
+    )
+    reference_image: Optional[str] = Field(
+        None, description="Local path to reference image for visual_match expectations"
     )
 
 
