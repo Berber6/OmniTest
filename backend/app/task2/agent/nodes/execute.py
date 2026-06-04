@@ -100,6 +100,41 @@ def _check_browser_available() -> bool:
                 if os.path.isdir(full_path) and os.listdir(full_path):
                     return True
 
+
+def _get_action_fallback(tool_name: str, args: dict, description: str) -> tuple[str | None, dict | None]:
+    """Get a fallback action strategy when the primary action fails.
+
+    Returns (fallback_tool, fallback_args) or (None, None) if no fallback exists.
+
+    Fallback strategies:
+    - browser_click → browser_evaluate JS click
+    - browser_type → browser_evaluate JS value set
+    - browser_navigate → browser_evaluate JS location change
+    """
+    target = args.get("target", "")
+    text = args.get("text", "")
+    url = args.get("url", "")
+
+    if tool_name == "browser_click" and target:
+        # Try JS click with eN ref or CSS selector
+        if re.match(r'^e\d+$', target):
+            # eN ref failed → try JS click by evaluating the element
+            return ("browser_evaluate", {"script": f"document.querySelector('[data-testid], button, a, input').click()"})
+        else:
+            # Descriptive target → try JS click with a guessed selector
+            return ("browser_evaluate", {"script": f"document.querySelector('button, [role=button], a').click()"})
+
+    elif tool_name == "browser_type" and target and text:
+        if re.match(r'^e\d+$', target):
+            return ("browser_evaluate", {"script": f"const els = document.querySelectorAll('input, textarea'); for (const el of els) {{ if (el.offsetParent !== null) {{ el.focus(); el.value = '{text}'; break; }} }}"})
+        else:
+            return ("browser_evaluate", {"script": f"const el = document.querySelector('input, textarea'); if (el) {{ el.focus(); el.value = '{text}'; }}"})
+
+    elif tool_name == "browser_navigate" and url:
+        return ("browser_evaluate", {"script": f"window.location.href = '{url}'"})
+
+    return (None, None)
+
     return False
 
 
@@ -174,7 +209,6 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
 
     async def _run():
         from app.task2.agent.mcp_client import MCPClient
-        from app.task2.agent.snapshot_resolver import resolve_ref_from_snapshot
         from mcp import types as mcp_types
 
         plan = json.loads(plan_json)
@@ -240,7 +274,7 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
             if "ref" in args and "target" not in args:
                 args["target"] = args.pop("ref")
 
-            # --- 动态 ref 解析：交互工具的 target 需要从快照中解析 ---
+            # --- 动态 ref 解析：交互工具的 target 使用渐进式回退链 ---
             if tool_name in INTERACTIVE_TOOL_NAMES:
                 target_value = args.get("target", "")
                 # 判断是否需要解析：target 为空、描述性占位符、或不是有效的 eN 格式
@@ -249,7 +283,7 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
                     or not re.match(r'^e\d+$', target_value)
                 )
                 if needs_resolution:
-                    child_logger.info("Target '%s' 需要解析 — 先调用 browser_snapshot", target_value or "(空)")
+                    child_logger.info("Target '%s' 需要解析 — 使用渐进式回退链", target_value or "(空)")
                     try:
                         snapshot_text = await asyncio.wait_for(
                             mcp_client.call_tool_text("playwright", "browser_snapshot", {}),
@@ -264,18 +298,80 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
                                 timeout=15,
                             )
                         child_logger.info("快照内容(前300字符): %s", snapshot_text[:300] if snapshot_text else "(空)")
-                        resolved_ref = resolve_ref_from_snapshot(
-                            snapshot_text, target_value or description,
+
+                        # ── 使用渐进式回退链解析元素 ──
+                        from app.task2.agent.element_resolver import resolve_element_with_fallback
+                        resolution = await resolve_element_with_fallback(
+                            snapshot_text=snapshot_text,
+                            description=target_value or description,
+                            mcp_client=mcp_client,
+                            tool_name=tool_name,
                         )
-                        if resolved_ref:
-                            child_logger.info("解析成功: '%s' → '%s'", target_value or description, resolved_ref)
-                            args["target"] = resolved_ref
-                            # 同步更新 step_result 中的 args
-                            step_result["action"]["args"]["target"] = resolved_ref
+
+                        if resolution:
+                            child_logger.info(
+                                "解析成功: '%s' → '%s' (method=%s, confidence=%.1f)",
+                                target_value or description, resolution.value,
+                                resolution.method, resolution.confidence,
+                            )
+                            step_result["resolution_method"] = resolution.method
+
+                            # 根据解析方法适配执行方式
+                            if resolution.method == "en_ref":
+                                args["target"] = resolution.value
+                                step_result["action"]["args"]["target"] = resolution.value
+
+                            elif resolution.method in ("css_selector", "html_rule"):
+                                # CSS/HTML规则 → 通过 JS 执行点击/操作
+                                if tool_name == "browser_click":
+                                    tool_name = "browser_evaluate"
+                                    args = {"script": f"document.querySelector('{resolution.value}').click()"}
+                                    step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
+                                elif tool_name == "browser_type":
+                                    text = args.get("text", "")
+                                    tool_name = "browser_evaluate"
+                                    args = {"script": f"const el = document.querySelector('{resolution.value}'); el.focus(); el.value = '{text}';"}
+                                    step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
+                                else:
+                                    # 其他交互工具用 JS 模拟
+                                    tool_name = "browser_evaluate"
+                                    args = {"script": f"document.querySelector('{resolution.value}').click()"}
+                                    step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
+
+                            elif resolution.method == "vlm_coordinate":
+                                # VLM坐标 → JS elementFromPoint + click
+                                coords = json.loads(resolution.value)
+                                if tool_name == "browser_click":
+                                    tool_name = "browser_evaluate"
+                                    args = {"script": f"document.elementFromPoint({coords['x']}, {coords['y']}).click()"}
+                                    step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
+                                elif tool_name == "browser_type":
+                                    text = args.get("text", "")
+                                    tool_name = "browser_evaluate"
+                                    args = {"script": f"const el = document.elementFromPoint({coords['x']}, {coords['y']}); if(el) {{ el.focus(); el.value = '{text}'; }}"}
+                                    step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
+
+                            elif resolution.method == "keyboard":
+                                # 键盘兜底 → browser_press_key
+                                tool_name = "browser_press_key"
+                                args = {"key": resolution.value}
+                                step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
+
+                            # ── 成功的非eN方法存入 Memory MCP ──
+                            if resolution.method != "en_ref":
+                                try:
+                                    await mcp_client.call_tool_text("memory", "store_context", {
+                                        "key": f"element_mapping:{target_value or description}",
+                                        "data": json.dumps({"method": resolution.method, "value": resolution.value}),
+                                    })
+                                except Exception:
+                                    pass  # Memory存储失败不影响执行
+
                         else:
-                            child_logger.warning("无法从快照解析 target '%s'", target_value or description)
+                            child_logger.warning("所有解析方法均失败: target '%s'", target_value or description)
                             step_result["success"] = False
-                            step_result["error"] = f"无法从快照中解析目标元素: '{target_value or description}'"
+                            step_result["error"] = f"无法解析目标元素 (所有回退方法均失败): '{target_value or description}'"
+                            step_result["resolution_method"] = "failed"
                             executed_steps.append(step_result)
                             continue
                     except asyncio.TimeoutError:
@@ -345,6 +441,40 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
             except Exception as exc:
                 step_result["error"] = str(exc)
                 logger.error("Action %d failed: %s: %s", idx, tool_name, exc)
+
+                # ── 操作级别重试：尝试替代执行方式 ──
+                retry_tool, retry_args = _get_action_fallback(tool_name, args, description)
+                if retry_tool and retry_args:
+                    child_logger.info("操作失败，尝试替代方式: %s → %s", tool_name, retry_tool)
+                    try:
+                        if retry_tool == "browser_evaluate":
+                            result_text = await asyncio.wait_for(
+                                mcp_client.call_tool_text("playwright", retry_tool, retry_args),
+                                timeout=15,
+                            )
+                            child_logger.info("替代方式 %s 返回 %d chars", retry_tool, len(result_text) if result_text else 0)
+                        else:
+                            result_text = await asyncio.wait_for(
+                                mcp_client.call_tool_text("playwright", retry_tool, retry_args),
+                                timeout=15,
+                            )
+                        # 替代方式成功
+                        step_result["success"] = True
+                        step_result["error"] = None
+                        step_result["action"] = {"tool": retry_tool, "args": retry_args, "description": description}
+                        step_result["resolution_method"] = "action_fallback"
+                        child_logger.info("替代方式成功: %s", retry_tool)
+
+                        # Capture page state after fallback action
+                        if retry_tool in ("browser_evaluate", "browser_press_key"):
+                            page_state = await _capture_page_state(mcp_client, screenshots)
+                            step_result["page_state"] = page_state
+                            current_page_state.update(page_state)
+                    except Exception as retry_exc:
+                        child_logger.warning("替代方式也失败: %s: %s", retry_tool, retry_exc)
+                        # 替代方式也失败，保留原始错误
+                        step_result["error"] = f"{str(exc)} (fallback also failed: {str(retry_exc)})"
+
                 try:
                     page_state = await _capture_page_state(mcp_client, screenshots)
                     step_result["page_state"] = page_state

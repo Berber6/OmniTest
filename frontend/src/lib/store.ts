@@ -13,16 +13,40 @@ import type {
   GenerateStatus,
   AppSetting,
   TokenUsageSummary,
+  FeatureFilters,
+  ScenarioFilters,
+  ExecutionFilters,
+  MutationFilters,
 } from "./types";
 import * as api from "./api";
 import { ExecutionWebSocket } from "./api";
 
 interface AppState {
-  // Data
+  // Paginated data
   features: Feature[];
+  featuresTotal: number;
+  featuresPage: number;
   scenarios: TestScenario[];
+  scenariosTotal: number;
+  scenariosPage: number;
   executions: ExecutionRecord[];
+  executionsTotal: number;
+  executionsPage: number;
   mutations: MutationResult[];
+  mutationsTotal: number;
+  mutationsPage: number;
+
+  // Unpaginated full lists (for tree view, dropdowns, stats)
+  allFeatures: Feature[];
+  allScenarios: TestScenario[];
+
+  // Active filter params
+  featureFilters: FeatureFilters;
+  scenarioFilters: ScenarioFilters;
+  executionFilters: ExecutionFilters;
+  mutationFilters: MutationFilters;
+
+  // Other data
   dashboardStats: DashboardStats | null;
   systemStatus: SystemStatus | null;
   crawlStatus: CrawlStatus | null;
@@ -30,6 +54,7 @@ interface AppState {
   generateStatus: GenerateStatus | null;
   settings: AppSetting[];
   tokenUsageSummary: TokenUsageSummary | null;
+  featureCategories: string[];
 
   // Loading states
   loadingFeatures: boolean;
@@ -55,10 +80,13 @@ interface AppState {
   ws: ExecutionWebSocket | null;
 
   // Actions
-  fetchFeatures: () => Promise<void>;
-  fetchScenarios: () => Promise<void>;
-  fetchExecutions: () => Promise<void>;
-  fetchMutations: () => Promise<void>;
+  fetchFeatures: (filters?: FeatureFilters) => Promise<void>;
+  fetchAllFeatures: () => Promise<void>;
+  fetchScenarios: (filters?: ScenarioFilters) => Promise<void>;
+  fetchAllScenarios: () => Promise<void>;
+  fetchExecutions: (filters?: ExecutionFilters) => Promise<void>;
+  fetchMutations: (filters?: MutationFilters) => Promise<void>;
+  fetchFeatureCategories: () => Promise<void>;
   fetchDashboardStats: () => Promise<void>;
   fetchSystemStatus: () => Promise<void>;
   fetchSettings: () => Promise<void>;
@@ -81,9 +109,27 @@ interface AppState {
 export const useAppStore = create<AppState>((set, get) => ({
   // Initial state
   features: [],
+  featuresTotal: 0,
+  featuresPage: 1,
   scenarios: [],
+  scenariosTotal: 0,
+  scenariosPage: 1,
   executions: [],
+  executionsTotal: 0,
+  executionsPage: 1,
   mutations: [],
+  mutationsTotal: 0,
+  mutationsPage: 1,
+
+  allFeatures: [],
+  allScenarios: [],
+
+  featureFilters: {},
+  scenarioFilters: {},
+  executionFilters: {},
+  mutationFilters: {},
+  featureCategories: [],
+
   dashboardStats: null,
   systemStatus: null,
   crawlStatus: null,
@@ -113,56 +159,93 @@ export const useAppStore = create<AppState>((set, get) => ({
   ws: null,
 
   // Actions
-  fetchFeatures: async () => {
+  fetchFeatures: async (filters?: FeatureFilters) => {
+    const effectiveFilters = { ...get().featureFilters, ...filters, page_size: 20 };
+    if (filters) set({ featureFilters: effectiveFilters });
     set({ loadingFeatures: true, errorFeatures: null });
     try {
-      const features = await api.getFeatures();
-      set({ features, loadingFeatures: false });
-    } catch (e) {
+      const result = await api.getFeatures(effectiveFilters);
       set({
-        errorFeatures: e instanceof Error ? e.message : "Failed to fetch features",
+        features: result.items,
+        featuresTotal: result.total,
+        featuresPage: result.page,
         loadingFeatures: false,
       });
+    } catch (e) {
+      set({ errorFeatures: e instanceof Error ? e.message : "Failed", loadingFeatures: false });
     }
   },
 
-  fetchScenarios: async () => {
+  fetchAllFeatures: async () => {
+    try {
+      const result = await api.getFeatures({ page_size: 500 });
+      set({ allFeatures: result.items });
+    } catch { /* silent */ }
+  },
+
+  fetchScenarios: async (filters?: ScenarioFilters) => {
+    const effectiveFilters = { ...get().scenarioFilters, ...filters, page_size: 20 };
+    if (filters) set({ scenarioFilters: effectiveFilters });
     set({ loadingScenarios: true, errorScenarios: null });
     try {
-      const scenarios = await api.getScenarios();
-      set({ scenarios, loadingScenarios: false });
-    } catch (e) {
+      const result = await api.getScenarios(effectiveFilters);
       set({
-        errorScenarios: e instanceof Error ? e.message : "Failed to fetch scenarios",
+        scenarios: result.items,
+        scenariosTotal: result.total,
+        scenariosPage: result.page,
         loadingScenarios: false,
       });
+    } catch (e) {
+      set({ errorScenarios: e instanceof Error ? e.message : "Failed", loadingScenarios: false });
     }
   },
 
-  fetchExecutions: async () => {
+  fetchAllScenarios: async () => {
+    try {
+      const result = await api.getScenarios({ page_size: 500 });
+      set({ allScenarios: result.items });
+    } catch { /* silent */ }
+  },
+
+  fetchExecutions: async (filters?: ExecutionFilters) => {
+    const effectiveFilters = { ...get().executionFilters, ...filters, page_size: 20 };
+    if (filters) set({ executionFilters: effectiveFilters });
     set({ loadingExecutions: true, errorExecutions: null });
     try {
-      const executions = await api.getExecutions();
-      set({ executions, loadingExecutions: false });
-    } catch (e) {
+      const result = await api.getExecutions(effectiveFilters);
       set({
-        errorExecutions: e instanceof Error ? e.message : "Failed to fetch executions",
+        executions: result.items,
+        executionsTotal: result.total,
+        executionsPage: result.page,
         loadingExecutions: false,
       });
+    } catch (e) {
+      set({ errorExecutions: e instanceof Error ? e.message : "Failed", loadingExecutions: false });
     }
   },
 
-  fetchMutations: async () => {
+  fetchMutations: async (filters?: MutationFilters) => {
+    const effectiveFilters = { ...get().mutationFilters, ...filters, page_size: 20 };
+    if (filters) set({ mutationFilters: effectiveFilters });
     set({ loadingMutations: true, errorMutations: null });
     try {
-      const mutations = await api.getMutations();
-      set({ mutations, loadingMutations: false });
-    } catch (e) {
+      const result = await api.getMutations(effectiveFilters);
       set({
-        errorMutations: e instanceof Error ? e.message : "Failed to fetch mutations",
+        mutations: result.items,
+        mutationsTotal: result.total,
+        mutationsPage: result.page,
         loadingMutations: false,
       });
+    } catch (e) {
+      set({ errorMutations: e instanceof Error ? e.message : "Failed", loadingMutations: false });
     }
+  },
+
+  fetchFeatureCategories: async () => {
+    try {
+      const result = await api.getFeatureCategories();
+      set({ featureCategories: result.data });
+    } catch { /* silent */ }
   },
 
   fetchDashboardStats: async () => {

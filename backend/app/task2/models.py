@@ -38,6 +38,9 @@ class StepResult(BaseModel):
     )
     success: bool = Field(..., description="Whether the action succeeded")
     error: Optional[str] = Field(None, description="Error message if the step failed")
+    resolution_method: Optional[str] = Field(
+        None, description="How the target was resolved: en_ref, css_selector, html_rule, vlm_coordinate, keyboard, action_fallback, failed"
+    )
 
 
 class VerifyResult(BaseModel):

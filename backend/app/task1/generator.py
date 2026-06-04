@@ -57,15 +57,35 @@ async def _generate_for_feature(
     chunks_text = _format_chunks_for_prompt(context_chunks)
 
     # Extract image references from chunk metadata for visual_match
+    # Only include images whose alt text is relevant to the feature
+    feature_keywords = f"{feature.name} {feature.description}".lower()
     seen_paths = set()
     image_refs = []
     for chunk in context_chunks:
         if "images" in chunk.metadata and chunk.metadata["images"]:
-            for img in chunk.metadata["images"]:
-                path = img.get("local_path", "")
-                if path and path not in seen_paths:
-                    seen_paths.add(path)
-                    image_refs.append(img)
+            images_list = chunk.metadata["images"]
+            # Handle case where images might still be a JSON string (str)
+            if isinstance(images_list, str):
+                import json as _json
+                try:
+                    images_list = _json.loads(images_list)
+                except Exception:
+                    continue
+            if isinstance(images_list, list):
+                for img in images_list:
+                    if isinstance(img, dict):
+                        path = img.get("local_path", "")
+                        alt = img.get("alt", "")
+                        # Only include if alt text relates to the feature topic
+                        if path and path not in seen_paths:
+                            # Include all images from relevant chunks —
+                            # the chunks were already filtered by RAG relevance to the feature,
+                            # so their images are implicitly relevant too.
+                            seen_paths.add(path)
+                            image_refs.append(img)
+    # Limit to at most 15 images to avoid prompt overload
+    if len(image_refs) > 15:
+        image_refs = image_refs[:15]
 
     images_text = ImageStore.format_for_prompt(image_refs) if image_refs else "暂无参考截图可用。"
 

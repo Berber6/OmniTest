@@ -41,6 +41,7 @@ import {
   Database,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
+import { formatDateTime } from "@/lib/format";
 import { AgentStatus } from "@/lib/types";
 import { useI18n } from "@/lib/useI18n";
 import Link from "next/link";
@@ -465,7 +466,7 @@ export default function DashboardPage() {
                       )}
                     </TableCell>
                     <TableCell>{ex.retry_count}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{ex.started_at ? new Date(ex.started_at).toLocaleString() : "-"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{ex.started_at ? formatDateTime(ex.started_at) : "-"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

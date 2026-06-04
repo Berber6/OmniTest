@@ -194,10 +194,14 @@ async def serve_reference_image(path: str) -> FileResponse:
         path: Relative path to the image file within crawled_docs/images.
     """
     images_dir = settings.data_dir / "crawled_docs" / "images"
-    full_path = images_dir / path
+    # Strip leading "images/" prefix if present (frontend may send "images/xxx.png")
+    clean_path = path
+    if clean_path.startswith("images/"):
+        clean_path = clean_path[len("images/"):]
+    full_path = images_dir / clean_path
 
     if not full_path.exists():
-        raise HTTPException(status_code=404, detail=f"Reference image '{path}' not found")
+        raise HTTPException(status_code=404, detail=f"Reference image '{clean_path}' not found")
 
     # Security: ensure the path doesn't escape the images directory
     try:

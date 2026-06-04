@@ -15,9 +15,14 @@ import type {
   AppSetting,
   TokenUsageSummary,
   TokenUsageDetail,
+  TokenUsageDetailFilters,
   DependencyGraph,
   FeatureCoverage,
   CoverageStats,
+  FeatureFilters,
+  ScenarioFilters,
+  ExecutionFilters,
+  MutationFilters,
 } from "./types";
 
 // Browser uses same-origin requests (Next.js rewrites proxy to backend)
@@ -107,24 +112,38 @@ export async function deleteScenarios(): Promise<ApiResponse<null>> {
   return fetchApi<ApiResponse<null>>("/api/task1/scenarios", { method: "DELETE" });
 }
 
-export async function getFeatures(): Promise<Feature[]> {
-  return fetchApi<Feature[]>("/api/task1/features");
+export async function getFeatures(filters?: FeatureFilters): Promise<PaginatedResponse<Feature>> {
+  const params = new URLSearchParams();
+  if (filters?.category) params.set("category", filters.category);
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.page_size) params.set("page_size", String(filters.page_size));
+  const qs = params.toString();
+  return fetchApi<PaginatedResponse<Feature>>(`/api/task1/features${qs ? `?${qs}` : ""}`);
+}
+
+export async function getFeatureCategories(): Promise<{ success: boolean; data: string[] }> {
+  return fetchApi<{ success: boolean; data: string[] }>("/api/task1/features/categories");
 }
 
 export async function getFeatureById(id: string): Promise<Feature> {
   return fetchApi<Feature>(`/api/task1/features/${id}`);
 }
 
-export async function getScenarios(): Promise<TestScenario[]> {
-  return fetchApi<TestScenario[]>("/api/task1/scenarios");
+export async function getScenarios(filters?: ScenarioFilters): Promise<PaginatedResponse<TestScenario>> {
+  const params = new URLSearchParams();
+  if (filters?.feature_id) params.set("feature_id", filters.feature_id);
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.page_size) params.set("page_size", String(filters.page_size));
+  const qs = params.toString();
+  return fetchApi<PaginatedResponse<TestScenario>>(`/api/task1/scenarios${qs ? `?${qs}` : ""}`);
 }
 
-export async function getScenariosByFeature(
-  featureId: string
-): Promise<TestScenario[]> {
-  return fetchApi<TestScenario[]>(
-    `/api/task1/scenarios?feature_id=${featureId}`
-  );
+export async function getScenariosByFeature(featureId: string): Promise<TestScenario[]> {
+  // Backward compat for feature detail page — fetch all scenarios for one feature
+  const result = await getScenarios({ feature_id: featureId, page_size: 500 });
+  return result.items;
 }
 
 export async function getScenarioById(id: string): Promise<TestScenario> {
@@ -142,8 +161,15 @@ export async function executeScenario(
   );
 }
 
-export async function getExecutions(): Promise<ExecutionRecord[]> {
-  return fetchApi<ExecutionRecord[]>("/api/task2/executions");
+export async function getExecutions(filters?: ExecutionFilters): Promise<PaginatedResponse<ExecutionRecord>> {
+  const params = new URLSearchParams();
+  if (filters?.scenario_id) params.set("scenario_id", filters.scenario_id);
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.page_size) params.set("page_size", String(filters.page_size));
+  const qs = params.toString();
+  return fetchApi<PaginatedResponse<ExecutionRecord>>(`/api/task2/executions${qs ? `?${qs}` : ""}`);
 }
 
 export async function getExecutionById(id: string): Promise<ExecutionRecord> {
@@ -183,8 +209,16 @@ export async function runMutation(
   );
 }
 
-export async function getMutations(): Promise<MutationResult[]> {
-  return fetchApi<MutationResult[]>("/api/task2/mutations");
+export async function getMutations(filters?: MutationFilters): Promise<PaginatedResponse<MutationResult>> {
+  const params = new URLSearchParams();
+  if (filters?.original_scenario_id) params.set("original_scenario_id", filters.original_scenario_id);
+  if (filters?.mutation_type) params.set("mutation_type", filters.mutation_type);
+  if (filters?.detected_error_type) params.set("detected_error_type", filters.detected_error_type);
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.page_size) params.set("page_size", String(filters.page_size));
+  const qs = params.toString();
+  return fetchApi<PaginatedResponse<MutationResult>>(`/api/task2/mutations${qs ? `?${qs}` : ""}`);
 }
 
 export async function getMutationById(id: string): Promise<MutationResult> {
@@ -309,15 +343,16 @@ export async function getTokenUsageSummary(
 }
 
 export async function getTokenUsageDetail(
-  stage?: string,
-  model?: string,
-  limit?: number
-): Promise<{ success: boolean; data: TokenUsageDetail[]; total: number }> {
+  filters?: TokenUsageDetailFilters
+): Promise<{ success: boolean; items: TokenUsageDetail[]; total: number; page: number; page_size: number }> {
   const params = new URLSearchParams();
-  if (stage) params.set("stage", stage);
-  if (model) params.set("model", model);
-  if (limit) params.set("limit", String(limit));
-  return fetchApi<{ success: boolean; data: TokenUsageDetail[]; total: number }>(`/api/settings/token-usage/detail?${params}`);
+  if (filters?.stage) params.set("stage", filters.stage);
+  if (filters?.model) params.set("model", filters.model);
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.page) params.set("page", String(filters.page));
+  if (filters?.page_size) params.set("page_size", String(filters.page_size));
+  const qs = params.toString();
+  return fetchApi<{ success: boolean; items: TokenUsageDetail[]; total: number; page: number; page_size: number }>(`/api/settings/token-usage/detail${qs ? `?${qs}` : ""}`);
 }
 
 // ── Graph (Neo4j) ──

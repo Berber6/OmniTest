@@ -164,25 +164,45 @@ async def get_token_usage_summary(
     }
 
 
-@router.get("/token-usage/detail", summary="Get detailed token usage records")
+@router.get("/token-usage/detail", summary="Get detailed token usage records (paginated)")
 async def get_token_usage_detail(
     stage: Optional[str] = Query(None, description="Filter by pipeline stage"),
     model: Optional[str] = Query(None, description="Filter by model key"),
-    limit: int = Query(100, description="Max records to return"),
+    search: Optional[str] = Query(None, description="Search by model name or stage"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_session),
 ) -> dict:
-    """Return individual token usage records."""
+    """Return paginated token usage records."""
     query = select(TokenUsage).order_by(TokenUsage.timestamp.desc())
     if stage:
         query = query.where(TokenUsage.pipeline_stage == stage)
     if model:
         query = query.where(TokenUsage.model_key == model)
-    query = query.limit(limit)
+    if search:
+        search_term = f"%{search}%"
+        query = query.where(
+            (TokenUsage.model_name.ilike(search_term)) | (TokenUsage.pipeline_stage.ilike(search_term))
+        )
 
-    rows = db.execute(query).scalars().all()
+    # Count total
+    count_query = select(func.count()).select_from(TokenUsage)
+    if stage:
+        count_query = count_query.where(TokenUsage.pipeline_stage == stage)
+    if model:
+        count_query = count_query.where(TokenUsage.model_key == model)
+    if search:
+        count_query = count_query.where(
+            (TokenUsage.model_name.ilike(search_term)) | (TokenUsage.pipeline_stage.ilike(search_term))
+        )
+    total = db.execute(count_query).scalar() or 0
+
+    offset = (page - 1) * page_size
+    rows = db.execute(query.offset(offset).limit(page_size)).scalars().all()
+
     return {
         "success": True,
-        "data": [
+        "items": [
             {
                 "id": r.id,
                 "model_key": r.model_key,
@@ -193,9 +213,12 @@ async def get_token_usage_detail(
                 "pipeline_stage": r.pipeline_stage,
                 "cost_estimate": r.cost_estimate,
                 "currency": r.currency,
+                "duration_seconds": r.duration_seconds,
                 "timestamp": r.timestamp.isoformat() if r.timestamp else None,
             }
             for r in rows
         ],
-        "total": len(rows),
+        "total": total,
+        "page": page,
+        "page_size": page_size,
     }

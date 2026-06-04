@@ -228,21 +228,37 @@ async def cancel_execution(
     return {"success": True, "data": None, "message": "Execution cancelled"}
 
 
-@router.get("/executions", response_model=List[dict], summary="List execution records")
+@router.get("/executions", summary="List execution records (paginated)")
 async def list_executions(
     scenario_id: Optional[str] = Query(None, description="Filter by scenario ID"),
     status: Optional[str] = Query(None, description="Filter by status"),
+    search: Optional[str] = Query(None, description="Search by scenario name"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_session),
-) -> List[dict]:
-    """Return execution records, optionally filtered."""
+) -> dict:
+    """Return paginated execution records, filtered and sorted by started_at DESC."""
     from sqlalchemy.orm import joinedload
     query = db.query(ExecutionRecord).options(joinedload(ExecutionRecord.scenario))
     if scenario_id:
         query = query.filter(ExecutionRecord.scenario_id == scenario_id)
     if status:
         query = query.filter(ExecutionRecord.status == status)
-    records = query.all()
-    return [_execution_record_to_dict(r) for r in records]
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(ExecutionRecord.scenario.has(TestScenarioORM.name.ilike(search_term)))
+    query = query.order_by(ExecutionRecord.started_at.desc())
+
+    total = query.count()
+    offset = (page - 1) * page_size
+    records = query.offset(offset).limit(page_size).all()
+
+    return {
+        "items": [_execution_record_to_dict(r) for r in records],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.get("/executions/{id}", response_model=dict, summary="Get an execution record")
@@ -540,17 +556,38 @@ async def create_mutation(
     return {"success": False, "error": "No mutations were successfully created"}
 
 
-@router.get("/mutations", response_model=List[dict], summary="List mutation results")
+@router.get("/mutations", summary="List mutation results (paginated)")
 async def list_mutations(
     original_scenario_id: Optional[str] = Query(None, description="Filter by original scenario"),
+    mutation_type: Optional[str] = Query(None, description="Filter by mutation type"),
+    detected_error_type: Optional[str] = Query(None, description="Filter by detected error type"),
+    search: Optional[str] = Query(None, description="Search by scenario name"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_session),
-) -> List[dict]:
-    """Return mutation results, optionally filtered."""
+) -> dict:
+    """Return paginated mutation results."""
     query = db.query(MutationResultORM)
     if original_scenario_id:
         query = query.filter(MutationResultORM.original_scenario_id == original_scenario_id)
-    results = query.all()
-    return [_mutation_result_to_dict(m) for m in results]
+    if mutation_type:
+        query = query.filter(MutationResultORM.mutation_type == mutation_type)
+    if detected_error_type:
+        query = query.filter(MutationResultORM.detected_error_type == detected_error_type)
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(MutationResultORM.original_scenario.has(TestScenarioORM.name.ilike(search_term)))
+
+    total = query.count()
+    offset = (page - 1) * page_size
+    results = query.offset(offset).limit(page_size).all()
+
+    return {
+        "items": [_mutation_result_to_dict(m) for m in results],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.get("/mutations/{id}", response_model=dict, summary="Get a mutation result by ID")

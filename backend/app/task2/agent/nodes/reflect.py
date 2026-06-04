@@ -289,7 +289,7 @@ def _format_steps_summary(steps: list[dict]) -> str:
 
 
 def _format_execution_trace(executed_steps: list[dict]) -> str:
-    """将已执行步骤格式化为详细轨迹用于分析。"""
+    """将已执行步骤格式化为详细轨迹用于分析，包含定位方法信息。"""
     if not executed_steps:
         return "没有步骤被执行。"
 
@@ -301,10 +301,25 @@ def _format_execution_trace(executed_steps: list[dict]) -> str:
         desc = action.get("description", "") if isinstance(action, dict) else ""
         success = step.get("success", False)
         error = step.get("error", "")
+        resolution_method = step.get("resolution_method", "")
+
+        # Include resolution method for richer analysis
+        method_info = ""
+        if resolution_method:
+            method_labels = {
+                "en_ref": "eN快照引用",
+                "css_selector": "CSS选择器",
+                "html_rule": "HTML规则匹配",
+                "vlm_coordinate": "VLM视觉定位",
+                "keyboard": "键盘兜底",
+                "action_fallback": "操作级回退",
+                "failed": "定位失败",
+            }
+            method_info = f" (定位方法: {method_labels.get(resolution_method, resolution_method)})"
 
         status = "OK" if success else f"FAILED: {error}"
         lines.append(
-            f"Step {step_num}: {tool} — {desc} [{status}]"
+            f"Step {step_num}: {tool} — {desc}{method_info} [{status}]"
         )
 
     return "\n".join(lines)

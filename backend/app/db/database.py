@@ -36,12 +36,31 @@ def init_db() -> None:
     """Create all tables defined in ORM models if they don't exist.
 
     Uses create_all with checkfirst=True so existing data is preserved.
-    For schema changes, any new columns will be added by SQLAlchemy's
-    create_all (it only creates missing tables/columns).
+    Also auto-migrates: adds any new columns that exist in ORM models
+    but are missing from the actual SQLite table.
     """
     import app.db.models  # noqa: F401
 
     Base.metadata.create_all(bind=engine, checkfirst=True)
+
+    # Auto-migrate: add columns defined in ORM but missing from SQLite tables
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    for table in Base.metadata.sorted_tables:
+        existing_cols = {c["name"] for c in inspector.get_columns(table.name)}
+        for column in table.columns:
+            if column.name not in existing_cols:
+                col_type = column.type.compile(dialect=engine.dialect)
+                default = ""
+                if column.default is not None:
+                    default = f" DEFAULT {column.default.arg}"
+                elif column.server_default is not None:
+                    default = f" DEFAULT {column.server_default.arg}"
+                alter_sql = f"ALTER TABLE {table.name} ADD COLUMN {column.name} {col_type}{default}"
+                with engine.connect() as conn:
+                    conn.execute(sa_text(alter_sql))
+                    conn.commit()
+                print(f"Auto-migrated: added column '{column.name}' to table '{table.name}'")
 
 
 def get_session() -> Session:
