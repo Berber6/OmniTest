@@ -87,13 +87,20 @@ class ImageStore:
         return cls._all
 
     @classmethod
-    def format_for_prompt(cls, images: list[ImageRef]) -> str:
-        """Format image references for inclusion in LLM prompt."""
+    def format_for_prompt(cls, images: list) -> str:
+        """Format image references for inclusion in LLM prompt.
+
+        Accepts both ImageRef objects and plain dicts (from chunk metadata).
+        """
         if not images:
             return "暂无参考截图可用。"
 
         lines = ["## 参考截图（来自爬取的文档页面）"]
         for img in images:
-            desc = img.alt if img.alt else "无描述"
-            lines.append(f"- [{desc}] 路径: {img.local_path} (来源页面: {img.source_page_title})")
+            # Support both ImageRef objects and plain dicts
+            alt = img.alt if hasattr(img, 'alt') else img.get("alt", "")
+            local_path = img.local_path if hasattr(img, 'local_path') else img.get("local_path", "")
+            source_page = img.source_page_title if hasattr(img, 'source_page_title') else img.get("source_page_title", "")
+            desc = alt if alt else "无描述"
+            lines.append(f"- [{desc}] 路径: {local_path} (来源页面: {source_page})")
         return "\n".join(lines)

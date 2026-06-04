@@ -1,5 +1,6 @@
 """ChromaDB vector store for document chunk storage and retrieval."""
 
+import json
 import logging
 import os
 from typing import Optional
@@ -47,6 +48,44 @@ class VectorStore:
             metadata={"hnsw:space": "cosine"},
         )
 
+    @staticmethod
+    def _serialize_metadata(meta: dict) -> dict:
+        """Serialize metadata values for ChromaDB compatibility.
+
+        ChromaDB metadata only accepts str, int, float, bool.
+        Complex types (list, dict) are JSON-serialized to strings.
+        """
+        result = {}
+        for k, v in meta.items():
+            if isinstance(v, (str, int, float, bool)):
+                result[k] = v
+            elif isinstance(v, (list, dict)):
+                result[k] = json.dumps(v, ensure_ascii=False)
+            elif v is None:
+                result[k] = ""
+            else:
+                result[k] = str(v)
+        return result
+
+    @staticmethod
+    def _deserialize_metadata(meta: dict) -> dict:
+        """Deserialize ChromaDB metadata, restoring complex types from JSON strings."""
+        result = {}
+        for k, v in meta.items():
+            if isinstance(v, str):
+                # Try to parse JSON strings (lists and dicts)
+                if v.startswith("[") or v.startswith("{"):
+                    try:
+                        parsed = json.loads(v)
+                        result[k] = parsed
+                    except (json.JSONDecodeError, TypeError):
+                        result[k] = v
+                else:
+                    result[k] = v
+            else:
+                result[k] = v
+        return result
+
         logger.info(
             f"Initialized VectorStore: collection='{collection_name}', "
             f"persist_dir='{persist_dir}', model='{embedding_model}', "
@@ -72,7 +111,7 @@ class VectorStore:
             {
                 "source_url": chunk.source_url,
                 "title": chunk.title,
-                **chunk.metadata,
+                **self._serialize_metadata(chunk.metadata),
             }
             for chunk in chunks
         ]
@@ -152,7 +191,7 @@ class VectorStore:
 
             # Remove fields we already extracted from metadata dict
             clean_meta = {
-                k: v for k, v in metadata.items()
+                k: v for k, v in self._deserialize_metadata(metadata).items()
                 if k not in ("source_url", "title")
             }
             # Include distance as relevance score
@@ -232,7 +271,7 @@ class VectorStore:
                 source_url = metadata.get("source_url", "")
                 title = metadata.get("title", "")
                 clean_meta = {
-                    k: v for k, v in metadata.items()
+                    k: v for k, v in self._deserialize_metadata(metadata).items()
                     if k not in ("source_url", "title")
                 }
                 # Mark expanded chunks (no direct relevance score)

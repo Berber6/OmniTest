@@ -54,6 +54,7 @@ export interface StepResult {
   screenshot_path?: string;
   success: boolean;
   error?: string;
+  resolution_method?: "en_ref" | "css_selector" | "html_rule" | "vlm_coordinate" | "keyboard" | "action_fallback" | "failed";
 }
 
 export interface VerifyResult {
@@ -124,6 +125,39 @@ export interface PaginatedResponse<T> {
   total: number;
   page: number;
   page_size: number;
+}
+
+// ── Filter params for paginated endpoints ──
+
+export interface FeatureFilters {
+  category?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface ScenarioFilters {
+  feature_id?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface ExecutionFilters {
+  scenario_id?: string;
+  status?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface MutationFilters {
+  original_scenario_id?: string;
+  mutation_type?: string;
+  detected_error_type?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
 }
 
 // ── Dashboard Stats ──
@@ -258,7 +292,16 @@ export interface TokenUsageDetail {
   pipeline_stage: string;
   cost_estimate: number;
   currency: string;
+  duration_seconds: number;
   timestamp: string | null;
+}
+
+export interface TokenUsageDetailFilters {
+  stage?: string;
+  model?: string;
+  search?: string;
+  page?: number;
+  page_size?: number;
 }
 
 // ── Graph (Neo4j) Types ──

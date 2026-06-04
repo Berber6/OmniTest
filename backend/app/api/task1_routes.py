@@ -384,26 +384,50 @@ async def do_generate_scenarios(
         }
 
 
-@router.get("/features", response_model=List[Feature], summary="List all features")
+@router.get("/features", summary="List features (paginated)")
 async def list_features(
     category: Optional[str] = Query(None, description="Filter by category"),
+    search: Optional[str] = Query(None, description="Search by name or description"),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(20, ge=1, le=500, description="Items per page (max 500 for features)"),
     db: Session = Depends(get_session),
-) -> List[Feature]:
-    """Return all extracted features, optionally filtered by category."""
+) -> dict:
+    """Return paginated features, optionally filtered by category and searched."""
     query = db.query(FeatureORM)
     if category:
         query = query.filter(FeatureORM.category == category)
-    orm_features = query.all()
-    return [
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            (FeatureORM.name.ilike(search_term)) | (FeatureORM.description.ilike(search_term))
+        )
+
+    total = query.count()
+    offset = (page - 1) * page_size
+    orm_features = query.offset(offset).limit(page_size).all()
+
+    items = [
         Feature(
-            id=f.id,
-            name=f.name,
-            category=f.category,
-            description=f.description,
+            id=f.id, name=f.name, category=f.category, description=f.description,
             source_chunks=json.loads(f.source_chunks) if isinstance(f.source_chunks, str) else (f.source_chunks or []),
         )
         for f in orm_features
     ]
+
+    return {
+        "items": [f.model_dump() for f in items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+@router.get("/features/categories", summary="List feature categories")
+async def list_feature_categories(db: Session = Depends(get_session)) -> dict:
+    """Return unique category names for filter dropdown."""
+    from sqlalchemy import distinct
+    categories = db.query(distinct(FeatureORM.category)).order_by(FeatureORM.category).all()
+    return {"success": True, "data": [c[0] for c in categories]}
 
 
 @router.delete("/features", summary="Delete all features")
@@ -426,26 +450,41 @@ async def delete_scenarios(db: Session = Depends(get_session)) -> dict:
     return {"success": True, "message": f"Deleted {count} scenarios"}
 
 
-@router.get("/scenarios", response_model=List[TestScenario], summary="List all scenarios")
+@router.get("/scenarios", summary="List scenarios (paginated)")
 async def list_scenarios(
     feature_id: Optional[str] = Query(None, description="Filter by feature ID"),
+    search: Optional[str] = Query(None, description="Search by scenario name"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(20, ge=1, le=500, description="Items per page (max 500 for scenarios)"),
     db: Session = Depends(get_session),
-) -> List[TestScenario]:
-    """Return all test scenarios, optionally filtered by feature."""
+) -> dict:
+    """Return paginated scenarios, optionally filtered by feature and searched."""
     query = db.query(TestScenarioORM)
     if feature_id:
         query = query.filter(TestScenarioORM.feature_id == feature_id)
-    orm_scenarios = query.all()
-    return [
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(TestScenarioORM.name.ilike(search_term))
+
+    total = query.count()
+    offset = (page - 1) * page_size
+    orm_scenarios = query.offset(offset).limit(page_size).all()
+
+    items = [
         TestScenario(
-            id=s.id,
-            feature_id=s.feature_id,
-            name=s.name,
+            id=s.id, feature_id=s.feature_id, name=s.name,
             steps=json.loads(s.steps_json) if isinstance(s.steps_json, str) else (s.steps_json or []),
             expectations=json.loads(s.expectations_json) if isinstance(s.expectations_json, str) else (s.expectations_json or []),
         )
         for s in orm_scenarios
     ]
+
+    return {
+        "items": [s.model_dump() for s in items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.get("/features/{id}", response_model=Feature, summary="Get a feature by ID")

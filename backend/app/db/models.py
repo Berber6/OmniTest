@@ -147,4 +147,5 @@ class TokenUsage(Base):
     pipeline_stage: Mapped[str] = mapped_column(String, nullable=False, default="unknown")
     cost_estimate: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     currency: Mapped[str] = mapped_column(String, nullable=False, default="USD")
+    duration_seconds: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)

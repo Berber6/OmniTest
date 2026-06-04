@@ -179,6 +179,7 @@ async def _call_with_retries(
 
         try:
             litellm.drop_params = True
+            call_start = asyncio.get_event_loop().time()
             # 使用同步版本在线程中运行，避免与 anyio cancel scope 冲突
             # litellm.acompletion 在 anyio 环境中会产生 CancelledError
             response = await asyncio.to_thread(
@@ -189,6 +190,7 @@ async def _call_with_retries(
                 api_key=api_key,
                 **litellm_kwargs,
             )
+            call_duration = asyncio.get_event_loop().time() - call_start
             # litellm returns a ModelResponse; extract text content
             content = response.choices[0].message.content
             if content:
@@ -203,6 +205,7 @@ async def _call_with_retries(
                             completion_tokens=response.usage.completion_tokens or 0,
                             total_tokens=response.usage.total_tokens or 0,
                             pipeline_stage=pipeline_stage,
+                            duration_seconds=call_duration,
                         )
                     except Exception as track_exc:
                         logger.warning(f"Token tracking failed: {track_exc}")
@@ -312,6 +315,7 @@ async def _call_with_retries_vision(
 
         try:
             litellm.drop_params = True
+            call_start = asyncio.get_event_loop().time()
             # 使用同步版本在线程中运行，避免 anyio cancel scope 冲突
             response = await asyncio.to_thread(
                 litellm.completion,
@@ -321,6 +325,7 @@ async def _call_with_retries_vision(
                 api_key=api_key,
                 **litellm_kwargs,
             )
+            call_duration = asyncio.get_event_loop().time() - call_start
             content = response.choices[0].message.content
             if content:
                 # Capture token usage for tracking
@@ -334,6 +339,7 @@ async def _call_with_retries_vision(
                             completion_tokens=response.usage.completion_tokens or 0,
                             total_tokens=response.usage.total_tokens or 0,
                             pipeline_stage=pipeline_stage,
+                            duration_seconds=call_duration,
                         )
                     except Exception as track_exc:
                         logger.warning(f"Token tracking failed: {track_exc}")

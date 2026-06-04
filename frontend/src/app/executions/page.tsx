@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,23 +38,9 @@ import { AgentStatus } from "@/lib/types";
 import { deleteExecution as deleteExecutionApi } from "@/lib/api";
 import { useI18n } from "@/lib/useI18n";
 import { ImportExportDialog } from "@/components/ImportExportDialog";
-
-function formatDateTime(isoString: string): string {
-  let normalized = isoString;
-  if (!normalized.endsWith("Z") && !normalized.includes("+") && !normalized.includes("+00:00")) {
-    normalized = normalized + "Z";
-  }
-  const date = new Date(normalized);
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-}
+import { formatDateTime } from "@/lib/format";
+import { DataListToolbar, type FilterConfig } from "@/components/DataListToolbar";
+import { PaginationControls } from "@/components/PaginationControls";
 
 function statusBadge(status: AgentStatus, t: (key: string) => string) {
   const key = `status.${status}`;
@@ -65,28 +48,28 @@ function statusBadge(status: AgentStatus, t: (key: string) => string) {
     case AgentStatus.COMPLETED:
       return (
         <Badge variant="default" className="gap-1">
-          <CheckCircle2 className="h-3 w-3 text-green-500" />
+          <CheckCircle2 className="h-3 w-3" />
           {t(key)}
         </Badge>
       );
     case AgentStatus.FAILED:
       return (
         <Badge variant="destructive" className="gap-1">
-          <XCircle className="h-3 w-3 text-red-500" />
+          <XCircle className="h-3 w-3" />
           {t(key)}
         </Badge>
       );
     case AgentStatus.EXECUTING:
       return (
-        <Badge variant="secondary" className="gap-1">
-          <PlayCircle className="h-3 w-3 text-blue-500" />
+        <Badge variant="secondary" className="gap-1 animate-pulse">
+          <Loader2 className="h-3 w-3 animate-spin" />
           {t(key)}
         </Badge>
       );
     case AgentStatus.PLANNING:
       return (
         <Badge variant="secondary" className="gap-1">
-          <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />
+          <Play className="h-3 w-3 text-blue-500" />
           {t(key)}
         </Badge>
       );
@@ -116,9 +99,21 @@ function statusBadge(status: AgentStatus, t: (key: string) => string) {
   }
 }
 
+const STATUS_OPTIONS = [
+  AgentStatus.COMPLETED,
+  AgentStatus.FAILED,
+  AgentStatus.EXECUTING,
+  AgentStatus.PLANNING,
+  AgentStatus.VERIFYING,
+  AgentStatus.REFLECTING,
+  AgentStatus.PENDING,
+];
+
 export default function ExecutionsPage() {
   const {
     executions,
+    executionsTotal,
+    executionsPage,
     loadingExecutions,
     errorExecutions,
     fetchExecutions,
@@ -128,16 +123,45 @@ export default function ExecutionsPage() {
 
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
 
-  // 多选模式：点击"多选"按钮进入，此时按钮变为"批量删除"
+  // Multi-select
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchExecutions();
+    fetchExecutions({
+      search: search || undefined,
+      status: statusFilter || undefined,
+      page,
+      page_size: 20,
+    });
+  }, [search, statusFilter, page]);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    setPage(1);
   }, []);
 
-  // 可删除的记录（已完成或已失败）
+  const handleFilterChange = useCallback((key: string, value: string) => {
+    if (key === "status") {
+      setStatusFilter(value);
+      setPage(1);
+    }
+  }, []);
+
+  const handlePageChange = useCallback((p: number) => { setPage(p); }, []);
+
+  // Status filter config
+  const statusFilterConfig: FilterConfig[] = [{
+    key: "status",
+    placeholder: t("filter.status"),
+    options: STATUS_OPTIONS.map((s) => ({ value: s, label: t(`status.${s}`) })),
+  }];
+
+  // Deletable records (completed or failed on current page)
   const deletableIds = executions
     .filter((ex) => ex.status === AgentStatus.COMPLETED || ex.status === AgentStatus.FAILED)
     .map((ex) => ex.id);
@@ -177,21 +201,17 @@ export default function ExecutionsPage() {
     if (!confirm(msg)) return;
 
     for (const id of selectedIds) {
-      try {
-        await deleteExecutionApi(id);
-      } catch (e) {
-        console.error(`删除 ${id} 失败:`, e);
-      }
+      try { await deleteExecutionApi(id); } catch (e) { console.error(`Delete ${id} failed:`, e); }
     }
     exitMultiSelect();
-    fetchExecutions();
+    fetchExecutions({ search: search || undefined, status: statusFilter || undefined, page, page_size: 20 });
   }
 
   async function handleSingleDelete(id: string) {
     if (!confirm(t("executions.deleteConfirm"))) return;
     try {
       await deleteExecutionApi(id);
-      fetchExecutions();
+      fetchExecutions({ search: search || undefined, status: statusFilter || undefined, page, page_size: 20 });
     } catch (e) {
       alert(e instanceof Error ? e.message : t("executions.deleteFail"));
     }
@@ -203,20 +223,16 @@ export default function ExecutionsPage() {
         <div className="flex items-center gap-3">
           <Play className="h-6 w-6 text-purple-500" />
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">
-              {t("executions.title")}
-            </h2>
+            <h2 className="text-2xl font-bold tracking-tight">{t("executions.title")}</h2>
             <p className="text-muted-foreground">{t("executions.subtitle")}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="gap-1" onClick={() => setExportOpen(true)}>
-            <Download className="h-3 w-3" />
-            {t("io.export")}
+            <Download className="h-3 w-3" />{t("io.export")}
           </Button>
           <Button size="sm" variant="outline" className="gap-1" onClick={() => setImportOpen(true)}>
-            <Upload className="h-3 w-3" />
-            {t("io.import")}
+            <Upload className="h-3 w-3" />{t("io.import")}
           </Button>
         </div>
       </div>
@@ -224,199 +240,126 @@ export default function ExecutionsPage() {
       <ImportExportDialog dataType="executions" mode="export" open={exportOpen} onOpenChange={setExportOpen} />
       <ImportExportDialog dataType="executions" mode="import" open={importOpen} onOpenChange={setImportOpen} />
 
-      {loadingExecutions ? (
-        <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
-      ) : errorExecutions ? (
-        <Card>
-          <CardContent className="py-8 text-destructive">
-            {errorExecutions}
-          </CardContent>
-        </Card>
-      ) : executions.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <PlayCircle className="h-8 w-8 mx-auto mb-3" />
-            {t("executions.empty")}
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>{t("executions.records")}</CardTitle>
-                <CardDescription>
-                  {executions.length} {t("executions.records.desc")}
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                {multiSelectMode ? (
-                  <>
-                    {selectedIds.size > 0 && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="gap-1"
-                        onClick={handleBatchDelete}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        {t("executions.batchDelete")} ({selectedIds.size})
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1"
-                      onClick={exitMultiSelect}
-                    >
-                      <X className="h-3 w-3" />
-                      {t("executions.cancelSelect")}
-                    </Button>
-                  </>
-                ) : (
-                  deletableIds.length > 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1"
-                      onClick={enterMultiSelect}
-                    >
-                      <CheckSquare className="h-3 w-3" />
-                      {t("executions.multiSelect")}
-                    </Button>
-                  )
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {multiSelectMode && (
-                    <TableHead className="w-[40px]">
-                      <Checkbox
-                        checked={allDeletableSelected}
-                        onCheckedChange={toggleSelectAll}
-                        aria-label={t("executions.selectAll")}
-                      />
-                    </TableHead>
-                  )}
-                  <TableHead className="w-[160px]">{t("table.id")}</TableHead>
-                  <TableHead className="w-[240px]">{t("table.scenario")}</TableHead>
-                  <TableHead>{t("table.status")}</TableHead>
-                  <TableHead>{t("table.result")}</TableHead>
-                  <TableHead>{t("table.retries")}</TableHead>
-                  <TableHead>{t("table.steps")}</TableHead>
-                  <TableHead>{t("table.started")}</TableHead>
-                  {!multiSelectMode && (
-                    <TableHead className="text-right">
-                      {t("table.actions")}
-                    </TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {executions.map((ex) => {
-                  const isDeletable = ex.status === AgentStatus.COMPLETED || ex.status === AgentStatus.FAILED;
-                  const isSelected = selectedIds.has(ex.id);
+      <Card>
+        <CardContent className="pt-6">
+          <DataListToolbar
+            searchValue={search}
+            onSearchChange={handleSearchChange}
+            filters={statusFilterConfig}
+            filterValues={{ status: statusFilter }}
+            onFilterChange={handleFilterChange}
+            totalCount={executionsTotal}
+            totalCountLabel={t("pagination.items")}
+          />
 
-                  return (
-                    <TableRow key={ex.id} className={isSelected ? "bg-muted/50" : ""}>
-                      {multiSelectMode && (
-                        <TableCell>
-                          {isDeletable && (
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={() => toggleSelect(ex.id)}
-                            />
-                          )}
-                        </TableCell>
-                      )}
-                      <TableCell className="font-mono text-xs">
-                        <Link
-                          href={`/executions/${ex.id}`}
-                          className="hover:underline"
-                          title={ex.id}
-                        >
-                          {ex.id}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          href={`/executions/${ex.id}`}
-                          className="hover:underline text-sm"
-                          title={`${ex.scenario_id}: ${ex.scenario_name || ex.scenario_id}`}
-                        >
-                          {ex.scenario_name || ex.scenario_id}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{statusBadge(ex.status, t)}</TableCell>
-                      <TableCell>
-                        {ex.final_result ? (
-                          <Badge
-                            variant={
-                              ex.final_result === "pass"
-                                ? "default"
-                                : "destructive"
-                            }
-                          >
-                            {ex.final_result === "pass"
-                              ? t("executions.detail.pass")
-                              : t("executions.detail.fail")}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">-</Badge>
+          {multiSelectMode && (
+            <div className="flex items-center gap-2 mt-2">
+              {selectedIds.size > 0 && (
+                <Button size="sm" variant="destructive" className="gap-1" onClick={handleBatchDelete}>
+                  <Trash2 className="h-3 w-3" />
+                  {t("executions.batchDelete")} ({selectedIds.size})
+                </Button>
+              )}
+              <Button size="sm" variant="outline" className="gap-1" onClick={exitMultiSelect}>
+                <X className="h-3 w-3" />{t("executions.cancelSelect")}
+              </Button>
+            </div>
+          )}
+
+          {!multiSelectMode && deletableIds.length > 0 && (
+            <div className="mt-2">
+              <Button size="sm" variant="outline" className="gap-1" onClick={enterMultiSelect}>
+                <CheckSquare className="h-3 w-3" />{t("executions.multiSelect")}
+              </Button>
+            </div>
+          )}
+
+          {loadingExecutions ? (
+            <div className="space-y-2 mt-4">
+              {[1, 2, 3].map((i) => (<Skeleton key={i} className="h-12 w-full" />))}
+            </div>
+          ) : errorExecutions ? (
+            <div className="py-8 text-destructive">{errorExecutions}</div>
+          ) : executions.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              <PlayCircle className="h-8 w-8 mx-auto mb-3" />{t("executions.empty")}
+            </div>
+          ) : (
+            <>
+              <Table className="mt-2">
+                <TableHeader>
+                  <TableRow>
+                    {multiSelectMode && (
+                      <TableHead className="w-[40px]">
+                        <Checkbox checked={allDeletableSelected} onCheckedChange={toggleSelectAll} aria-label={t("executions.selectAll")} />
+                      </TableHead>
+                    )}
+                    <TableHead className="w-[160px]">{t("table.id")}</TableHead>
+                    <TableHead className="w-[240px]">{t("table.scenario")}</TableHead>
+                    <TableHead>{t("table.status")}</TableHead>
+                    <TableHead>{t("table.result")}</TableHead>
+                    <TableHead>{t("table.retries")}</TableHead>
+                    <TableHead>{t("table.steps")}</TableHead>
+                    <TableHead>{t("table.started")}</TableHead>
+                    {!multiSelectMode && <TableHead className="text-right">{t("table.actions")}</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {executions.map((ex) => {
+                    const isDeletable = ex.status === AgentStatus.COMPLETED || ex.status === AgentStatus.FAILED;
+                    const isSelected = selectedIds.has(ex.id);
+                    return (
+                      <TableRow key={ex.id} className={isSelected ? "bg-muted/50" : ""}>
+                        {multiSelectMode && (
+                          <TableCell>
+                            {isDeletable && <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(ex.id)} />}
+                          </TableCell>
                         )}
-                      </TableCell>
-                      <TableCell>{ex.retry_count}</TableCell>
-                      <TableCell>
-                        {ex.executed_steps.length}/{Math.max(ex.plan?.length ?? 0, ex.executed_steps.length)}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {ex.started_at ? formatDateTime(ex.started_at) : "-"}
-                      </TableCell>
-                      {!multiSelectMode && (
-                        <TableCell className="text-right">
-                          <div className="flex gap-1 justify-end">
-                            {ex.status !== AgentStatus.COMPLETED &&
-                              ex.status !== AgentStatus.FAILED && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-1"
-                                  onClick={() => cancelExecution(ex.id)}
-                                >
-                                  <XCircle className="h-3 w-3" />
-                                  {t("executions.cancel")}
+                        <TableCell className="font-mono text-xs">
+                          <Link href={`/executions/${ex.id}`} className="hover:underline" title={ex.id}>{ex.id}</Link>
+                        </TableCell>
+                        <TableCell>
+                          <Link href={`/executions/${ex.id}`} className="hover:underline text-sm" title={`${ex.scenario_id}: ${ex.scenario_name || ex.scenario_id}`}>
+                            {ex.scenario_name || ex.scenario_id}
+                          </Link>
+                        </TableCell>
+                        <TableCell>{statusBadge(ex.status, t)}</TableCell>
+                        <TableCell>
+                          {ex.final_result ? (
+                            <Badge variant={ex.final_result === "pass" ? "default" : "destructive"}>
+                              {ex.final_result === "pass" ? t("executions.detail.pass") : t("executions.detail.fail")}
+                            </Badge>
+                          ) : <Badge variant="outline">-</Badge>}
+                        </TableCell>
+                        <TableCell>{ex.retry_count}</TableCell>
+                        <TableCell>{ex.executed_steps.length}/{Math.max(ex.plan?.length ?? 0, ex.executed_steps.length)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{ex.started_at ? formatDateTime(ex.started_at) : "-"}</TableCell>
+                        {!multiSelectMode && (
+                          <TableCell className="text-right">
+                            <div className="flex gap-1 justify-end">
+                              {ex.status !== AgentStatus.COMPLETED && ex.status !== AgentStatus.FAILED && (
+                                <Button size="sm" variant="outline" className="gap-1" onClick={() => cancelExecution(ex.id)}>
+                                  <XCircle className="h-3 w-3" />{t("executions.cancel")}
                                 </Button>
                               )}
-                            {isDeletable && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => handleSingleDelete(ex.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                                {t("executions.delete")}
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+                              {isDeletable && (
+                                <Button size="sm" variant="outline" className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleSingleDelete(ex.id)}>
+                                  <Trash2 className="h-3 w-3" />{t("executions.delete")}
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              <PaginationControls page={executionsPage} pageSize={20} total={executionsTotal} onPageChange={handlePageChange} />
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

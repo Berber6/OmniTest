@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -23,6 +23,11 @@ import {
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { useI18n } from "@/lib/useI18n";
+import * as api from "@/lib/api";
+import type { TokenUsageDetail } from "@/lib/types";
+import { formatDateTime } from "@/lib/format";
+import { DataListToolbar } from "@/components/DataListToolbar";
+import { PaginationControls } from "@/components/PaginationControls";
 
 export default function SettingsPage() {
   const {
@@ -36,10 +41,32 @@ export default function SettingsPage() {
   } = useAppStore();
 
   const { t } = useI18n();
+  const [tokenDetails, setTokenDetails] = useState<TokenUsageDetail[]>([]);
+  const [tokenDetailTotal, setTokenDetailTotal] = useState(0);
+  const [tokenDetailPage, setTokenDetailPage] = useState(1);
+  const [tokenDetailSearch, setTokenDetailSearch] = useState("");
+  const [tokenDetailStage, setTokenDetailStage] = useState("");
+
+  const fetchTokenDetails = useCallback((page?: number, search?: string, stage?: string) => {
+    const p = page ?? tokenDetailPage;
+    const s = search ?? tokenDetailSearch;
+    const st = stage ?? tokenDetailStage;
+    api.getTokenUsageDetail({
+      page: p, page_size: 20,
+      search: s || undefined, stage: st || undefined,
+    }).then((result) => {
+      if (result.success) {
+        setTokenDetails(result.items);
+        setTokenDetailTotal(result.total);
+        setTokenDetailPage(result.page);
+      }
+    });
+  }, [tokenDetailPage, tokenDetailSearch, tokenDetailStage]);
 
   useEffect(() => {
     fetchSettings();
     fetchTokenUsageSummary();
+    fetchTokenDetails(1);
   }, []);
 
   const handleUpdate = async (key: string, value: string) => {
@@ -233,6 +260,88 @@ export default function SettingsPage() {
                 />
               </div>
 
+              {/* Call detail table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">{t("settings.callDetail")}</CardTitle>
+                  <CardDescription>{t("settings.callDetailDesc")}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <DataListToolbar
+                    searchValue={tokenDetailSearch}
+                    onSearchChange={(v) => { setTokenDetailSearch(v); setTokenDetailPage(1); fetchTokenDetails(1, v, tokenDetailStage); }}
+                    searchPlaceholder={t("search.placeholder")}
+                    filters={[{
+                      key: "stage",
+                      placeholder: t("filter.status"),
+                      options: [
+                        { value: "extract", label: stageLabels.extract || "extract" },
+                        { value: "generate", label: stageLabels.generate || "generate" },
+                        { value: "plan", label: stageLabels.plan || "plan" },
+                        { value: "verify_text", label: stageLabels.verify_text || "verify_text" },
+                        { value: "verify_visual", label: stageLabels.verify_visual || "verify_visual" },
+                        { value: "reflect", label: stageLabels.reflect || "reflect" },
+                        { value: "mutation", label: stageLabels.mutation || "mutation" },
+                      ],
+                    }]}
+                    filterValues={{ stage: tokenDetailStage }}
+                    onFilterChange={(key, value) => {
+                      if (key === "stage") { setTokenDetailStage(value); setTokenDetailPage(1); fetchTokenDetails(1, tokenDetailSearch, value); }
+                    }}
+                    totalCount={tokenDetailTotal}
+                    totalCountLabel={t("pagination.items")}
+                  />
+                  {tokenDetails.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4">{t("settings.noTokenData")}</p>
+                  ) : (
+                    <>
+                      <div className="overflow-x-auto mt-2">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="py-2 px-2 text-left font-medium">{t("settings.colTime")}</th>
+                              <th className="py-2 px-2 text-left font-medium">{t("settings.colStage")}</th>
+                              <th className="py-2 px-2 text-left font-medium">{t("settings.colModel")}</th>
+                              <th className="py-2 px-2 text-right font-medium">{t("settings.colDuration")}</th>
+                              <th className="py-2 px-2 text-right font-medium">{t("settings.colPrompt")}</th>
+                              <th className="py-2 px-2 text-right font-medium">{t("settings.colCompletion")}</th>
+                              <th className="py-2 px-2 text-right font-medium">{t("settings.colCost")}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {tokenDetails.map((r) => (
+                              <tr key={r.id} className="border-b last:border-0 hover:bg-muted/50">
+                                <td className="py-2 px-2 text-xs text-muted-foreground whitespace-nowrap">
+                                  {r.timestamp ? formatDateTime(r.timestamp) : "-"}
+                                </td>
+                                <td className="py-2 px-2">
+                                  <Badge variant="outline" className="text-xs">
+                                    {stageLabels[r.pipeline_stage] || r.pipeline_stage}
+                                  </Badge>
+                                </td>
+                                <td className="py-2 px-2 font-medium">{modelLabels[r.model_key] || r.model_name}</td>
+                                <td className="py-2 px-2 text-right">{r.duration_seconds.toFixed(1)}s</td>
+                                <td className="py-2 px-2 text-right">{r.prompt_tokens.toLocaleString()}</td>
+                                <td className="py-2 px-2 text-right">{r.completion_tokens.toLocaleString()}</td>
+                                <td className="py-2 px-2 text-right font-medium">
+                                  {r.currency === "USD" ? "$" : "¥"}{r.cost_estimate.toFixed(4)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <PaginationControls
+                        page={tokenDetailPage}
+                        pageSize={20}
+                        total={tokenDetailTotal}
+                        onPageChange={(p) => { setTokenDetailPage(p); fetchTokenDetails(p); }}
+                      />
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Per-stage breakdown */}
               <Card>
                 <CardHeader>
@@ -245,28 +354,6 @@ export default function SettingsPage() {
                         <span className="text-sm font-medium min-w-[100px]">{stageLabels[stage] || stage}</span>
                         <span className="text-sm text-muted-foreground flex-1">
                           {data.tokens.toLocaleString()} tokens · {data.call_count} calls
-                        </span>
-                        <Badge variant="secondary">
-                          {data.cost.toFixed(4)} {summary.currency}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Per-model breakdown */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">{t("settings.perModel")}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {Object.entries(summary.per_model).sort((a, b) => b[1].cost - a[1].cost).map(([mk, data]) => (
-                      <div key={mk} className="flex items-center gap-3 py-2 border-b last:border-0">
-                        <span className="text-sm font-medium min-w-[140px]">{modelLabels[mk] || data.model_name}</span>
-                        <span className="text-sm text-muted-foreground flex-1">
-                          {data.tokens.toLocaleString()} tokens ({data.prompt_tokens.toLocaleString()} prompt + {data.completion_tokens.toLocaleString()} completion) · {data.call_count} calls
                         </span>
                         <Badge variant="secondary">
                           {data.cost.toFixed(4)} {summary.currency}

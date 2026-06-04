@@ -152,18 +152,38 @@ export function ScenarioDetail({ scenario, onExecute }: ScenarioDetailProps) {
           {scenario.expectations.map((exp, i) => (
             <Card
               key={i}
-              className="border-l-4 border-l-green-400"
+              className={
+                exp.type === "visual_match"
+                  ? "border-l-4 border-l-purple-400"
+                  : "border-l-4 border-l-green-400"
+              }
             >
               <CardContent className="py-3">
                 <div className="flex items-center gap-3">
                   <Badge
-                    variant="secondary"
+                    variant={exp.type === "visual_match" ? "default" : "secondary"}
                     className="text-xs"
                   >
-                    {exp.type}
+                    {exp.type === "visual_match" ? "🔍 visual_match" : exp.type}
                   </Badge>
                   <span className="text-sm">{exp.description}</span>
                 </div>
+                {exp.type === "visual_match" && exp.reference_image && (
+                  <div className="mt-2">
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {t("scenarioDetail.referenceImage")}
+                    </p>
+                    <img
+                      src={`/api/reference-images/${encodeURIComponent(exp.reference_image)}`}
+                      alt={exp.description}
+                      className="max-w-xs rounded border shadow-sm"
+                      style={{ maxHeight: "200px" }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

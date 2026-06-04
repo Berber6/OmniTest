@@ -119,6 +119,11 @@ export function ExecutionTimeline({ execution }: ExecutionTimelineProps) {
                   <div className="text-sm">
                     <span className="font-medium">{t("timeline.action")}:</span>{" "}
                     {stepResult.action.description} ({stepResult.action.tool})
+                    {stepResult.resolution_method && stepResult.resolution_method !== "en_ref" && (
+                      <span className="text-xs text-muted-foreground ml-1">
+                        [{t("timeline.resolution." + stepResult.resolution_method)}]
+                      </span>
+                    )}
                   </div>
 
                   {stepResult.error && (
@@ -251,9 +256,14 @@ export function ExecutionTimeline({ execution }: ExecutionTimelineProps) {
                     </span>
                   )}
                   {execution.verification_result.visual_match !== undefined && (
-                    <span>
+                    <span className="flex items-center gap-1">
                       {t("timeline.visualMatch")}:{" "}
                       {execution.verification_result.visual_match ? t("timeline.yes") : t("timeline.no")}
+                      {!execution.verification_result.visual_match && execution.verification_result.details && (
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({execution.verification_result.details})
+                        </span>
+                      )}
                     </span>
                   )}
                 </div>

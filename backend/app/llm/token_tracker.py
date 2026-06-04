@@ -27,6 +27,7 @@ class TokenUsageRecord:
     completion_tokens: int
     total_tokens: int
     pipeline_stage: str
+    duration_seconds: float = 0.0
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     timestamp: datetime = field(default_factory=datetime.utcnow)
 
@@ -77,6 +78,7 @@ class TokenTracker:
                     pipeline_stage=rec.pipeline_stage,
                     cost_estimate=cost,
                     currency=currency,
+                    duration_seconds=rec.duration_seconds,
                     timestamp=rec.timestamp,
                 )
                 db.add(row)
@@ -101,6 +103,7 @@ def record_token_usage(
     completion_tokens: int,
     total_tokens: int,
     pipeline_stage: str,
+    duration_seconds: float = 0.0,
 ) -> None:
     """Synchronous helper to record token usage from within _call_with_retries.
 
@@ -116,6 +119,7 @@ def record_token_usage(
             completion_tokens=completion_tokens or 0,
             total_tokens=total_tokens or 0,
             pipeline_stage=pipeline_stage,
+            duration_seconds=duration_seconds,
         )
         # Since this runs inside asyncio.to_thread (sync context),
         # we can't put to asyncio.Queue directly. Use a thread-safe buffer.
