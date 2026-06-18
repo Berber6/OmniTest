@@ -9,12 +9,15 @@ import chromadb
 from chromadb.utils import embedding_functions
 
 from .models import DocumentChunk
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_COLLECTION_NAME = "4gaboards_docs"
 DEFAULT_PERSIST_DIR = "data/chroma_db"
 DEFAULT_EMBEDDING_MODEL = "BAAI/bge-m3"
+# Max cosine distance threshold for retrieval (configurable via settings).
+DEFAULT_MAX_DISTANCE = settings.rag_max_distance
 
 
 class VectorStore:
@@ -86,12 +89,6 @@ class VectorStore:
                 result[k] = v
         return result
 
-        logger.info(
-            f"Initialized VectorStore: collection='{collection_name}', "
-            f"persist_dir='{persist_dir}', model='{embedding_model}', "
-            f"existing_docs={self._collection.count()}"
-        )
-
     def add_documents(self, chunks: list[DocumentChunk]) -> int:
         """Store document chunks as vectors in ChromaDB.
 
@@ -144,7 +141,7 @@ class VectorStore:
         self,
         query: str,
         n_results: int = 5,
-        max_distance: float = 0.50,
+        max_distance: float = DEFAULT_MAX_DISTANCE,
     ) -> list[DocumentChunk]:
         """Retrieve relevant document chunks from ChromaDB for a query.
 
@@ -217,7 +214,7 @@ class VectorStore:
         self,
         query: str,
         n_results: int = 5,
-        max_distance: float = 0.50,
+        max_distance: float = DEFAULT_MAX_DISTANCE,
     ) -> list[DocumentChunk]:
         """Retrieve chunks and expand to include all chunks from the same URL.
 

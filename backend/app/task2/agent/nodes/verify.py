@@ -93,13 +93,9 @@ async def verify_node(state: AgentState) -> dict:
         }
 
     # 步骤1：通过子进程运行MCP验证工具
-    if all_steps_failed:
-        logger.info("所有执行步骤失败，跳过MCP验证工具")
-        tool_results = {"mcp_skipped": "执行阶段全部失败，无法进行MCP结构化验证"}
-        tool_results_text = json.dumps(tool_results, indent=2)
-    else:
-        tool_results = await _run_verify_mcp_tools(expectations, enhanced_page_text, screenshots)
-        tool_results_text = json.dumps(tool_results, indent=2)
+    # （此处 all_steps_failed 必为 False，已在上方提前返回）
+    tool_results = await _run_verify_mcp_tools(expectations, enhanced_page_text, screenshots)
+    tool_results_text = json.dumps(tool_results, indent=2)
 
     # 步骤2：通过 LLM 进行文本验证
     text_result = await _text_verification(
@@ -123,11 +119,23 @@ async def verify_node(state: AgentState) -> dict:
         )
 
         visual_passed = visual_result.get("passed", False)
-        if visual_passed or not passed:
+        if visual_passed and not passed:
+            # Visual passes, text fails → visual overrides (VLM sees actual page)
             verification_result = visual_result
-            logger.info("视觉验证: passed=%s（覆盖文本结果）", visual_passed)
-        else:
-            logger.info("视觉验证也失败了 — 保留文本结果")
+            logger.info("视觉验证: passed=%s — 覆盖文本结果（视觉通过，文本失败）", visual_passed)
+        elif not visual_passed and not passed:
+            # Both fail → keep the one with higher confidence
+            text_conf = text_result.get("confidence", 0) or 0
+            visual_conf = visual_result.get("confidence", 0) or 0
+            verification_result = text_result if text_conf >= visual_conf else visual_result
+            logger.info(
+                "视觉验证也失败 — 保留置信度较高的结果 (text_conf=%.2f, visual_conf=%.2f)",
+                text_conf, visual_conf,
+            )
+        elif visual_passed and passed:
+            # Both pass → keep text result (cheaper, faster)
+            verification_result = text_result
+            logger.info("视觉验证通过但文本也通过 — 保留文本结果（更快）")
 
     final_result = "pass" if verification_result.get("passed", False) else "fail"
     failure_reason = ""
@@ -166,14 +174,11 @@ async def _text_verification(
             pipeline_stage="verify_text",
         )
         logger.info("文本验证 LLM 响应 (前500字符): %s", response[:500] if response else "None")
-        # Strip markdown code fences that GLM-5.1 may add despite json_object format
-        clean = response.strip()
-        if clean.startswith("```"):
-            import re
-            match = re.match(r"```(?:json)?\s*\n(.*?)\n```", clean, re.DOTALL)
-            if match:
-                clean = match.group(1)
-        result = json.loads(clean)
+        # Use shared JSON parser to handle markdown code fences and embedded JSON
+        from app.llm.json_parser import parse_llm_json
+        result = parse_llm_json(response)
+        if result is None:
+            raise json.JSONDecodeError("无法解析", response, 0)
         result["verification_type"] = "text"
         return result
     except json.JSONDecodeError:
@@ -212,7 +217,29 @@ async def _visual_verification(
             "details": "执行期间未捕获截图",
         }
 
+    # 获取最新截图用于视觉验证
+    # 新格式：截图为文件路径（.png 结尾），需读取文件并编码为 base64
+    # 旧格式：截图为原始 base64 字符串，直接使用
     latest_screenshot = screenshots[-1]
+    if latest_screenshot.endswith(".png") or latest_screenshot.endswith(".jpg"):
+        # 新格式：文件路径引用 — 从磁盘读取并编码为 base64
+        import base64 as _b64
+        from app.config import settings as _settings
+        from pathlib import Path as _Path
+        screenshot_path = _Path(_settings.data_dir) / "screenshots" / latest_screenshot
+        if screenshot_path.exists():
+            with open(screenshot_path, "rb") as img_f:
+                latest_screenshot = _b64.b64encode(img_f.read()).decode()
+        else:
+            logger.warning("截图文件不存在: %s", screenshot_path)
+            return {
+                "passed": False,
+                "reason": f"截图文件不存在: {latest_screenshot}",
+                "text_match": None,
+                "visual_match": False,
+                "details": "截图文件丢失",
+            }
+
     previous_text_result_str = json.dumps(previous_text_result, indent=2)
 
     user_prompt = VERIFY_VISUAL_USER_PROMPT_TEMPLATE.format(
@@ -314,20 +341,16 @@ def _verify_mcp_process(expectations_json_str: str, page_text_str: str, screensh
     import logging
     import os
 
-    # Clear proxy in child process
-    for key in list(os.environ.keys()):
-        if "proxy" in key.lower():
-            del os.environ[key]
+    # Apply clean environment from shared env_utils
+    from app.task2.agent.env_utils import build_child_env
 
-    # Add conda lib path
-    import shutil
-    conda_lib = os.path.join(
-        os.path.dirname(os.path.dirname(shutil.which("python") or "")), "lib"
-    )
-    if os.path.isdir(conda_lib):
-        existing_ld = os.environ.get("LD_LIBRARY_PATH", "")
-        if conda_lib not in existing_ld:
-            os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:{existing_ld}"
+    child_env = build_child_env()
+    for key, value in child_env.items():
+        os.environ[key] = value
+    # Also clear proxy keys not present in clean_env
+    for key in list(os.environ.keys()):
+        if "proxy" in key.lower() and key not in child_env:
+            del os.environ[key]
 
     async def _run():
         from app.task2.agent.mcp_client import MCPClient
@@ -337,7 +360,7 @@ def _verify_mcp_process(expectations_json_str: str, page_text_str: str, screensh
 
         mcp_client = MCPClient()
         try:
-            await asyncio.wait_for(mcp_client.connect(servers=["verify"]), timeout=30)
+            await asyncio.wait_for(mcp_client.connect(servers=["verify", "playwright"]), timeout=30)
         except asyncio.TimeoutError:
             results["mcp_connection_timeout"] = "验证MCP连接超时"
             _write_verify_result(result_path, results)
@@ -350,18 +373,22 @@ def _verify_mcp_process(expectations_json_str: str, page_text_str: str, screensh
             return
 
         verify_connected = await mcp_client.is_server_connected("verify")
+        playwright_connected = await mcp_client.is_server_connected("playwright")
 
         for idx, exp in enumerate(expectations_list):
             exp_type = exp.get("type", "page_content")
             exp_desc = exp.get("description", "")
             key = f"expectation_{idx}"
 
-            if not verify_connected:
-                results[key] = {"type": exp_type, "passed": False, "detail": "Verify MCP 服务器不可用"}
+            if not verify_connected and not playwright_connected:
+                results[key] = {"type": exp_type, "passed": False, "detail": "Verify MCP 和 Playwright MCP 服务器均不可用"}
                 continue
 
             try:
                 if exp_type == "page_content":
+                    if not verify_connected:
+                        results[key] = {"type": "text_check", "passed": False, "detail": "Verify MCP 服务器不可用"}
+                        continue
                     tool_result = await mcp_client.call_tool_text(
                         "verify", "check_text_content",
                         {"page_text": page_text_str, "expected_text": exp_desc},
@@ -373,15 +400,38 @@ def _verify_mcp_process(expectations_json_str: str, page_text_str: str, screensh
 
                 elif exp_type == "element_exists":
                     selector = _extract_selector(exp_desc)
-                    tool_result = await mcp_client.call_tool_text(
-                        "verify", "check_element_exists", {"selector": selector},
-                    )
-                    if "unavailable" in tool_result.lower() or "degraded" in tool_result.lower():
-                        results[key] = {"type": "element_check", "passed": False, "detail": tool_result}
+                    # First try real DOM check via Playwright MCP (more accurate)
+                    if playwright_connected:
+                        js_check = f"document.querySelector('{selector}') !== null && document.querySelector('{selector}').offsetParent !== null"
+                        dom_result = await mcp_client.call_tool_text(
+                            "playwright", "browser_evaluate", {"script": js_check}
+                        )
+                        results[key] = {
+                            "type": "element_check",
+                            "passed": "true" in dom_result.lower(),
+                            "detail": f"DOM verification: {dom_result}"
+                        }
                     else:
-                        results[key] = {"type": "element_check", "passed": "exists" in tool_result.lower() or "found" in tool_result.lower(), "detail": tool_result}
+                        # Fall back to Verify MCP heuristic check (no browser access)
+                        if not verify_connected:
+                            results[key] = {"type": "element_check", "passed": False, "detail": "Verify MCP 和 Playwright MCP 服务器均不可用"}
+                            continue
+                        tool_result = await mcp_client.call_tool_text(
+                            "verify", "check_element_exists", {"selector": selector},
+                        )
+                        if "unavailable" in tool_result.lower() or "degraded" in tool_result.lower():
+                            results[key] = {"type": "element_check", "passed": False, "detail": tool_result}
+                        else:
+                            results[key] = {
+                                "type": "element_check",
+                                "passed": "exists" in tool_result.lower() or "found" in tool_result.lower(),
+                                "detail": f"Heuristic check (no browser): {tool_result}"
+                            }
 
                 elif exp_type == "url_change":
+                    if not verify_connected:
+                        results[key] = {"type": "url_check", "passed": False, "detail": "Verify MCP 服务器不可用"}
+                        continue
                     tool_result = await mcp_client.call_tool_text(
                         "verify", "check_text_content",
                         {"page_text": page_text_str, "expected_text": exp_desc},
@@ -390,6 +440,46 @@ def _verify_mcp_process(expectations_json_str: str, page_text_str: str, screensh
                         results[key] = {"type": "url_check", "passed": False, "detail": tool_result}
                     else:
                         results[key] = {"type": "url_check", "passed": "true" in tool_result.lower() or "found" in tool_result.lower(), "detail": tool_result}
+
+                elif exp_type == "element_visible":
+                    selector = _extract_selector(exp_desc)
+                    # Use Playwright to check actual visibility in the DOM
+                    if playwright_connected:
+                        js_check = (
+                            f"(() => {{"
+                            f"const el = document.querySelector('{selector}');"
+                            f"if (!el) return 'not_found';"
+                            f"const style = window.getComputedStyle(el);"
+                            f"if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return 'hidden';"
+                            f"if (el.offsetParent === null) return 'not_visible';"
+                            f"return 'visible';"
+                            f"}})()"
+                        )
+                        dom_result = await mcp_client.call_tool_text(
+                            "playwright", "browser_evaluate", {"script": js_check}
+                        )
+                        visible = "visible" in dom_result.lower() and "not_visible" not in dom_result.lower() and "hidden" not in dom_result.lower() and "not_found" not in dom_result.lower()
+                        results[key] = {
+                            "type": "visibility_check",
+                            "passed": visible,
+                            "detail": f"DOM visibility check: {dom_result}"
+                        }
+                    else:
+                        # Fall back to Verify MCP heuristic check
+                        if not verify_connected:
+                            results[key] = {"type": "visibility_check", "passed": False, "detail": "Verify MCP 和 Playwright MCP 服务器均不可用"}
+                            continue
+                        tool_result = await mcp_client.call_tool_text(
+                            "verify", "check_element_exists", {"selector": selector},
+                        )
+                        if "unavailable" in tool_result.lower() or "degraded" in tool_result.lower():
+                            results[key] = {"type": "visibility_check", "passed": False, "detail": tool_result}
+                        else:
+                            results[key] = {
+                                "type": "visibility_check",
+                                "passed": "visible" in tool_result.lower() or "exists" in tool_result.lower() or "found" in tool_result.lower(),
+                                "detail": f"Heuristic check (no browser): {tool_result}"
+                            }
 
                 elif exp_type == "visual_match":
                     reference_image_path = exp.get("reference_image", "")
@@ -403,14 +493,28 @@ def _verify_mcp_process(expectations_json_str: str, page_text_str: str, screensh
                             with open(full_img_path, "rb") as img_f:
                                 expected_b64 = _b64.b64encode(img_f.read()).decode()
                             # Use the last screenshot as actual image for comparison
+                            # 新格式：截图为文件路径(.png)，需读取文件并编码为 base64
+                            # 旧格式：截图为原始 base64 字符串，直接使用
                             if screenshots_json_str:
                                 try:
                                     screenshots_list = json.loads(screenshots_json_str)
-                                    actual_b64 = screenshots_list[-1] if screenshots_list else ""
+                                    actual_item = screenshots_list[-1] if screenshots_list else ""
                                 except Exception:
-                                    actual_b64 = ""
+                                    actual_item = ""
                             else:
-                                actual_b64 = ""
+                                actual_item = ""
+                            # 如果截图是文件路径引用，从磁盘读取
+                            actual_b64 = ""
+                            if actual_item:
+                                if isinstance(actual_item, str) and (actual_item.endswith(".png") or actual_item.endswith(".jpg")):
+                                    # 新格式：文件路径 — 读取并编码为 base64
+                                    actual_path = _Path(_settings.data_dir) / "screenshots" / actual_item
+                                    if actual_path.exists():
+                                        with open(actual_path, "rb") as img_f:
+                                            actual_b64 = _b64.b64encode(img_f.read()).decode()
+                                else:
+                                    # 旧格式：直接是 base64 字符串
+                                    actual_b64 = actual_item
                             if actual_b64 and expected_b64:
                                 tool_result = await mcp_client.call_tool_text(
                                     "verify", "compare_screenshots",
@@ -455,33 +559,24 @@ def _verify_mcp_process(expectations_json_str: str, page_text_str: str, screensh
 
 
 def _parse_verification_json(response: str) -> dict:
-    """从 LLM 响应中解析验证结果。"""
-    try:
-        return json.loads(response)
-    except json.JSONDecodeError:
-        import re
-        match = re.search(r"```(?:json)?\s*\n(.*?)\n```", response, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group(1))
-            except json.JSONDecodeError:
-                pass
+    """从 LLM 响应中解析验证结果。
 
-        match = re.search(r"\{[^{}]*\}", response)
-        if match:
-            try:
-                return json.loads(match.group(0))
-            except json.JSONDecodeError:
-                pass
+    使用共享的 parse_llm_json 解析，并提供验证领域的默认值回退。
+    """
+    from app.llm.json_parser import parse_llm_json
 
-        logger.warning("无法将验证响应解析为 JSON: %s", response[:300])
-        return {
-            "passed": False,
-            "reason": "无法解析验证响应",
-            "text_match": None,
-            "visual_match": None,
-            "details": response[:200],
-        }
+    result = parse_llm_json(response)
+    if result is not None:
+        return result
+
+    logger.warning("无法将验证响应解析为 JSON: %s", response[:300])
+    return {
+        "passed": False,
+        "reason": "无法解析验证响应",
+        "text_match": None,
+        "visual_match": None,
+        "details": response[:200],
+    }
 
 
 def _format_expectations(expectations: list[dict]) -> str:

@@ -240,7 +240,7 @@ async def do_extract_features(
                 name=f.name,
                 category=f.category,
                 description=f.description,
-                source_chunks=json.dumps(f.source_chunks),
+                source_chunks=f.source_chunks,
             )
             db.add(orm)
         db.commit()
@@ -345,8 +345,8 @@ async def do_generate_scenarios(
                 id=s.id,
                 feature_id=s.feature_id,
                 name=s.name,
-                steps_json=json.dumps([step.model_dump() for step in s.steps]),
-                expectations_json=json.dumps([exp.model_dump() for exp in s.expectations]),
+                steps_json=[step.model_dump() for step in s.steps],
+                expectations_json=[exp.model_dump() for exp in s.expectations],
             )
             db.add(orm)
         db.commit()

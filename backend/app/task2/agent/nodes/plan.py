@@ -16,6 +16,7 @@ from app.llm.prompts.plan_actions import (
     PLAN_ACTIONS_USER_PROMPT_TEMPLATE,
 )
 from app.task1.ui_registry import UIElementRegistry
+from app.task2.agent.app_config import TargetAppConfig
 from app.task2.agent.state import AgentState
 
 logger = logging.getLogger(__name__)
@@ -70,8 +71,13 @@ async def plan_node(state: AgentState) -> dict:
     # Append Memory MCP context to page context
     full_context = page_context_text + memory_context_text
 
-    # 构建 prompt — 注入凭据到系统提示（用 replace 避免 .format() 与 JSON {} 冲突）
+    # 加载目标应用配置
+    app_config = TargetAppConfig.from_settings()
+
+    # 构建 prompt — 注入应用配置到系统提示（用 replace 避免 .format() 与 JSON {} 冲突）
     system_prompt = PLAN_ACTIONS_SYSTEM_PROMPT.replace(
+        "{app_config_section}", app_config.to_prompt_text(),
+    ).replace(
         "{login_email}", settings.login_email,
     ).replace(
         "{login_password}", settings.login_password,
@@ -105,11 +111,8 @@ async def plan_node(state: AgentState) -> dict:
             plan = _generate_fallback_plan(scenario)
 
         # 检查计划是否包含正确的登录流程
-        # 如果第一个导航步骤不是 4gaboards URL，则用备用计划替换
+        # _ensure_login_prefix 会修正凭据、必要时插入登录前缀，并内部标准化字段名
         plan = _ensure_login_prefix(plan, scenario)
-
-        # 将 action 字典标准化为前端期望的字段名
-        plan = [_normalize_action(a) for a in plan]
 
         logger.info("规划完成：为场景 '%s' 生成了 %d 个操作", scenario_name, len(plan))
 
@@ -127,52 +130,81 @@ async def plan_node(state: AgentState) -> dict:
 def _ensure_login_prefix(plan: list[dict], scenario: dict) -> list[dict]:
     """确保计划包含正确的登录流程前缀和凭据。
 
-    如果 LLM 生成的计划不包含对 4gaboards 的导航和登录，
-    则用备用计划替换。同时验证并修正登录凭据。
+    如果 LLM 生成的计划不包含导航和登录，
+    则在计划前面插入登录前缀序列（来自 TargetAppConfig），保留 LLM 生成的后续步骤。
+    同时验证并修正登录凭据（仅修正错误字段，不替换整个计划）。
     """
-    # 检查计划中是否有导航到 4gaboards 的步骤
-    has_4gaboards_nav = False
+    app_config = TargetAppConfig.from_settings()
+
+    # 先标准化 action 字段名以便统一检查
+    normalized_actions = [_normalize_action(a) for a in plan]
+
+    # 修正所有 action 中错误的登录凭据（仅修正字段值，不替换整个计划）
+    for action in normalized_actions:
+        tool = action.get("tool", "")
+        args = action.get("args", {})
+        if tool == "browser_type":
+            target = args.get("target", "")
+            text = args.get("text", "")
+            if "邮箱" in str(target) or "email" in str(target).lower() or "用户名" in str(target):
+                if text != app_config.login_email:
+                    logger.warning("LLM 计划使用错误邮箱 '%s'，修正为 '%s'", text, app_config.login_email)
+                    args["text"] = app_config.login_email
+            if "密码" in str(target) or "password" in str(target).lower():
+                if text != app_config.login_password:
+                    logger.warning("LLM 计划使用错误密码 '%s'，修正为正确密码", text)
+                    args["text"] = app_config.login_password
+
+    # 检查计划中是否有导航到目标应用的步骤
+    has_app_nav = False
     has_login_action = False
-    for action in plan:
-        tool = action.get("tool") or action.get("tool_name", "")
-        args = action.get("args") or action.get("parameters", {})
+    for action in normalized_actions:
+        tool = action.get("tool", "")
+        args = action.get("args", {})
         desc = action.get("description", "")
 
         if tool == "browser_navigate":
             url = args.get("url", "")
-            if "4gaboards" in url.lower():
-                has_4gaboards_nav = True
+            if app_config.base_url.lower() in url.lower():
+                has_app_nav = True
 
         if tool == "browser_type" or tool == "browser_click":
-            target = args.get("target", args.get("ref", ""))
+            target = args.get("target", "")
             # 检查是否包含登录操作
             if ("login" in desc.lower() or "登录" in desc or "log in" in desc.lower()
                 or "email" in str(target).lower() or "邮箱" in str(target)
                 or "password" in str(target).lower() or "密码" in str(target)):
                 has_login_action = True
 
-        # 验证并修正登录凭据
-        if tool == "browser_type":
-            target = args.get("target", args.get("ref", ""))
-            text = args.get("text", "")
-            if "邮箱" in str(target) or "email" in str(target).lower() or "用户名" in str(target):
-                if text != settings.login_email:
-                    logger.warning("LLM 计划使用错误邮箱 '%s'，修正为 '%s'", text, settings.login_email)
-                    args["text"] = settings.login_email
-            if "密码" in str(target) or "password" in str(target).lower():
-                if text != settings.login_password:
-                    logger.warning("LLM 计划使用错误密码 '%s'，修正为正确密码", text)
-                    args["text"] = settings.login_password
+    # 如果计划已有导航和登录，凭据已修正，直接返回
+    if has_app_nav and has_login_action:
+        return normalized_actions
 
-    # 如果计划没有导航到 4gaboards 或没有登录操作，使用备用计划
-    if not has_4gaboards_nav or not has_login_action:
-        logger.warning(
-            "LLM 计划缺少 4gaboards 导航或登录步骤 (has_nav=%s, has_login=%s)，使用备用计划",
-            has_4gaboards_nav, has_login_action,
-        )
-        return _generate_fallback_plan(scenario)
+    # 计划缺少导航或登录 → 在前面插入登录前缀序列，保留 LLM 的后续步骤
+    logger.warning(
+        "LLM 计划缺少 %s 导航或登录步骤 (has_nav=%s, has_login=%s)，插入登录前缀",
+        app_config.name, has_app_nav, has_login_action,
+    )
+    login_prefix = [
+        {"tool": "browser_navigate", "args": {"url": app_config.base_url}, "description": f"导航到{app_config.name}"},
+        {"tool": "browser_snapshot", "args": {}, "description": "获取页面快照"},
+        {"tool": "browser_navigate", "args": {"url": app_config.login_url_full()}, "description": "导航到登录页"},
+        {"tool": "browser_snapshot", "args": {}, "description": "获取登录页快照"},
+        {"tool": "browser_type", "args": {"target": "邮箱输入框", "text": app_config.login_email}, "description": "输入邮箱"},
+        {"tool": "browser_type", "args": {"target": "密码输入框", "text": app_config.login_password}, "description": "输入密码"},
+        {"tool": "browser_click", "args": {"target": "登录按钮"}, "description": "点击登录"},
+        {"tool": "browser_wait_for", "args": {"time": 2}, "description": "等待页面加载"},
+        {"tool": "browser_snapshot", "args": {}, "description": "获取登录后快照"},
+    ]
+    # 从 app_config 的 post_login_actions 生成登录后必做操作
+    for post_action in app_config.post_login_actions:
+        login_prefix.append({
+            "tool": post_action.get("tool", ""),
+            "args": post_action.get("args", {}),
+            "description": post_action.get("description", ""),
+        })
 
-    return plan
+    return login_prefix + normalized_actions
 
 
 def _normalize_action(action: dict) -> dict:
@@ -257,19 +289,16 @@ def _format_expectations(expectations: list[dict]) -> str:
 def _parse_plan_response(response_text: str) -> list[dict]:
     """将 LLM 响应解析为 Action 字典列表。
 
-    处理原始 JSON 数组和包含计划的 JSON 对象。
+    使用共享的 parse_llm_json 解析 JSON，然后处理
+    原始 JSON 数组和包含计划的 JSON 对象。
     """
-    try:
-        data = json.loads(response_text)
-    except json.JSONDecodeError:
-        # 尝试从 markdown 代码块中提取 JSON
-        import re
-        match = re.search(r"```(?:json)?\s*\n(.*?)\n```", response_text, re.DOTALL)
-        if match:
-            data = json.loads(match.group(1))
-        else:
-            logger.warning("无法将规划响应解析为 JSON: %s", response_text[:300])
-            return []
+    from app.llm.json_parser import parse_llm_json
+
+    data = parse_llm_json(response_text)
+
+    if data is None:
+        logger.warning("无法将规划响应解析为 JSON: %s", response_text[:300])
+        return []
 
     # LLM 可能直接返回数组或包装在对象中
     if isinstance(data, list):
@@ -291,11 +320,13 @@ def _generate_fallback_plan(scenario: dict) -> list[dict]:
     """从场景步骤生成最小的备用计划。
 
     当 LLM 规划调用失败时使用。创建基本的导航 + 登录 + 交互计划。
+    使用 TargetAppConfig 动态获取应用配置，而非硬编码 4gaboards 特定逻辑。
     使用描述性 target（如"邮箱输入框"）而非硬编码 eN 引用，
     执行引擎会自动从快照中解析真实的 target。
     """
+    app_config = TargetAppConfig.from_settings()
     steps = scenario.get("steps", [])
-    url = scenario.get("url", "https://demo.4gaboards.com")
+    url = scenario.get("url", app_config.base_url)
 
     plan = []
 
@@ -316,7 +347,7 @@ def _generate_fallback_plan(scenario: dict) -> list[dict]:
     # 3. 导航到登录页面
     plan.append({
         "tool": "browser_navigate",
-        "args": {"url": settings.login_url},
+        "args": {"url": app_config.login_url_full()},
         "description": "导航到登录页面",
     })
 
@@ -330,14 +361,14 @@ def _generate_fallback_plan(scenario: dict) -> list[dict]:
     # 5. 输入邮箱（使用描述性 target，执行引擎自动解析）
     plan.append({
         "tool": "browser_type",
-        "args": {"target": "邮箱输入框", "text": settings.login_email},
-        "description": f"输入登录邮箱 {settings.login_email}",
+        "args": {"target": "邮箱输入框", "text": app_config.login_email},
+        "description": f"输入登录邮箱 {app_config.login_email}",
     })
 
     # 6. 输入密码
     plan.append({
         "tool": "browser_type",
-        "args": {"target": "密码输入框", "text": settings.login_password},
+        "args": {"target": "密码输入框", "text": app_config.login_password},
         "description": "输入登录密码",
     })
 
@@ -362,36 +393,15 @@ def _generate_fallback_plan(scenario: dict) -> list[dict]:
         "description": "确认登录成功后的页面状态（URL不再是/login）",
     })
 
-    # 10. 获取仪表盘快照以查找 Board 链接
-    plan.append({
-        "tool": "browser_snapshot",
-        "args": {},
-        "description": "获取仪表盘或侧边栏快照查找Board链接",
-    })
+    # 10. 从 app_config 的 post_login_actions 生成登录后必做操作
+    for post_action in app_config.post_login_actions:
+        plan.append({
+            "tool": post_action.get("tool", ""),
+            "args": post_action.get("args", {}),
+            "description": post_action.get("description", ""),
+        })
 
-    # 11. 点击侧边栏看板列表按钮（可能是"Show boards"或"Hide boards"）
-    # 执行引擎会从快照中自动匹配正确的按钮
-    plan.append({
-        "tool": "browser_click",
-        "args": {"target": "展开看板按钮"},
-        "description": "点击侧边栏中展开看板列表的按钮（Show boards 或 Hide boards）",
-    })
-
-    # 12. 等待列表展开/加载
-    plan.append({
-        "tool": "browser_wait_for",
-        "args": {"time": 2},
-        "description": "等待看板列表展开或加载",
-    })
-
-    # 13. 获取展开后的快照查找具体的 Board 链接
-    plan.append({
-        "tool": "browser_snapshot",
-        "args": {},
-        "description": "获取看板列表展开后的快照以查找具体的Board链接",
-    })
-
-    # 14. 对每个步骤生成交互操作
+    # 11. 对每个步骤生成交互操作
     for step in steps:
         action = step.get("action", "")
         target = step.get("target", "")

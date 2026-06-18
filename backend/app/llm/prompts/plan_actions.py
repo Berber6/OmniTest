@@ -51,16 +51,15 @@ PLAN_ACTIONS_SYSTEM_PROMPT = """\
 
 ## 规划规则
 
-1. **登录前置步骤（必须）**：所有4gaboards场景都需要先登录！必须在第一个导航步骤之后立即添加登录操作：
-   - 先导航到 https://demo.4gaboards.com
+1. **登录前置步骤（如果目标应用需要登录）**：如果目标应用需要登录（见下方应用配置），所有计划必须以以下步骤开始：
+   - 导航到目标应用基础URL
    - 获取快照查找登录入口
-   - 导航到 https://demo.4gaboards.com/login
+   - 导航到登录页面
    - 获取快照确认登录表单已加载
-   - **必须使用以下固定凭据**：
-     - 在邮箱输入框中输入 **{login_email}**（请在 description 中写"邮箱输入框"，target 值会自动从快照解析）
-     - 在密码输入框中输入 **{login_password}**（请在 description 中写"密码输入框"，target 值会自动从快照解析）
-     - 点击登录按钮（请在 description 中写"登录按钮"，target 值会自动从快照解析）
-   - 等待5秒后获取快照确认登录成功（URL应不再是/login）
+   - 输入凭据（邮箱和密码，见下方应用配置）
+   - 点击登录按钮
+   - 等待登录完成并获取快照确认
+   - 执行应用配置中指定的登录后必做操作
 
 2. 场景中的每个步骤必须映射到一个或多个工具调用。
 3. 在交互步骤（click、type）之前，始终包含 browser_snapshot 调用以获取当前页面结构和元素引用。
@@ -69,7 +68,10 @@ PLAN_ACTIONS_SYSTEM_PROMPT = """\
 6. 完成所有操作步骤后，添加 browser_take_screenshot 和 browser_snapshot 调用以捕获状态用于验证。
 7. 如果步骤引用了UI元素，根据 Memory MCP 中存储的页面结构将其翻译为最可能的选择器。
 8. 顺序很重要：先导航，再登录，再快照获取上下文，然后交互，最后捕获结果。
-9. **看板列表展开（必须）**：登录成功后进入仪表盘页面时，看板列表默认折叠。必须先点击侧边栏中的"Show boards"按钮展开看板列表，然后再点击具体的看板名称链接进入看板视图。请始终在点击Board链接之前添加"Show boards"按钮的点击步骤。
+
+## 目标应用配置
+
+{app_config_section}
 
 ## UI 元素约束规则
 
@@ -84,11 +86,11 @@ PLAN_ACTIONS_SYSTEM_PROMPT = """\
 - "args": 字典 — 工具调用参数（注意：交互工具使用 "target"，不是 "ref"）
 - "description": 字符串 — 中文描述该操作的作用
 
-示例（包含登录流程）：
+示例（包含登录流程，凭据来自应用配置）：
 [
   {
     "tool": "browser_navigate",
-    "args": {"url": "https://demo.4gaboards.com/login"},
+    "args": {"url": "{login_url}"},
     "description": "导航到登录页面"
   },
   {

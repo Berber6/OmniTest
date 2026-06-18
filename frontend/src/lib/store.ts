@@ -8,6 +8,7 @@ import type {
   DashboardStats,
   SystemStatus,
   WebSocketEvent,
+  StepProgress,
   CrawlStatus,
   ExtractStatus,
   GenerateStatus,
@@ -78,6 +79,9 @@ interface AppState {
   // WebSocket
   wsConnected: boolean;
   ws: ExecutionWebSocket | null;
+
+  // Step progress (real-time per-step updates via WebSocket)
+  stepProgress: StepProgress | null;
 
   // Actions
   fetchFeatures: (filters?: FeatureFilters) => Promise<void>;
@@ -157,6 +161,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   wsConnected: false,
   ws: null,
+  stepProgress: null,
 
   // Actions
   fetchFeatures: async (filters?: FeatureFilters) => {
@@ -414,6 +419,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteCrawlData: async () => {
+    if (!window.confirm("确定要删除所有爬取数据吗？此操作不可恢复。")) {
+      return;
+    }
     try {
       await api.deleteCrawlData();
       set({ crawlStatus: null });
@@ -424,6 +432,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteFeatures: async () => {
+    if (!window.confirm("确定要删除所有特征数据吗？此操作不可恢复。")) {
+      return;
+    }
     try {
       await api.deleteFeatures();
       set({ extractStatus: null, features: [] });
@@ -434,6 +445,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   deleteScenarios: async () => {
+    if (!window.confirm("确定要删除所有场景数据吗？此操作不可恢复。")) {
+      return;
+    }
     try {
       await api.deleteScenarios();
       set({ generateStatus: null, scenarios: [] });
@@ -482,6 +496,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       case "execution_started":
         get().fetchExecutions();
         break;
+      case "step_progress":
+        // Update real-time step progress indicator
+        set({ stepProgress: {
+          execution_id: event.execution_id,
+          step_number: event.step_number,
+          total_steps: event.total_steps,
+          action_tool: event.action_tool,
+          success: event.success,
+        }});
+        break;
       case "step_completed":
         // Refresh from API to get updated steps with screenshots
         get().fetchExecutions();
@@ -500,6 +524,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         break;
       case "execution_completed":
         // Refresh full execution data from API (plan, steps, screenshots now available)
+        // Clear step progress since execution is done
+        set({ stepProgress: null });
         get().fetchExecutions();
         get().fetchDashboardStats();
         break;

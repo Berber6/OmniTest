@@ -86,6 +86,8 @@ REFLECT_USER_PROMPT_TEMPLATE = """\
 ## 失败时的页面状态
 {page_state_text}
 
+{attempt_history_section}
+
 ---
 
 分析失败原因，诊断根因，并生成修订后的执行计划。如果重试次数已达到上限（3），则将 should_retry 设为 false。仅返回 JSON 反思结果。
@@ -137,17 +139,13 @@ async def reflect_node(state: AgentState) -> dict:
             "plan": [],
         }
 
-    # 如果所有步骤都因MCP不可用而失败，直接结束不再重试
-    all_steps_failed = all(not s.get("success", False) for s in executed_steps) if executed_steps else False
-    mcp_unavailable = any(
-        "MCP" in (s.get("error", "") if isinstance(s.get("error", ""), str) else "") or
-        "服务器不可用" in (s.get("error", "") if isinstance(s.get("error", ""), str) else "") or
-        "连接超时" in (s.get("error", "") if isinstance(s.get("error", ""), str) else "")
-        for s in executed_steps
-    ) if executed_steps else False
+    # 使用 error_category 进行快速路径决策
+    failed_steps = [s for s in executed_steps if not s.get("success", False)] if executed_steps else []
+    error_categories = [s.get("error_category", "unknown") for s in failed_steps]
 
-    if all_steps_failed and mcp_unavailable:
-        logger.warning("所有步骤因MCP不可用而失败 — 不再重试")
+    # 如果所有失败步骤都是 MCP_UNAVAILABLE，不重试（基础设施问题）
+    if failed_steps and all(cat == "mcp_unavailable" for cat in error_categories):
+        logger.warning("所有步骤因MCP不可用而失败 (error_category=mcp_unavailable) — 不再重试")
         failure_reason = state.get("failure_reason", "") or "MCP服务器不可用，所有操作无法执行"
         return {
             "retry_count": new_retry_count,
@@ -156,6 +154,12 @@ async def reflect_node(state: AgentState) -> dict:
             "failure_reason": failure_reason,
             "plan": [],
         }
+
+    # 如果大多数错误是 ELEMENT_NOT_FOUND，标记需要修订计划目标
+    element_not_found_count = sum(1 for cat in error_categories if cat == "element_not_found")
+    if failed_steps and element_not_found_count >= len(failed_steps) * 0.6:
+        logger.info("大多数错误为 ELEMENT_NOT_FOUND (%d/%d) — 将重点修订计划目标",
+                     element_not_found_count, len(failed_steps))
 
     # 如果超过最大重试次数，标记为最终失败
     if new_retry_count > 3:
@@ -183,6 +187,7 @@ async def reflect_node(state: AgentState) -> dict:
     execution_trace = _format_execution_trace(executed_steps)
     verification_result_text = json.dumps(verification_result, indent=2)
     page_state_text = json.dumps(current_page_state, indent=2)[:3000]  # Limit size
+    attempt_history_section = _format_attempt_history(state.get("attempt_history", []))
 
     user_prompt = REFLECT_USER_PROMPT_TEMPLATE.format(
         retry_count=new_retry_count,
@@ -191,6 +196,7 @@ async def reflect_node(state: AgentState) -> dict:
         execution_trace=execution_trace,
         verification_result=verification_result_text,
         page_state_text=page_state_text,
+        attempt_history_section=attempt_history_section,
     )
 
     logger.info("正在反思失败 (retry_count=%d)，场景 '%s'", new_retry_count, scenario_name)
@@ -241,10 +247,37 @@ async def reflect_node(state: AgentState) -> dict:
             "plan": [],
         }
 
+    # If LLM says retry but gave no revised plan, reuse the original plan
+    # (the second execution may succeed due to different page state/timing)
+    if not revised_plan:
+        original_plan = state.get("plan", [])
+        if original_plan:
+            logger.warning("LLM returned should_retry=True but empty revised_plan — reusing original plan (%d actions)", len(original_plan))
+            revised_plan = [_normalize_reflect_action(a) for a in original_plan]
+        else:
+            logger.warning("LLM returned should_retry=True but no revised plan and no original plan — marking as fail")
+            return {
+                "retry_count": new_retry_count,
+                "reflection": reflection_text,
+                "final_result": "fail",
+                "failure_reason": root_cause or "反思未生成修订计划",
+                "plan": [],
+            }
+
+    # 将当前尝试数据保存到历史记录，然后清空以备重新执行
+    attempt_history = state.get("attempt_history", [])
+    attempt_history.append({
+        "executed_steps": state.get("executed_steps", []),
+        "verification_result": state.get("verification_result", {}),
+        "retry_count": state.get("retry_count", 0),
+    })
+
     return {
         "retry_count": new_retry_count,
         "reflection": reflection_text,
         "plan": revised_plan,
+        # 保存历史记录
+        "attempt_history": attempt_history,
         # 为新的计划执行重置执行状态
         "executed_steps": [],
         "screenshots": [],
@@ -257,25 +290,23 @@ async def reflect_node(state: AgentState) -> dict:
 
 
 def _parse_reflection_response(response: str) -> dict:
-    """将反思 LLM 响应解析为结构化字典。"""
-    try:
-        return json.loads(response)
-    except json.JSONDecodeError:
-        import re
-        match = re.search(r"```(?:json)?\s*\n(.*?)\n```", response, re.DOTALL)
-        if match:
-            try:
-                return json.loads(match.group(1))
-            except json.JSONDecodeError:
-                pass
+    """将反思 LLM 响应解析为结构化字典。
 
-        logger.warning("无法将反思响应解析为 JSON")
-        return {
-            "reflection": response[:500],
-            "root_cause": "无法解析反思响应",
-            "revised_plan": [],
-            "should_retry": False,
-        }
+    使用共享的 parse_llm_json 解析，并提供反思领域的默认值回退。
+    """
+    from app.llm.json_parser import parse_llm_json
+
+    result = parse_llm_json(response)
+    if result is not None:
+        return result
+
+    logger.warning("无法将反思响应解析为 JSON")
+    return {
+        "reflection": response[:500],
+        "root_cause": "无法解析反思响应",
+        "revised_plan": [],
+        "should_retry": False,
+    }
 
 
 def _format_steps_summary(steps: list[dict]) -> str:
@@ -288,8 +319,54 @@ def _format_steps_summary(steps: list[dict]) -> str:
     )
 
 
+def _format_attempt_history(attempt_history: list[dict]) -> str:
+    """将尝试历史格式化为反思 prompt 的摘要段落。
+
+    格式: "## 之前的尝试记录\n尝试1: 5步骤成功/2失败, 验证结果: fail..."
+    """
+    if not attempt_history:
+        return ""
+
+    lines = ["## 之前的尝试记录"]
+    for i, attempt in enumerate(attempt_history, 1):
+        executed_steps = attempt.get("executed_steps", [])
+        verification_result = attempt.get("verification_result", {})
+        retry_count = attempt.get("retry_count", 0)
+
+        # 统计成功/失败步骤数
+        succeeded = sum(1 for s in executed_steps if s.get("success", False))
+        failed = sum(1 for s in executed_steps if not s.get("success", False))
+        total = len(executed_steps)
+
+        # 验证结果简述
+        vr_passed = verification_result.get("passed", False)
+        vr_reason = verification_result.get("reason", "")
+        vr_summary = "pass" if vr_passed else f"fail ({vr_reason[:80]})"
+
+        # 错误分类统计（如果存在 error_category）
+        error_categories = []
+        for s in executed_steps:
+            if not s.get("success", False) and s.get("error_category"):
+                error_categories.append(s.get("error_category"))
+
+        cat_summary = ""
+        if error_categories:
+            from collections import Counter
+            cat_counts = Counter(error_categories)
+            cat_summary = ", 错误分类: " + ", ".join(
+                f"{cat}:{cnt}" for cat, cnt in cat_counts.most_common()
+            )
+
+        lines.append(
+            f"尝试{i} (retry_count={retry_count}): {succeeded}步骤成功/{failed}失败 (共{total}步骤), "
+            f"验证结果: {vr_summary}{cat_summary}"
+        )
+
+    return "\n".join(lines)
+
+
 def _format_execution_trace(executed_steps: list[dict]) -> str:
-    """将已执行步骤格式化为详细轨迹用于分析，包含定位方法信息。"""
+    """将已执行步骤格式化为详细轨迹用于分析，包含定位方法信息和错误分类。"""
     if not executed_steps:
         return "没有步骤被执行。"
 
@@ -302,6 +379,7 @@ def _format_execution_trace(executed_steps: list[dict]) -> str:
         success = step.get("success", False)
         error = step.get("error", "")
         resolution_method = step.get("resolution_method", "")
+        error_category = step.get("error_category", "")
 
         # Include resolution method for richer analysis
         method_info = ""
@@ -317,9 +395,14 @@ def _format_execution_trace(executed_steps: list[dict]) -> str:
             }
             method_info = f" (定位方法: {method_labels.get(resolution_method, resolution_method)})"
 
+        # Include error category for structured error analysis
+        category_info = ""
+        if error_category and not success:
+            category_info = f" [错误分类: {error_category}]"
+
         status = "OK" if success else f"FAILED: {error}"
         lines.append(
-            f"Step {step_num}: {tool} — {desc}{method_info} [{status}]"
+            f"Step {step_num}: {tool} — {desc}{method_info}{category_info} [{status}]"
         )
 
     return "\n".join(lines)
@@ -388,3 +471,11 @@ def _validate_plan_urls(plan: list[dict], scenario: dict) -> list[dict]:
         return _generate_fallback_plan(scenario)
 
     return plan
+
+
+def _normalize_reflect_action(action: dict) -> dict:
+    """Normalize an action dict to ensure consistent field names."""
+    tool = action.get("tool", "") or action.get("tool_name", "")
+    args = action.get("args", {}) or action.get("parameters", {})
+    description = action.get("description", "")
+    return {"tool": tool, "args": dict(args) if isinstance(args, dict) else {}, "description": description}

@@ -4,10 +4,12 @@ import asyncio
 import json
 import logging
 import re
+from pathlib import Path
 from typing import Any, Optional
 
 from .models import DocumentChunk, Feature
 from .vector_store import VectorStore
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,55 @@ def _resolve_llm_callable(llm_router: Any):
     if callable(llm_router) and not hasattr(llm_router, 'call_llm'):
         return llm_router
     return llm_router.call_llm
+
+
+# Fallback queries when no crawl manifest is available.
+_FALLBACK_QUERIES = [
+    "4gaboards 用户手册 Board 卡片 列表 视图 快捷键",
+    "4gaboards 管理员手册 实例设置 管理员设置 项目设置 结构",
+    "4gaboards 开发者手册 API 通知 导入导出 侧边栏",
+    "4gaboards 创建 编辑 删除 管理 设置 配置",
+    "4gaboards 账号 登录 注册 项目 成员 权限",
+]
+
+
+def _build_retrieval_queries() -> list[str]:
+    """Build retrieval queries dynamically from the crawl manifest page titles.
+
+    Each crawled page title becomes one query so every page enters the
+    retrieval context at least once, removing the coverage ceiling of the
+    old hardcoded query list. Falls back to static queries if the manifest
+    is unavailable.
+    """
+    manifest_path = Path(settings.data_dir) / "crawled_docs" / "manifest.json"
+    if not manifest_path.exists():
+        logger.warning(f"Manifest not found at {manifest_path}; using fallback queries")
+        return _FALLBACK_QUERIES
+
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            pages = json.load(f)
+    except Exception as exc:
+        logger.warning(f"Failed to read manifest: {exc}; using fallback queries")
+        return _FALLBACK_QUERIES
+
+    queries: list[str] = []
+    for page in pages:
+        title = (page.get("title") or "").strip()
+        if not title:
+            continue
+        # Strip the trailing site-name suffix (e.g. "| 4ga Boards Docs").
+        title = re.split(r"\s*\|\s*", title)[0].strip()
+        if title and title not in queries:
+            queries.append(title)
+
+    if not queries:
+        logger.warning("No titles found in manifest; using fallback queries")
+        return _FALLBACK_QUERIES
+
+    logger.info(f"Built {len(queries)} retrieval queries from manifest titles")
+    return queries
+
 
 from ..llm.prompts.extract_features import EXTRACT_FEATURES_PROMPT
 
@@ -55,13 +106,7 @@ async def extract_features(
     """
     logger.info("正在并发检索文档上下文用于功能特征提取")
 
-    retrieval_queries = [
-        "4gaboards 用户手册 Board 卡片 列表 视图 快捷键",
-        "4gaboards 管理员手册 实例设置 管理员设置 项目设置 结构",
-        "4gaboards 开发者手册 API 通知 导入导出 侧边栏",
-        "4gaboards 创建 编辑 删除 管理 设置 配置",
-        "4gaboards 账号 登录 注册 项目 成员 权限",
-    ]
+    retrieval_queries = _build_retrieval_queries()
 
     # Concurrent retrieval
     retrieval_tasks = [
