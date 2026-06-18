@@ -71,41 +71,58 @@ CN_ROLE_MAP = {
 }
 
 
-def _extract_yaml_block(snapshot_text: str) -> str:
+def _extract_yaml_block(snapshot_text: str) -> tuple[str, list[int]]:
     """从 Playwright MCP 快照中提取 YAML 代码块内容。
 
     快照格式可能有两种：
     1. 包裹格式：### Page ... ### Snapshot ```yaml ... ```
     2. 纯 YAML 格式：直接以 - 开头的行
 
-    提取后去除缩进前缀，使每行从 - 开头，方便后续逐行解析。
+    提取后保留缩进信息用于计算深度，同时去除缩进前缀使每行从 - 开头。
+
+    Returns:
+        (yaml_text, depth_list): 规范化后的 YAML 文本和每行对应的深度值列表。
+        depth=0 表示顶级元素，depth>0 表示嵌套层级。
     """
     # 尝试提取 ```yaml ... ``` 代码块
     yaml_match = re.search(r'```yaml\n(.*?)```', snapshot_text, re.DOTALL)
     if yaml_match:
-        raw = yaml_match.group(1)
+        raw_lines = yaml_match.group(1).split("\n")
     else:
         # 如果没有代码块，可能是纯 YAML 格式
-        lines = []
+        raw_lines = []
         for line in snapshot_text.split("\n"):
             stripped = line.strip()
             if stripped.startswith("- ") or stripped.startswith("  -"):
-                lines.append(stripped)
-        raw = "\n".join(lines) if lines else snapshot_text
+                raw_lines.append(line)  # 保留原始缩进
+        if not raw_lines:
+            raw_lines = snapshot_text.split("\n")
 
-    # 去除每行前的缩进空格，统一为 - 开头的格式，方便正则匹配
+    # 去除每行前的缩进空格，同时计算深度（基于原始缩进级别）
+    # YAML 快照中缩进通常为每级 2 空格，顶级 "- role" 没有缩进
     normalized_lines = []
-    for line in raw.split("\n"):
+    depth_list = []
+    for line in raw_lines:
         stripped = line.strip()
-        if stripped:  # 跳过空行
-            normalized_lines.append(stripped)
-    return "\n".join(normalized_lines)
+        if not stripped:  # 跳过空行
+            continue
+        # 计算缩进深度：基于原始行前导空格数
+        # 每级缩进 2 空格：0 空格 = depth 0, 2 空格 = depth 1, 4 空格 = depth 2, ...
+        leading_spaces = len(line) - len(line.lstrip())
+        depth = leading_spaces // 2
+        normalized_lines.append(stripped)
+        depth_list.append(depth)
+    return "\n".join(normalized_lines), depth_list
 
 
 def _parse_snapshot_elements(snapshot_text: str) -> list[dict]:
     """解析快照文本，提取所有带 [ref=eN] 的交互元素。
 
-    返回元素列表，每个元素包含 role、name、ref、label。
+    返回元素列表，每个元素包含 role、name、ref、label、depth。
+
+    depth 表示元素在可访问性树中的嵌套层级：
+    - depth=0: 顶级元素（如页面主按钮、导航链接）
+    - depth>0: 嵌套在容器中的子元素
 
     逐行解析规范化后的 YAML 文本，支持多种格式：
     - 带名称: - button "Login" [ref=e16]
@@ -116,10 +133,10 @@ def _parse_snapshot_elements(snapshot_text: str) -> list[dict]:
     还会利用上下文继承标签：如果 textbox 紧跟在带标签文本的 generic 之后，
     将 generic 的标签文本赋给 textbox 的 label 字段（如"Password" → 密码输入框）。
     """
-    yaml_text = _extract_yaml_block(snapshot_text)
+    yaml_text, depth_list = _extract_yaml_block(snapshot_text)
     elements = []
 
-    for line in yaml_text.split("\n"):
+    for line_idx, line in enumerate(yaml_text.split("\n")):
         line = line.strip()
         if not line.startswith("-"):
             continue
@@ -156,11 +173,15 @@ def _parse_snapshot_elements(snapshot_text: str) -> list[dict]:
             if not label_text.startswith("-"):
                 label = label_text
 
+        # 从 depth_list 中获取该行的深度值
+        depth = depth_list[line_idx] if line_idx < len(depth_list) else 0
+
         elements.append({
             "role": role,
             "name": name,
             "ref": ref,
             "label": label,
+            "depth": depth,
         })
 
     # 利用上下文继承标签：如果 textbox 紧跟在带标签文本的 generic 之后，
@@ -336,6 +357,15 @@ def resolve_ref_from_snapshot(snapshot_text: str, description: str, ui_elements:
             brand_lower = _page_brand.lower()
             if name_lower == brand_lower or (brand_lower in name_lower and len(name_lower) <= len(brand_lower) + 5):
                 score -= 5  # 品牌/logo 链接扣分
+
+        # 深度/嵌套层级加分/扣分：保留父-子关系的上下文信息
+        # 顶级元素（depth 0-1）通常是主要的交互目标（如导航链接、主按钮）
+        # 深层嵌套元素（depth > 3）通常在嵌套容器中（如页脚链接、深层列表项）
+        depth = elem.get("depth", 0)
+        if depth <= 1:
+            score += 2  # 顶级元素加分：它们是主要交互目标
+        elif depth > 3:
+            score -= 1  # 深层嵌套扣分：不太可能是用户想要的
 
         candidates.append((score, elem))
 

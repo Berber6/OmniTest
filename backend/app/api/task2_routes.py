@@ -101,9 +101,9 @@ async def execute_scenario(
             logger.info("Agent execution starting: id=%s (semaphore acquired)", execution_id)
             bg_db = SessionLocal()
             try:
-                result_state = await run_agent(scenario_dict)
+                result_state = await run_agent(scenario_dict, execution_id, bg_db)
 
-                final_result = result_state.get("final_result", "fail")
+                final_result = result_state.get("final_result", "fail") or "fail"
                 bg_record = bg_db.query(ExecutionRecord).filter(ExecutionRecord.id == execution_id).first()
                 if bg_record:
                     if final_result == "pass":
@@ -186,12 +186,30 @@ async def delete_execution(
     import base64
     screenshot_dir = settings.screenshot_dir
     if screenshot_dir.exists():
+        # 删除旧格式的截图文件（{execution_id}_*.png）
         for f in screenshot_dir.glob(f"{execution_id}_*.png"):
             try:
                 f.unlink()
                 logger.info("删除截图文件: %s", f.name)
             except Exception as exc:
                 logger.warning("删除截图文件失败 %s: %s", f.name, exc)
+        # 删除新格式的截图文件（从记录的 screenshots_json 中获取文件名）
+        screenshots = record.screenshots_json
+        if isinstance(screenshots, str):
+            try:
+                screenshots = json.loads(screenshots)
+            except Exception:
+                screenshots = []
+        for s in (screenshots or []):
+            if isinstance(s, str) and (s.endswith(".png") or s.endswith(".jpg")) and not s.startswith("http"):
+                # 新格式：文件路径引用 — 删除磁盘文件
+                filepath = screenshot_dir / s
+                if filepath.exists():
+                    try:
+                        filepath.unlink()
+                        logger.info("删除截图文件(新格式): %s", s)
+                    except Exception as exc:
+                        logger.warning("删除截图文件失败 %s: %s", s, exc)
 
     # 删除数据库记录
     db.delete(record)
@@ -280,9 +298,14 @@ def _execution_record_to_dict(record: ExecutionRecord) -> dict:
     verification_result, screenshots, retry_count, reflection,
     final_result, failure_reason, started_at, completed_at
 
-    Screenshots are stored as base64 strings in the DB but frontend
-    expects file paths. This function decodes base64 to PNG files
-    on disk and replaces the base64 strings with paths.
+    Screenshots may be stored as:
+    1. File paths (new format: e.g. "step_0_1234567890_0.png") — saved as PNG files
+       by the execution engine, just referenced by filename
+    2. Base64 strings (legacy format: starting with "iVBOR") — decoded and saved as PNG files
+    3. Data URIs (legacy format: "data:image/png;base64,...") — decoded and saved
+    4. Absolute paths or URLs — used directly
+
+    Frontend fetches images via /api/screenshots/{path}.
     """
     import base64
 
@@ -303,10 +326,10 @@ def _execution_record_to_dict(record: ExecutionRecord) -> dict:
     if isinstance(screenshots, str):
         screenshots = json.loads(screenshots)
 
-    # 将 base64 截图保存为 PNG 文件，并替换为文件路径
+    # 将截图数据转换为前端可访问的文件路径
     # 前端通过 /api/screenshots/{path} 获取图片
-    # screenshots 列表中可能交替包含文本结果和 base64 图片数据
-    # 只有真正的 base64 图片数据（以 iVBOR 开头的 PNG）才保存为文件
+    # 新格式：文件名引用（由执行引擎保存的 PNG 文件）
+    # 旧格式：base64 字符串需要解码并保存为文件
     screenshot_dir = settings.screenshot_dir
     screenshot_dir.mkdir(parents=True, exist_ok=True)
 
@@ -314,7 +337,7 @@ def _execution_record_to_dict(record: ExecutionRecord) -> dict:
     img_count = 0  # 只对真正的图片数据编号
     for idx, s in enumerate(screenshots or []):
         if isinstance(s, str) and s.startswith("iVBOR"):
-            # 这是真正的 PNG base64 数据 — 保存为文件
+            # 旧格式：PNG base64 数据 — 保存为文件
             filename = f"{record.id}_{img_count}.png"
             filepath = screenshot_dir / filename
             try:
@@ -327,7 +350,7 @@ def _execution_record_to_dict(record: ExecutionRecord) -> dict:
                 logger.warning("截图保存失败 idx=%d: %s", idx, exc)
                 screenshot_paths.append("")  # 保存失败时用空字符串
         elif isinstance(s, str) and s.startswith("data:image"):
-            # data URI 格式的 base64 图片
+            # 旧格式：data URI 格式的 base64 图片
             filename = f"{record.id}_{img_count}.png"
             filepath = screenshot_dir / filename
             try:
@@ -341,25 +364,44 @@ def _execution_record_to_dict(record: ExecutionRecord) -> dict:
                 logger.warning("截图保存失败(data URI) idx=%d: %s", idx, exc)
                 screenshot_paths.append("")
         elif isinstance(s, str) and (s.startswith("/") or s.startswith("http") or s.endswith(".png") or s.endswith(".jpg")):
-            # 已经是文件路径或 URL — 直接使用
+            # 新格式：文件路径引用（由执行引擎保存的文件）或 URL — 直接使用
             screenshot_paths.append(s)
             img_count += 1
         else:
-            # 文本结果（如 "### Result ..."）或其他非图片内容 — 跳过
+            # 文本结果或其他非图片内容 — 跳过
             screenshot_paths.append("")
 
     # 为每个执行步骤关联截图路径
-    # 执行引擎在交互操作和 browser_take_screenshot 之后都会捕获截图
-    # 这些截图按执行顺序存储在 screenshots 列表中
-    # 找到所有非空的截图路径，按顺序分配给有截图需求的步骤
+    # 新格式：执行引擎在每个 step_result 的 "screenshot" 字段和
+    # page_state["screenshot"] 中直接存储文件名路径，无需顺序分配
+    # 旧格式回退：仍然按顺序从 screenshots 列表分配
     valid_paths = [p for p in screenshot_paths if p]  # 过滤掉空字符串
-    # 为每个步骤分配截图：交互/截图步骤获得专属截图，
-    # 其他步骤继承上一个交互步骤的截图作为上下文参考
     path_idx = 0
     last_assigned_path = None  # 上一个被分配的截图路径
     for step in (executed_steps or []):
         if not isinstance(step, dict):
             continue
+
+        # 新格式：step_result 已包含 screenshot 文件路径
+        step_screenshot = step.get("screenshot", "")
+        if step_screenshot and isinstance(step_screenshot, str) and step_screenshot.endswith(".png"):
+            step["screenshot_path"] = step_screenshot
+            if isinstance(step.get("page_state"), dict) and step.get("page_state", {}).get("screenshot"):
+                step["page_state"]["screenshot_path"] = step["page_state"]["screenshot"]
+            last_assigned_path = step_screenshot
+            continue
+
+        # page_state 中也可能有 screenshot 文件路径
+        page_state_screenshot = ""
+        if isinstance(step.get("page_state"), dict):
+            page_state_screenshot = step.get("page_state", {}).get("screenshot", "")
+        if page_state_screenshot and isinstance(page_state_screenshot, str) and page_state_screenshot.endswith(".png"):
+            step["screenshot_path"] = page_state_screenshot
+            step["page_state"]["screenshot_path"] = page_state_screenshot
+            last_assigned_path = page_state_screenshot
+            continue
+
+        # 旧格式回退：从 screenshots 列表顺序分配
         tool_name = step.get("action", {}).get("tool", "") if isinstance(step.get("action"), dict) else ""
         # 直接产生截图的步骤：交互操作和专门截图
         if tool_name in ("browser_take_screenshot", "browser_click", "browser_type",

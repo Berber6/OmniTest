@@ -5,7 +5,7 @@ to publish events, and WebSocket endpoints to subscribe and push them
 to connected frontend clients in real time.
 
 Events are typed dicts matching the frontend's WebSocketEvent type:
-  execution_started, step_completed, verification_completed,
+  execution_started, step_progress, step_completed, verification_completed,
   reflection_started, execution_completed, mutation_completed,
   status_update, connected.
 """

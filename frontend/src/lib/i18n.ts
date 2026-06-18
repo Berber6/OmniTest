@@ -184,6 +184,9 @@ const translations: Record<Locale, Record<string, string>> = {
     "executions.detail.screenshots": "Screenshot Comparison",
     "executions.detail.pass": "PASS",
     "executions.detail.fail": "FAIL",
+    "executions.detail.liveBrowserView": "Live Browser View",
+    "executions.detail.currentStep": "Current Step",
+    "executions.detail.reasoning": "Reasoning",
 
     // ExecutionTimeline
     "timeline.plan": "Execution Plan",
@@ -211,6 +214,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "timeline.yes": "Yes",
     "timeline.no": "No",
     "timeline.result": "Result",
+    "timeline.stepProgress": "Executing step",
 
     // ScreenshotCompare
     "screenshot.title": "Screenshot Comparison",
@@ -507,6 +511,7 @@ const translations: Record<Locale, Record<string, string>> = {
     "timeline.yes": "是",
     "timeline.no": "否",
     "timeline.result": "结果",
+    "timeline.stepProgress": "正在执行步骤",
 
     // ScreenshotCompare
     "screenshot.title": "截图对比",

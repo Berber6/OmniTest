@@ -13,12 +13,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import shutil
 from typing import Any
 
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
+
+from app.task2.agent.env_utils import build_child_env, find_chrome_path
 
 logger = logging.getLogger(__name__)
 
@@ -27,62 +28,16 @@ logger = logging.getLogger(__name__)
 # Use "app.xxx" module paths (not "backend.app.xxx") for internal servers
 # ---------------------------------------------------------------------------
 
-def _find_chrome_path() -> str:
-    """Find the Chrome executable path for Playwright MCP.
+CLEAN_ENV = build_child_env()
 
-    Dynamically scans the Playwright cache for any chromium-* directory,
-    avoiding hardcoded version-specific paths that break when Playwright
-    updates. Falls back to system Chrome via shutil.which().
-    """
-    playwright_cache = os.path.expanduser("~/.cache/ms-playwright")
-    if os.path.isdir(playwright_cache):
-        for entry in os.listdir(playwright_cache):
-            if entry.startswith("chromium"):
-                full_path = os.path.join(playwright_cache, entry)
-                # Check for chrome-linux64 or chrome-linux naming patterns
-                for subdir in ["chrome-linux64", "chrome-linux"]:
-                    candidate = os.path.join(full_path, subdir, "chrome")
-                    if os.path.isfile(candidate):
-                        return candidate
-    # Fallback to system Chrome
-    for cmd in ["google-chrome", "chrome", "chromium", "chromium-browser"]:
-        path = shutil.which(cmd)
-        if path:
-            return path
-    return ""
+CHROME_PATH = find_chrome_path() or ""
 
-
-# 构建无代理的环境变量：清除 all_proxy 以避免 Playwright 浏览器通过 SOCKS 代理启动
-def _build_clean_env() -> dict[str, str]:
-    """构建排除代理、补充库路径的环境变量，确保 Playwright 浏览器可正常启动。
-
-    1. 清除 all_proxy 等代理变量，避免浏览器走 SOCKS 代理
-    2. 添加 LD_LIBRARY_PATH 确保浏览器找到 conda 中的共享库
-    3. 设置 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH 指向已安装的 Chrome
-    """
-    clean_env = dict(os.environ)
-    for key in list(clean_env.keys()):
-        if "proxy" in key.lower():
-            del clean_env[key]
-    # 添加 conda 库路径，确保 Chrome/Chromium 能找到 libatk/libgbm 等依赖
-    conda_lib = os.path.join(os.path.dirname(os.path.dirname(shutil.which("python") or "")), "lib")
-    if os.path.isdir(conda_lib):
-        existing_ld = clean_env.get("LD_LIBRARY_PATH", "")
-        if conda_lib not in existing_ld:
-            clean_env["LD_LIBRARY_PATH"] = f"{conda_lib}:{existing_ld}"
-    # 动态查找 Playwright Chrome 路径（不再硬编码版本号）
-    chrome_path = _find_chrome_path()
-    if chrome_path and os.path.isfile(chrome_path):
-        clean_env["PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"] = chrome_path
-    return clean_env
-
-CLEAN_ENV = _build_clean_env()
-
-CHROME_PATH = _find_chrome_path()
-
-PLAYWRIGHT_ARGS = ["-y", "@playwright/mcp@latest", "--headless"]
+PLAYWRIGHT_ARGS = ["-y", "@playwright/mcp@latest", "--headless", "--isolated"]
 if CHROME_PATH:
     PLAYWRIGHT_ARGS.extend(["--executable-path", CHROME_PATH])
+# --isolated: 每个 MCP 会话使用独立的内存浏览器 profile，避免多个并发 agent
+# 子进程共享同一 user-data-dir 时报 "Browser is already in use" 错误。
+# 代价：不持久化登录态，但 runner 每次执行本就重新登录，无影响。
 
 MCP_SERVER_CONFIGS: dict[str, StdioServerParameters] = {
     "playwright": StdioServerParameters(
@@ -241,6 +196,50 @@ class MCPClient:
             )
             error_msg = f"Tool call '{tool_name}' on '{server_name}' failed: {exc}"
             return [types.TextContent(type="text", text=error_msg)]
+
+    async def call_tool_checked(
+        self,
+        server_name: str,
+        tool_name: str,
+        arguments: dict[str, Any] | None = None,
+    ) -> tuple[str, bool]:
+        """Call a tool and return (text, is_error).
+
+        Unlike call_tool/call_tool_text which silently swallow tool-level
+        failures, this surfaces the MCP result's isError flag so the caller
+        can tell a real failure (stale ref, element not found, navigation
+        error) apart from a successful call. This is essential for the
+        observe→act loop to know whether an action actually worked.
+
+        Returns:
+            (joined_text, is_error). If the server is unavailable, returns
+            (degraded_message, True).
+        """
+        session = self._sessions.get(server_name)
+        if session is None:
+            error_msg = self._connect_errors.get(server_name, "not connected")
+            degraded = (
+                f"MCP server '{server_name}' unavailable: {error_msg}. "
+                f"Tool '{tool_name}' cannot be executed."
+            )
+            logger.warning(degraded)
+            return degraded, True
+
+        try:
+            result = await session.call_tool(tool_name, arguments or {})
+            texts = [
+                block.text for block in result.content
+                if isinstance(block, types.TextContent)
+            ]
+            text = "\n".join(texts)
+            is_error = bool(getattr(result, "isError", False))
+            return text, is_error
+        except Exception as exc:
+            logger.error(
+                "MCP tool call raised: server='%s', tool='%s': %s",
+                server_name, tool_name, exc,
+            )
+            return f"Tool '{tool_name}' on '{server_name}' raised: {exc}", True
 
     async def call_tool_text(
         self,

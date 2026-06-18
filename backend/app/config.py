@@ -85,6 +85,9 @@ class Settings(BaseSettings):
     # --- ChromaDB / RAG Configuration ---
     chroma_collection_name: str = "web_features"
     embedding_model_name: str = "BAAI/bge-m3"
+    # Max cosine distance for RAG retrieval. Raised from 0.50 to 0.70 because
+    # cross-lingual (Chinese query → English docs) matches score lower.
+    rag_max_distance: float = 0.70
 
     # --- CORS ---
     cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"]

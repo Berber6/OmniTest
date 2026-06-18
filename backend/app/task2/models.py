@@ -1,8 +1,21 @@
 """Pydantic models for Task2 (execution, mutation, verification)."""
 
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+
+
+class ErrorCategory(str, Enum):
+    """Structured error classification for step execution failures."""
+
+    ELEMENT_NOT_FOUND = "element_not_found"
+    MCP_UNAVAILABLE = "mcp_unavailable"
+    TIMEOUT = "timeout"
+    NAVIGATION_FAILED = "navigation_failed"
+    JS_EXECUTION_FAILED = "js_execution_failed"
+    VERIFICATION_FAILED = "verification_failed"
+    UNKNOWN = "unknown"
 
 
 class Action(BaseModel):
@@ -41,6 +54,7 @@ class StepResult(BaseModel):
     resolution_method: Optional[str] = Field(
         None, description="How the target was resolved: en_ref, css_selector, html_rule, vlm_coordinate, keyboard, action_fallback, failed"
     )
+    error_category: Optional[ErrorCategory] = Field(None, description="Structured error classification")
 
 
 class VerifyResult(BaseModel):

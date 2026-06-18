@@ -12,17 +12,100 @@ returning results via a multiprocessing pipe.
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import multiprocessing
 import os
 import re
 import tempfile
+import time
+from pathlib import Path
 from typing import Any
 
+from app.config import settings
 from app.task2.agent.state import AgentState
+from app.events import broadcaster
 
 logger = logging.getLogger(__name__)
+
+
+def _classify_error(error_str: str) -> str:
+    """根据错误消息的关键词匹配，分类错误类型。
+
+    返回 ErrorCategory 值字符串（与 app.task2.models.ErrorCategory 对应）。
+    """
+    if not error_str:
+        return "unknown"
+
+    error_lower = error_str.lower()
+
+    # 元素未找到类错误
+    if any(kw in error_lower for kw in [
+        "无法从快照中解析目标元素",
+        "所有回退方法均失败",
+        "无法解析目标元素",
+        "element not found",
+        "selector",
+        "no element",
+        "定位失败",
+        "resolution_method=failed",
+    ]):
+        return "element_not_found"
+
+    # MCP 不可用类错误
+    if any(kw in error_lower for kw in [
+        "mcp connection",
+        "mcp连接",
+        "服务器不可用",
+        "连接超时",
+        "mcp不可用",
+        "degraded",
+        "降级模式",
+        "浏览器不可用",
+        "browser not available",
+    ]):
+        return "mcp_unavailable"
+
+    # 超时类错误
+    if any(kw in error_lower for kw in [
+        "timeout",
+        "超时",
+        "timed out",
+    ]):
+        return "timeout"
+
+    # 导航失败类错误
+    if any(kw in error_lower for kw in [
+        "browser_navigate",
+        "navigate",
+        "navigation",
+        "导航失败",
+        "page load",
+    ]):
+        return "navigation_failed"
+
+    # JS 执行失败类错误
+    if any(kw in error_lower for kw in [
+        "browser_evaluate",
+        "js",
+        "javascript",
+        "evaluate",
+        "script error",
+        "js执行",
+    ]):
+        return "js_execution_failed"
+
+    # 验证失败类错误
+    if any(kw in error_lower for kw in [
+        "verification",
+        "验证失败",
+        "verify",
+    ]):
+        return "verification_failed"
+
+    return "unknown"
+
 
 # 需要动态解析 target 参数的交互工具集合
 # 这些工具的 args 中可能包含空值或描述性占位符（如"邮箱输入框"),
@@ -73,32 +156,81 @@ def _write_result(path: str, data: dict) -> None:
 
 def _read_result(path: str) -> dict | None:
     """Read result data from temp file. Returns None if file doesn't
-    exist or is empty."""
+    exist or is empty. If JSON is truncated (child process crashed mid-write),
+    attempts to recover partial executed_steps by finding the last complete step."""
     try:
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
         if not content:
             return None
         return json.loads(content)
-    except (FileNotFoundError, json.JSONDecodeError):
+    except FileNotFoundError:
         return None
+    except json.JSONDecodeError:
+        # JSON was truncated — child may have crashed mid-write.
+        # Try to recover partial executed_steps by finding the last complete step.
+        logger.warning("Result file has truncated JSON, attempting partial recovery")
+        try:
+            # Find the last complete step object in executed_steps array
+            # Pattern: look for }, in the steps array
+            steps_match = re.search(r'"executed_steps"\s*:\s*\[', content)
+            if steps_match:
+                # Try progressively shorter truncations
+                steps_start = content.index("[", steps_match.start())
+                for end_pos in range(len(content), steps_start, -1):
+                    snippet = content[steps_start:end_pos]
+                    # Try to close the array and object
+                    for suffix in ["]}"] + ["}" + "]", "}]}"]:
+                        try:
+                            result = json.loads(snippet + suffix)
+                            if isinstance(result, list) and result:
+                                logger.info("Recovered %d partial steps from truncated JSON", len(result))
+                                return {"executed_steps": result, "screenshots": [], "current_page_state": {}}
+                        except json.JSONDecodeError:
+                            continue
+        except Exception:
+            pass
+        return None
+
+
+# 全局计数器用于为截图文件生成唯一编号（在子进程中使用）
+_screenshot_counter = 0
+
+
+def _save_screenshot_to_file(screenshot_b64: str, step_idx: int) -> str:
+    """将 base64 截图数据保存为 PNG 文件，返回文件名（相对路径）。
+
+    截图保存到 settings.screenshot_dir 目录，文件名格式为 step_{idx}_{timestamp}.png。
+    返回文件名（不含目录路径），前端可通过 /api/screenshots/{filename} 获取。
+
+    这大幅减少了 JSON 传输大小：文件路径约 50 字符，而 base64 字符串约 50-200KB。
+    """
+    global _screenshot_counter
+    screenshot_dir = Path(settings.data_dir) / "screenshots"
+    screenshot_dir.mkdir(parents=True, exist_ok=True)
+    img_filename = f"step_{step_idx}_{int(time.time())}_{_screenshot_counter}.png"
+    _screenshot_counter += 1
+    img_path = screenshot_dir / img_filename
+
+    try:
+        # 如果是 data URI 格式 (data:image/png;base64,...)，先提取纯 base64 部分
+        if screenshot_b64.startswith("data:image"):
+            b64_data = screenshot_b64.split(",", 1)[1]
+            img_bytes = base64.b64decode(b64_data)
+        else:
+            img_bytes = base64.b64decode(screenshot_b64)
+        with open(img_path, "wb") as f:
+            f.write(img_bytes)
+        return img_filename
+    except Exception as exc:
+        logger.warning("截图保存失败 step_idx=%d: %s", step_idx, exc)
+        return ""
 
 
 def _check_browser_available() -> bool:
     """检查系统是否有可用的浏览器（Chrome/Chromium）。"""
-    import shutil
-    browser_commands = ["google-chrome", "chrome", "chromium", "chromium-browser"]
-    for cmd in browser_commands:
-        if shutil.which(cmd):
-            return True
-
-    playwright_cache = os.path.expanduser("~/.cache/ms-playwright")
-    if os.path.isdir(playwright_cache):
-        for entry in os.listdir(playwright_cache):
-            if entry.startswith("chromium") or entry.startswith("chrome"):
-                full_path = os.path.join(playwright_cache, entry)
-                if os.path.isdir(full_path) and os.listdir(full_path):
-                    return True
+    from app.task2.agent.env_utils import find_chrome_path
+    return find_chrome_path() is not None
 
 
 def _get_action_fallback(tool_name: str, args: dict, description: str) -> tuple[str | None, dict | None]:
@@ -108,8 +240,11 @@ def _get_action_fallback(tool_name: str, args: dict, description: str) -> tuple[
 
     Fallback strategies:
     - browser_click → browser_evaluate JS click
-    - browser_type → browser_evaluate JS value set
+    - browser_type → browser_evaluate JS value set (uses json.dumps for safe escaping)
     - browser_navigate → browser_evaluate JS location change
+
+    All JS string interpolation uses json.dumps to prevent injection from
+    values containing quotes, backslashes, or other special characters.
     """
     target = args.get("target", "")
     text = args.get("text", "")
@@ -119,23 +254,25 @@ def _get_action_fallback(tool_name: str, args: dict, description: str) -> tuple[
         # Try JS click with eN ref or CSS selector
         if re.match(r'^e\d+$', target):
             # eN ref failed → try JS click by evaluating the element
-            return ("browser_evaluate", {"script": f"document.querySelector('[data-testid], button, a, input').click()"})
+            return ("browser_evaluate", {"script": "document.querySelector('[data-testid], button, a, input').click()"})
         else:
-            # Descriptive target → try JS click with a guessed selector
-            return ("browser_evaluate", {"script": f"document.querySelector('button, [role=button], a').click()"})
+            # Descriptive target → try JS click with generic selector (no interpolation needed)
+            return ("browser_evaluate", {"script": "document.querySelector('button, [role=button], a').click()"})
 
     elif tool_name == "browser_type" and target and text:
+        # Use json.dumps for safe JS string escaping (handles quotes, backslashes, etc.)
+        text_json = json.dumps(text)
         if re.match(r'^e\d+$', target):
-            return ("browser_evaluate", {"script": f"const els = document.querySelectorAll('input, textarea'); for (const el of els) {{ if (el.offsetParent !== null) {{ el.focus(); el.value = '{text}'; break; }} }}"})
+            return ("browser_evaluate", {"script": f"const els = document.querySelectorAll('input, textarea'); for (const el of els) {{ if (el.offsetParent !== null) {{ el.focus(); el.value = JSON.parse({text_json}); break; }} }}"})
         else:
-            return ("browser_evaluate", {"script": f"const el = document.querySelector('input, textarea'); if (el) {{ el.focus(); el.value = '{text}'; }}"})
+            return ("browser_evaluate", {"script": f"const el = document.querySelector('input, textarea'); if (el) {{ el.focus(); el.value = JSON.parse({text_json}); }}"})
 
     elif tool_name == "browser_navigate" and url:
-        return ("browser_evaluate", {"script": f"window.location.href = '{url}'"})
+        # URLs don't need JSON escaping but single quotes must be handled
+        safe_url = url.replace("'", "\\'")
+        return ("browser_evaluate", {"script": f"window.location.href = '{safe_url}'"})
 
     return (None, None)
-
-    return False
 
 
 def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, conn) -> None:
@@ -162,42 +299,18 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
     fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     child_logger.addHandler(fh)
 
-    # Clear proxy vars in child process
+    # Apply clean environment from shared env_utils
+    from app.task2.agent.env_utils import build_child_env, find_chrome_path
+
+    child_env = build_child_env()
+    for key, value in child_env.items():
+        os.environ[key] = value
+    # Also clear proxy keys not present in clean_env
     for key in list(os.environ.keys()):
-        if "proxy" in key.lower():
+        if "proxy" in key.lower() and key not in child_env:
             del os.environ[key]
 
-    # Add conda lib path for browser dependencies
-    import shutil
-    conda_lib = os.path.join(
-        os.path.dirname(os.path.dirname(shutil.which("python") or "")), "lib"
-    )
-    if os.path.isdir(conda_lib):
-        existing_ld = os.environ.get("LD_LIBRARY_PATH", "")
-        if conda_lib not in existing_ld:
-            os.environ["LD_LIBRARY_PATH"] = f"{conda_lib}:{existing_ld}"
-
-    # Dynamic Chrome path discovery (no hardcoded version)
-    chrome_path = ""
-    playwright_cache = os.path.expanduser("~/.cache/ms-playwright")
-    if os.path.isdir(playwright_cache):
-        for entry in os.listdir(playwright_cache):
-            if entry.startswith("chromium"):
-                full_path = os.path.join(playwright_cache, entry)
-                # Check for chrome-linux64 or chrome-linux naming
-                for subdir in ["chrome-linux64", "chrome-linux"]:
-                    candidate = os.path.join(full_path, subdir, "chrome")
-                    if os.path.isfile(candidate):
-                        chrome_path = candidate
-                        break
-                if chrome_path:
-                    break
-    if not chrome_path:
-        for cmd in ["google-chrome", "chrome", "chromium", "chromium-browser"]:
-            found = shutil.which(cmd)
-            if found:
-                chrome_path = found
-                break
+    chrome_path = find_chrome_path()
     if chrome_path:
         os.environ["PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"] = chrome_path
         os.environ["CHROME_PATH"] = chrome_path
@@ -323,23 +436,29 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
 
                             elif resolution.method in ("css_selector", "html_rule"):
                                 # CSS/HTML规则 → 通过 JS 执行点击/操作
+                                # Use json.dumps for safe JS string escaping in text values
                                 if tool_name == "browser_click":
                                     tool_name = "browser_evaluate"
-                                    args = {"script": f"document.querySelector('{resolution.value}').click()"}
+                                    selector_json = json.dumps(resolution.value)
+                                    args = {"script": f"document.querySelector(JSON.parse({selector_json})).click()"}
                                     step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
                                 elif tool_name == "browser_type":
                                     text = args.get("text", "")
+                                    text_json = json.dumps(text)
+                                    selector_json = json.dumps(resolution.value)
                                     tool_name = "browser_evaluate"
-                                    args = {"script": f"const el = document.querySelector('{resolution.value}'); el.focus(); el.value = '{text}';"}
+                                    args = {"script": f"const el = document.querySelector(JSON.parse({selector_json})); el.focus(); el.value = JSON.parse({text_json});"}
                                     step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
                                 else:
                                     # 其他交互工具用 JS 模拟
                                     tool_name = "browser_evaluate"
-                                    args = {"script": f"document.querySelector('{resolution.value}').click()"}
+                                    selector_json = json.dumps(resolution.value)
+                                    args = {"script": f"document.querySelector(JSON.parse({selector_json})).click()"}
                                     step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
 
                             elif resolution.method == "vlm_coordinate":
                                 # VLM坐标 → JS elementFromPoint + click
+                                # Use json.dumps for safe JS string escaping in text values
                                 coords = json.loads(resolution.value)
                                 if tool_name == "browser_click":
                                     tool_name = "browser_evaluate"
@@ -347,8 +466,9 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
                                     step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
                                 elif tool_name == "browser_type":
                                     text = args.get("text", "")
+                                    text_json = json.dumps(text)
                                     tool_name = "browser_evaluate"
-                                    args = {"script": f"const el = document.elementFromPoint({coords['x']}, {coords['y']}); if(el) {{ el.focus(); el.value = '{text}'; }}"}
+                                    args = {"script": f"const el = document.elementFromPoint({coords['x']}, {coords['y']}); if(el) {{ el.focus(); el.value = JSON.parse({text_json}); }}"}
                                     step_result["action"] = {"tool": tool_name, "args": dict(args), "description": description}
 
                             elif resolution.method == "keyboard":
@@ -372,6 +492,7 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
                             step_result["success"] = False
                             step_result["error"] = f"无法解析目标元素 (所有回退方法均失败): '{target_value or description}'"
                             step_result["resolution_method"] = "failed"
+                            step_result["error_category"] = _classify_error(step_result["error"])
                             executed_steps.append(step_result)
                             continue
                     except asyncio.TimeoutError:
@@ -392,7 +513,11 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
                         if isinstance(block, mcp_types.TextContent):
                             result_text += block.text
                         elif isinstance(block, mcp_types.ImageContent):
-                            screenshots.append(block.data)
+                            # 保存截图为 PNG 文件而非存储 base64（减少 JSON 大小）
+                            img_filename = _save_screenshot_to_file(block.data, idx)
+                            if img_filename:
+                                screenshots.append(img_filename)
+                                step_result["screenshot"] = img_filename
                     child_logger.info("Tool %s returned %d blocks, %d chars text", tool_name, len(content_blocks), len(result_text))
                 else:
                     result_text = await mcp_client.call_tool_text(
@@ -405,7 +530,7 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
                 # Capture page state after interactive actions
                 if tool_name in ("browser_click", "browser_type", "browser_navigate",
                                  "browser_select", "browser_hover", "browser_press"):
-                    page_state = await _capture_page_state(mcp_client, screenshots)
+                    page_state = await _capture_page_state(mcp_client, screenshots, idx)
                     # 如果交互后快照为空，等待2秒后重新获取
                     snap_content = page_state.get("snapshot", "")
                     if snap_content and '```yaml\n\n```' in snap_content:
@@ -440,6 +565,7 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
 
             except Exception as exc:
                 step_result["error"] = str(exc)
+                step_result["error_category"] = _classify_error(str(exc))
                 logger.error("Action %d failed: %s: %s", idx, tool_name, exc)
 
                 # ── 操作级别重试：尝试替代执行方式 ──
@@ -467,22 +593,50 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
 
                         # Capture page state after fallback action
                         if retry_tool in ("browser_evaluate", "browser_press_key"):
-                            page_state = await _capture_page_state(mcp_client, screenshots)
+                            page_state = await _capture_page_state(mcp_client, screenshots, idx)
                             step_result["page_state"] = page_state
                             current_page_state.update(page_state)
                     except Exception as retry_exc:
                         child_logger.warning("替代方式也失败: %s: %s", retry_tool, retry_exc)
                         # 替代方式也失败，保留原始错误
                         step_result["error"] = f"{str(exc)} (fallback also failed: {str(retry_exc)})"
+                        step_result["error_category"] = _classify_error(step_result["error"])
 
                 try:
-                    page_state = await _capture_page_state(mcp_client, screenshots)
+                    page_state = await _capture_page_state(mcp_client, screenshots, idx)
                     step_result["page_state"] = page_state
                     current_page_state.update(page_state)
                 except Exception:
                     pass
 
             executed_steps.append(step_result)
+
+            # ── Incrementally write results to temp file after each step ──
+            # This ensures partial results are available even if the child
+            # process crashes midway (e.g. base64 decode error, MCP disconnect)
+            try:
+                _write_result(output_file, {
+                    "executed_steps": executed_steps,
+                    "screenshots": screenshots,
+                    "current_page_state": current_page_state,
+                    "memory_context": {},
+                })
+            except Exception as write_exc:
+                child_logger.warning("Incremental result write failed at step %d: %s", idx + 1, write_exc)
+
+            # ── Send per-step progress signal via Pipe for real-time WebSocket updates ──
+            try:
+                conn.send({
+                    "type": "step_progress",
+                    "step_number": idx + 1,
+                    "total_steps": len(plan),
+                    "action_tool": step_result["action"]["tool"],
+                    "action_desc": step_result["action"]["description"],
+                    "success": step_result.get("success", False),
+                    "resolution_method": step_result.get("resolution_method"),
+                })
+            except Exception:
+                pass  # Pipe communication failure shouldn't break execution
 
         # Store execution context in Memory MCP for subsequent nodes
         try:
@@ -547,14 +701,21 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
             _write_result(output_file, {"error": f"子进程执行失败: {exc}"})
         except Exception:
             pass
+        # Force exit to prevent hanging on anyio cleanup
+        os._exit(1)
 
 
-async def _capture_page_state(mcp_client, screenshots: list[str]) -> dict[str, Any]:
+async def _capture_page_state(mcp_client, screenshots: list[str], step_idx: int = 0) -> dict[str, Any]:
     """Capture current page state: screenshot and accessibility snapshot.
 
     Only uses tools that exist in Playwright MCP:
     - browser_take_screenshot for visual capture (not browser_screenshot)
     - browser_snapshot for accessibility snapshot (includes URL, title)
+
+    Screenshots are saved as PNG files on disk, and the file path is
+    stored in the screenshots list instead of raw base64 data.
+    This significantly reduces JSON transfer size (file path ~50 chars
+    vs base64 ~50-200KB).
 
     Each call has a 10s timeout to prevent hanging.
     """
@@ -567,12 +728,19 @@ async def _capture_page_state(mcp_client, screenshots: list[str]) -> dict[str, A
         )
         for block in screenshot_result:
             if hasattr(block, "data") and block.type == "image":
-                screenshots.append(block.data)
+                # 保存截图为 PNG 文件而非存储 base64（减少 JSON 大小）
+                img_filename = _save_screenshot_to_file(block.data, step_idx)
+                if img_filename:
+                    screenshots.append(img_filename)
+                    page_state["screenshot"] = img_filename
             elif hasattr(block, "text") and block.type == "text":
-                # Only append real base64 image data, skip error messages
+                # Only process real base64 image data, skip error messages
                 text = block.text
                 if text and not text.startswith("###") and len(text) > 100:
-                    screenshots.append(text)
+                    img_filename = _save_screenshot_to_file(text, step_idx)
+                    if img_filename:
+                        screenshots.append(img_filename)
+                        page_state["screenshot"] = img_filename
     except asyncio.TimeoutError:
         logger.warning("Screenshot capture timed out (10s)")
     except Exception as exc:
@@ -658,18 +826,91 @@ async def execute_node(state: AgentState) -> dict:
         args=(plan_json, scenario_json, result_path, child_conn),
     )
 
+    # ── Look up execution_id for WebSocket step_progress broadcasts ──
+    # Same approach as _update_execution_status in graph.py: query the DB
+    # for the active execution record matching this scenario.
+    execution_id: str | None = None
+    try:
+        from app.db.database import SessionLocal
+        from app.db.models import ExecutionRecord
+        scenario_id = scenario.get("id", "")
+        db = SessionLocal()
+        record = db.query(ExecutionRecord).filter(
+            ExecutionRecord.scenario_id == scenario_id,
+            ExecutionRecord.status.in_(["planning", "executing", "verifying", "reflecting", "pending"]),
+        ).order_by(ExecutionRecord.started_at.desc()).first()
+        if record:
+            execution_id = record.id
+            logger.info("Found execution_id '%s' for step_progress broadcasts", execution_id)
+        db.close()
+    except Exception as exc:
+        logger.warning("Failed to look up execution_id for step_progress: %s", exc)
+
     try:
         process.start()
 
-        # Wait for child process to complete (with timeout)
-        process.join(timeout=180)
+        # ── Wait for child process using asyncio-friendly polling ──
+        # IMPORTANT: We must NOT use synchronous blocking calls (process.is_alive(),
+        # parent_conn.poll(), process.join()) directly in this async function,
+        # because they block the entire asyncio event loop and prevent FastAPI
+        # from serving other requests. Instead, we use asyncio.sleep() between
+        # non-blocking checks and run blocking ops in a thread executor.
+        start_time = time.time()
+        timeout = 180
+        step_progress_events: list[dict] = []
+        loop = asyncio.get_event_loop()
 
+        while True:
+            # Check elapsed time first
+            elapsed = time.time() - start_time
+            if elapsed >= timeout:
+                logger.warning("MCP child process timed out (180s) — terminating")
+                process.terminate()
+                await loop.run_in_executor(None, lambda: process.join(5))
+                if process.is_alive():
+                    process.kill()
+                break
+
+            # Non-blocking check if child process is still alive
+            if not process.is_alive():
+                # Child has exited — break out to read results
+                break
+
+            # Non-blocking poll for pipe signals (0 = no wait)
+            if parent_conn.poll(0):
+                try:
+                    signal = parent_conn.recv()
+                    if isinstance(signal, dict) and signal.get("type") == "step_progress":
+                        # Publish WebSocket event for real-time frontend update
+                        step_progress_events.append(signal)
+                        if execution_id:
+                            broadcaster.publish({
+                                "type": "step_progress",
+                                "execution_id": execution_id,
+                                "step_number": signal["step_number"],
+                                "total_steps": signal["total_steps"],
+                                "action_tool": signal["action_tool"],
+                                "success": signal["success"],
+                            })
+                        logger.info(
+                            "Step progress: %d/%d — %s (success=%s)",
+                            signal["step_number"], signal["total_steps"],
+                            signal["action_tool"], signal["success"],
+                        )
+                    elif signal == "done" or signal == "error":
+                        # Child process sent final signal — wait briefly for it to finish writing
+                        await asyncio.sleep(0.2)
+                        break
+                except EOFError:
+                    break
+
+            # Yield control to the event loop — this is critical!
+            # Without this sleep, we'd block other async tasks (FastAPI handlers).
+            await asyncio.sleep(0.1)
+
+        # ── Handle timeout case ──
         if process.is_alive():
-            logger.warning("MCP child process timed out (180s) — terminating")
-            process.terminate()
-            process.join(timeout=5)
-            if process.is_alive():
-                process.kill()
+            # Already terminated/killed above due to timeout
             # Try to read partial results from file even after timeout
             partial = _read_result(result_path)
             try:
@@ -690,8 +931,15 @@ async def execute_node(state: AgentState) -> dict:
             )
 
         # Read results from temp file instead of pipe (avoids deadlock)
+        # Retry a few times in case the file is still being written
         logger.info("Reading results from temp file: %s", result_path)
         result = _read_result(result_path)
+        if result is None:
+            # Child process may have exited while file was still being written
+            # Wait briefly and retry
+            logger.info("Result file empty on first read, waiting 1s and retrying...")
+            await asyncio.sleep(1.0)
+            result = _read_result(result_path)
         logger.info("Read result from file: keys=%s, steps=%d, screenshots=%d",
                     list(result.keys()) if result else None,
                     len(result.get("executed_steps", [])) if result else 0,
@@ -754,6 +1002,7 @@ def _build_degraded_result(
             },
             "success": False,
             "error": reason,
+            "error_category": _classify_error(reason),
         }
         for i, action in enumerate(plan)
     ]

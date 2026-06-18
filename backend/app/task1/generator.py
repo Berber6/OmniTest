@@ -9,6 +9,8 @@ from typing import Any, Optional
 from .models import DocumentChunk, Feature, Step, Expectation, TestScenario
 from .vector_store import VectorStore
 from .image_store import ImageStore
+from .ui_registry import UIElementRegistry
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,34 @@ from ..llm.prompts.generate_scenarios import GENERATE_SCENARIOS_PROMPT
 
 # Maximum concurrent LLM calls for scenario generation
 _MAX_CONCURRENT_LLM = 20
+
+# Lazily-loaded UI registry flag (load once per process).
+_ui_registry_loaded = False
+
+
+def _ensure_ui_registry_loaded() -> None:
+    """Load the UI element registry from disk once per process."""
+    global _ui_registry_loaded
+    if _ui_registry_loaded:
+        return
+    registry_path = settings.data_dir / "crawled_docs" / "ui_registry.json"
+    if registry_path.exists():
+        UIElementRegistry.load(str(registry_path))
+    else:
+        logger.warning(f"UI registry not found at {registry_path}; scenarios will be generated without UI constraints")
+    _ui_registry_loaded = True
+
+
+def _ui_elements_for_chunks(context_chunks: list[DocumentChunk]) -> str:
+    """Collect known UI elements for the source URLs of the given chunks."""
+    _ensure_ui_registry_loaded()
+    seen_urls = {c.source_url for c in context_chunks if c.source_url}
+    elements = []
+    for url in seen_urls:
+        elements.extend(UIElementRegistry.get_elements_for_url(url))
+    if not elements:
+        return "无可用的已知 UI 元素信息。"
+    return UIElementRegistry.format_for_prompt(elements)
 
 
 async def _generate_for_feature(
@@ -50,7 +80,7 @@ async def _generate_for_feature(
         )
         context_chunks = await asyncio.to_thread(
             vector_store.retrieve_with_url_expand,
-            query=f"how to {feature.name}",
+            query=feature.name,
             n_results=5,
         )
 
@@ -89,12 +119,15 @@ async def _generate_for_feature(
 
     images_text = ImageStore.format_for_prompt(image_refs) if image_refs else "暂无参考截图可用。"
 
+    ui_elements_text = _ui_elements_for_chunks(context_chunks)
+
     prompt = GENERATE_SCENARIOS_PROMPT.format(
         feature_id=feature.id,
         feature_name=feature.name,
         feature_description=feature.description,
         chunks=chunks_text,
         images=images_text,
+        ui_elements=ui_elements_text,
     )
 
     async with sem:

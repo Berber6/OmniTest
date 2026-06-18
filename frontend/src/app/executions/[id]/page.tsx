@@ -101,13 +101,21 @@ function statusBadge(status: AgentStatus, t: (key: string) => string) {
 export default function ExecutionDetailPage() {
   const params = useParams();
   const id = params.id as string;
-  const { cancelExecution } = useAppStore();
+  const { cancelExecution, stepProgress, initWebSocket, wsConnected } = useAppStore();
   const { t } = useI18n();
 
   const [execution, setExecution] = useState<ExecutionRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 初始化 WebSocket
+  useEffect(() => {
+    if (!wsConnected) {
+      initWebSocket();
+    }
+  }, [wsConnected, initWebSocket]);
+
+  // 加载执行记录
   useEffect(() => {
     async function load() {
       try {
@@ -122,6 +130,26 @@ export default function ExecutionDetailPage() {
     }
     load();
   }, [id]);
+
+  // 实时更新：监听 stepProgress，如果是当前执行，刷新数据
+  useEffect(() => {
+    if (stepProgress && stepProgress.execution_id === id) {
+      // 收到当前执行的进度更新，刷新执行记录
+      getExecutionById(id).then(setExecution).catch(console.error);
+    }
+  }, [stepProgress, id]);
+
+  // 轮询：执行中状态每 3 秒刷新一次
+  useEffect(() => {
+    if (!execution) return;
+    const isRunning = ![AgentStatus.COMPLETED, AgentStatus.FAILED].includes(execution.status);
+    if (!isRunning) return;
+
+    const interval = setInterval(() => {
+      getExecutionById(id).then(setExecution).catch(console.error);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [execution, id]);
 
   if (loading) {
     return (
@@ -258,6 +286,46 @@ export default function ExecutionDetailPage() {
 
       <Separator />
 
+      {/* Live Browser View (实时浏览器视图) */}
+      {stepProgress && stepProgress.execution_id === id && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PlayCircle className="h-5 w-5 text-blue-500" />
+              {t("executions.detail.liveBrowserView")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {t("executions.detail.currentStep")}: {stepProgress.step_number} / {stepProgress.total_steps}
+                </span>
+                <Badge variant={stepProgress.success ? "default" : "destructive"}>
+                  {stepProgress.action_tool}
+                </Badge>
+              </div>
+              {stepProgress.reasoning && (
+                <div className="p-3 bg-muted rounded-md text-sm">
+                  <span className="font-medium">{t("executions.detail.reasoning")}:</span> {stepProgress.reasoning}
+                </div>
+              )}
+              {stepProgress.screenshot && (
+                <div className="border rounded-md overflow-hidden">
+                  <img
+                    src={`/api/screenshots/${stepProgress.screenshot}`}
+                    alt={`Step ${stepProgress.step_number}`}
+                    className="w-full h-auto"
+                  />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Separator />
+
       {/* Execution Timeline */}
       <div>
         <h3 className="text-lg font-semibold mb-4">
@@ -274,7 +342,9 @@ export default function ExecutionDetailPage() {
           {t("executions.detail.screenshots")}
         </h3>
         <ScreenshotCompare
-          expectedScreenshotPath={planScreenshot}
+          expectedScreenshotPath={
+            execution.expectations?.find(e => e.type === "visual_match")?.reference_image || planScreenshot
+          }
           actualScreenshotPath={lastStepScreenshot}
           passed={execution.verification_result?.passed ?? execution.final_result === "pass"}
           diffDescription={execution.verification_result?.reason}

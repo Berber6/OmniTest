@@ -98,11 +98,11 @@ export default function ScenariosPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="gap-1" onClick={() => setExportOpen(true)}>
-            <Download className="h-3 w-3" />
+            <Upload className="h-3 w-3" />
             {t("io.export")}
           </Button>
           <Button size="sm" variant="outline" className="gap-1" onClick={() => setImportOpen(true)}>
-            <Upload className="h-3 w-3" />
+            <Download className="h-3 w-3" />
             {t("io.import")}
           </Button>
         </div>

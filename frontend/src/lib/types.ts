@@ -81,6 +81,7 @@ export interface ExecutionRecord {
   started_at: string;
   completed_at?: string;
   duration_seconds?: number;
+  expectations?: Expectation[];
 }
 
 export enum AgentStatus {
@@ -209,11 +210,24 @@ export interface SystemStatus {
 
 export type WebSocketEvent =
   | { type: "execution_started"; execution_id: string; scenario_id: string }
+  | { type: "step_progress"; execution_id: string; step_number: number; total_steps: number; action_tool: string; success: boolean; reasoning?: string; screenshot?: string }
   | { type: "step_completed"; execution_id: string; step_result: StepResult }
   | { type: "verification_completed"; execution_id: string; verify_result: VerifyResult }
   | { type: "reflection_started"; execution_id: string; retry_count: number }
   | { type: "execution_completed"; execution_id: string; final_result: "pass" | "fail"; failure_reason?: string }
   | { type: "mutation_completed"; mutation_id: string; mutation_result: MutationResult };
+
+// ── Step Progress (real-time per-step updates from WebSocket) ──
+
+export interface StepProgress {
+  execution_id: string;
+  step_number: number;
+  total_steps: number;
+  action_tool: string;
+  success: boolean;
+  reasoning?: string;
+  screenshot?: string;
+}
 
 // ── Crawl & Generation Status ──
 
