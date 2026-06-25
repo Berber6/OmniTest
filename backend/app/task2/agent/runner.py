@@ -242,8 +242,9 @@ async def _ensure_logged_in(
 
     async def _nav(url: str) -> tuple[str, bool]:
         # 导航偶发 60s 超时（demo SPA 加载慢 + Playwright domcontentloaded 等待）。
-        # 失败时重试一次，避免单次网络抖动直接判登录失败、浪费整个场景。
-        last_err = ""
+        # 策略：先尝试导航；超时后不直接判失败——很多情况 goto 的 domcontentloaded
+        # 等待超时但页面其实已渲染（SPA 重定向后 DOM 已稳定）。这时 snapshot 能拿到
+        # 内容就视为导航成功。仍失败才重试一次再判错。
         for attempt in range(2):
             try:
                 return await asyncio.wait_for(
@@ -251,11 +252,15 @@ async def _ensure_logged_in(
                     timeout=MCP_TOOL_CALL_TIMEOUT,
                 )
             except asyncio.TimeoutError:
-                last_err = f"导航超时（{MCP_TOOL_CALL_TIMEOUT}s）: {url}"
                 logger.warning("导航超时 attempt=%d url=%s", attempt + 1, url)
+                # 超时后试探 snapshot：页面可能已加载，只是 goto 等待未满足
+                snap_txt, snap_err = await _snap()
+                if not snap_err and snap_txt and "Page URL:" in snap_txt:
+                    logger.info("导航超时但 snapshot 成功，页面已加载，继续")
+                    return snap_txt, False
                 if attempt == 0:
                     await asyncio.sleep(3)
-        return last_err, True
+        return f"导航超时（{MCP_TOOL_CALL_TIMEOUT}s）且 snapshot 也失败: {url}", True
 
     async def _snap() -> tuple[str, bool]:
         try:
