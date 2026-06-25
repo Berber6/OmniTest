@@ -241,13 +241,21 @@ async def _ensure_logged_in(
     _send_event(pipe_send, {"type": "phase", "phase": "login"})
 
     async def _nav(url: str) -> tuple[str, bool]:
-        try:
-            return await asyncio.wait_for(
-                mcp.call_tool_checked("playwright", "browser_navigate", {"url": url}),
-                timeout=MCP_TOOL_CALL_TIMEOUT,
-            )
-        except asyncio.TimeoutError:
-            return f"导航超时（{MCP_TOOL_CALL_TIMEOUT}s）: {url}", True
+        # 导航偶发 60s 超时（demo SPA 加载慢 + Playwright domcontentloaded 等待）。
+        # 失败时重试一次，避免单次网络抖动直接判登录失败、浪费整个场景。
+        last_err = ""
+        for attempt in range(2):
+            try:
+                return await asyncio.wait_for(
+                    mcp.call_tool_checked("playwright", "browser_navigate", {"url": url}),
+                    timeout=MCP_TOOL_CALL_TIMEOUT,
+                )
+            except asyncio.TimeoutError:
+                last_err = f"导航超时（{MCP_TOOL_CALL_TIMEOUT}s）: {url}"
+                logger.warning("导航超时 attempt=%d url=%s", attempt + 1, url)
+                if attempt == 0:
+                    await asyncio.sleep(3)
+        return last_err, True
 
     async def _snap() -> tuple[str, bool]:
         try:
@@ -659,18 +667,39 @@ async def _verify(
     text_expectations = [e for e in expectations if e.get("type") in {"page_content", "url_change", "element_state"}]
     if text_expectations:
         exp_text = "\n".join([f"- {e.get('description', '')}" for e in text_expectations])
+        # 用 trim_snapshot 而非 final_snap[:4000]：后者硬截断前 4000 字符，
+        # Board 页面侧边栏很长，主体列表会被截掉，导致验证 LLM 看不到关键证据、
+        # 把成功的执行误判为失败。trim_snapshot 优先保留可操作元素 + 提高上限。
+        from app.task2.agent.agent_loop import trim_snapshot
+        verify_snap = trim_snapshot(final_snap) if final_snap else "（无快照）"
+        # 场景步骤目标：让验证 LLM 综合判断"预期是否与场景目标一致"，
+        # 而非机械比对某个中间态预期。某些场景的 visual_match 预期描述的是中间态
+        # （如"导出前的菜单状态"），但 agent 按步骤完整执行后状态已推进到终态——
+        # 此时若只看预期会误判失败。给出步骤目标让 LLM 识别这种矛盾。
+        steps_text = "\n".join(
+            f"{i+1}. {s.get('action','')}" for i, s in enumerate(scenario.get("steps", []))
+        )
         verify_prompt = f"""你是验证专家。场景执行完毕，检查最终页面是否符合预期。
+
+## 场景目标（步骤）
+{steps_text}
 
 ## 预期结果
 {exp_text}
 
 ## 最终页面快照
-{final_snap[:4000]}
+{verify_snap}
 
 ## 执行的动作（最后5步）
 {json.dumps(executed_steps[-5:], ensure_ascii=False, indent=2)}
 
-根据快照判断：预期是否达成？只返回 JSON：{{"passed": true/false, "reason": "原因（中文）", "confidence": 0-1}}
+判断要点：
+1. 主要看场景目标是否达成（步骤是否完成、终态是否合理）。
+2. 预期结果描述的是"中间态"时（如"操作前的菜单状态"），若 agent 已正确完成
+   全部步骤并推进到合理终态，应判 passed=true（预期描述与场景目标矛盾时以目标为准）。
+3. 只有当终态明确缺少场景目标所需的结果（如该创建的没创建、该删除的还在）才判 false。
+
+只返回 JSON：{{"passed": true/false, "reason": "原因（中文）", "confidence": 0-1}}
 """
         try:
             resp = await asyncio.wait_for(
@@ -705,11 +734,25 @@ async def _verify(
                 with open(last_screenshot, "rb") as f:
                     img_b64 = base64.b64encode(f.read()).decode()
                 exp_desc = visual_exp[0].get("description", "页面应与参考截图视觉一致")
+                steps_text = "\n".join(
+                    f"{i+1}. {s.get('action','')}" for i, s in enumerate(scenario.get("steps", []))
+                )
                 visual_prompt = f"""你是视觉验证专家。场景执行完毕，判断最终截图是否符合预期。
 
-预期: {exp_desc}
+## 场景目标（需要完成的步骤）
+{steps_text}
 
-执行的动作: {json.dumps(executed_steps[-3:], ensure_ascii=False)}
+## 预期结果描述
+{exp_desc}
+
+## 执行的动作（最后3步）
+{json.dumps(executed_steps[-3:], ensure_ascii=False)}
+
+判断要点：
+1. 主要看截图是否反映了场景目标达成后的合理终态。
+2. 预期描述的是"操作前的中间态"时（如"导出前的菜单状态"），若 agent 已正确完成
+   全部步骤并推进到合理终态，应判 passed=true（预期描述与场景目标矛盾时以目标为准）。
+3. 只有当截图明显缺少场景目标所需的结果（如该出现的元素没出现、页面错误）才判 false。
 
 只返回 JSON：{{"passed": true/false, "reason": "原因（中文）", "confidence": 0-1}}
 """
@@ -773,10 +816,13 @@ async def _reflect(
     from app.llm.router import call_llm
 
     last_5 = executed_steps[-5:] if len(executed_steps) > 5 else executed_steps
+    steps_text = "\n".join(
+        f"{i+1}. {s.get('action','')}" for i, s in enumerate(scenario.get("steps", []))
+    )
     reflect_prompt = f"""你是测试反思专家。场景执行验证失败，分析原因并给出下次执行建议。
 
-## 场景目标
-{scenario.get("name", "")}
+## 场景目标（需要完成的步骤）
+{steps_text}
 
 ## 执行的动作（最后5步）
 {json.dumps(last_5, ensure_ascii=False, indent=2)}
@@ -788,7 +834,10 @@ async def _reflect(
 {loop_reason}
 
 根据以上信息，简要分析（中文，1-2 句话）：
-1. 失败的根本原因是什么（是元素定位错了、步骤遗漏了、还是预期不对）？
+1. 失败的根本原因是什么？请区分三类：
+   - (a) 预期描述与场景目标矛盾（如预期要求"操作前的中间态"但步骤要求完成到终态）→ 这是预期问题，agent 执行是对的，下次应继续完成全部步骤，不要因预期描述而中途停止。
+   - (b) agent 元素定位错了 / 步骤遗漏了 → 指出具体哪步、该怎么改。
+   - (c) 其他（页面没加载好、控件不可用等）。
 2. 下次重试应该怎么调整策略？
 
 只返回反思文本，不要返回 JSON。
