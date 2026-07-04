@@ -49,12 +49,19 @@ export interface PageState {
 
 export interface StepResult {
   step_number: number;
-  action: Action;
-  page_state: PageState;
-  screenshot_path?: string;
+  tool: string;                // 动作工具名，如 "browser_click"
+  args?: Record<string, unknown>;  // 工具参数
+  reasoning?: string;          // LLM 决策理由
   success: boolean;
   error?: string;
-  resolution_method?: "en_ref" | "css_selector" | "html_rule" | "vlm_coordinate" | "keyboard" | "action_fallback" | "failed";
+  result?: string;
+  screenshot?: string;         // 截图文件名（由 runner 写入）
+  screenshot_path?: string;    // 截图可访问路径（由后端 _execution_record_to_dict 转换）
+  done?: boolean;
+  // 兼容旧格式（LangGraph 架构遗留，新架构不产出）
+  action?: Action;
+  page_state?: PageState;
+  resolution_method?: string;
 }
 
 export interface VerifyResult {

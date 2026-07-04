@@ -438,7 +438,12 @@ async def _ensure_logged_in(
         await asyncio.sleep(LOGIN_WAIT_SECONDS)
 
         # 检查是否登录成功（URL 不再是 /login）
-        snap, _ = await _snap()
+        # 注意：必须检查 snap_err —— 若 snapshot 超时/失败，snap 是错误文本，
+        # "/login" not in 错误文本 会误判为登录成功，让 agent 进入循环却在登录页。
+        snap, snap_err = await _snap()
+        if snap_err:
+            # snapshot 失败：无法确认登录状态，保守判失败，避免误进循环
+            return False, f"登录后快照获取失败，无法确认登录状态: {snap[:120]}"
         if "/login" in snap[:300]:
             # 可能有错误提示
             if "Invalid" in snap or "invalid" in snap:
@@ -559,6 +564,7 @@ async def _agent_loop(
                 "reasoning": reasoning,
                 "success": True,
                 "done": True,
+                "screenshot": screenshot_name,
             })
             _send_event(pipe_send, {
                 "type": "step_progress",
@@ -594,6 +600,7 @@ async def _agent_loop(
             "success": success,
             "error": result_txt[:300] if is_error else "",
             "result": result_txt[:300] if not is_error else "",
+            "screenshot": screenshot_name,
         })
 
         _send_event(pipe_send, {
@@ -841,9 +848,15 @@ async def _reflect(
 根据以上信息，简要分析（中文，1-2 句话）：
 1. 失败的根本原因是什么？请区分三类：
    - (a) 预期描述与场景目标矛盾（如预期要求"操作前的中间态"但步骤要求完成到终态）→ 这是预期问题，agent 执行是对的，下次应继续完成全部步骤，不要因预期描述而中途停止。
-   - (b) agent 元素定位错了 / 步骤遗漏了 → 指出具体哪步、该怎么改。
+   - (b) agent 元素定位错了 / 步骤遗漏了 / 导航错了页面 → 指出具体哪步、该怎么改。
    - (c) 其他（页面没加载好、控件不可用等）。
 2. 下次重试应该怎么调整策略？
+
+## 重要约束
+- **登录由系统在循环外自动完成，不需要 agent 主动登录**。即使执行记录显示停留在登录页，
+  也**不要**建议 agent 主动输入凭据登录——这会让 agent 盲猜密码浪费步数。若失败与登录有关，
+  归因为 (c) 环境问题，建议"等待重试系统会重新登录"，而非让 agent 自己登录。
+- 建议必须具体可执行（如"步骤3应点击 eXX 而非 eYY"），不要空泛说"需要改进"。
 
 只返回反思文本，不要返回 JSON。
 """

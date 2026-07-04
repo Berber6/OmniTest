@@ -13,19 +13,19 @@
 两个独立子系统通过标准化 JSON 测试场景格式连接：
 
 ```
-Subsystem 1 (RAG Pipeline)              Subsystem 2 (Agent Execution)
-┌──────────────────────┐                ┌──────────────────────┐
-│ crawl4ai → 爬取文档  │                │ LangGraph 状态图     │
-│ parse → 分块         │                │   plan → execute     │
-│ ChromaDB → 向量索引  │                │   → verify → reflect │
-│ LLM → 提取功能特征   │                │                      │
-│ LLM → 生成测试场景   │────JSON───────▶│ MCP Client           │
-│                      │                │   Playwright MCP     │
-│ ChromaDB + SQLite    │                │   Memory MCP         │
-└──────────────────────┘                │   Verify MCP         │
-                                        │                      │
-                                        │ LiteLLM Router       │
-                                        └──────────────────────┘
+Subsystem 1 (RAG Pipeline)                Subsystem 2 (Agent Execution)
+
+ crawl4ai → 爬取文档                         LangGraph 状态图     
+ parse → 分块                               plan → execute → verify → reflect    
+ ChromaDB → 向量索引                         MCP Client
+ LLM → 提取功能特征                           Playwright MCP                    
+ LLM → 生成测试场景        ────JSON────▶      Memory MCP             
+                                            Verify MCP     
+
+ ChromaDB + SQLite                          LiteLLM Router        
+                                                  
+                                                            
+                                                
 
         Next.js 16 前端 (共享可视化)
         React Flow + Timeline + Screenshot Compare

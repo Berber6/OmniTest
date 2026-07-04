@@ -126,13 +126,25 @@ export function ExecutionTimeline({ execution }: ExecutionTimelineProps) {
                 <div className="space-y-2">
                   <div className="text-sm">
                     <span className="font-medium">{t("timeline.action")}:</span>{" "}
-                    {stepResult.action.description} ({stepResult.action.tool})
-                    {stepResult.resolution_method && stepResult.resolution_method !== "en_ref" && (
-                      <span className="text-xs text-muted-foreground ml-1">
-                        [{t("timeline.resolution." + stepResult.resolution_method)}]
-                      </span>
+                    {stepResult.done ? (
+                      <span className="text-muted-foreground italic">done</span>
+                    ) : (
+                      <>
+                        <span className="font-mono">{stepResult.tool || "-"}</span>
+                        {stepResult.args && Object.keys(stepResult.args).length > 0 && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            ({JSON.stringify(stepResult.args)})
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
+
+                  {stepResult.reasoning && (
+                    <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
+                      {stepResult.reasoning}
+                    </div>
+                  )}
 
                   {stepResult.error && (
                     <div className="text-sm text-destructive">
@@ -140,7 +152,7 @@ export function ExecutionTimeline({ execution }: ExecutionTimelineProps) {
                     </div>
                   )}
 
-                  {/* Page state */}
+                  {/* Page state（旧格式兼容，新架构不产出） */}
                   {stepResult.page_state && (
                     <div className="text-xs text-muted-foreground space-y-1">
                       {stepResult.page_state.url && (

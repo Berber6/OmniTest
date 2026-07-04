@@ -126,7 +126,6 @@ async def _generate_for_feature(
         feature_name=feature.name,
         feature_description=feature.description,
         chunks=chunks_text,
-        images=images_text,
         ui_elements=ui_elements_text,
     )
 

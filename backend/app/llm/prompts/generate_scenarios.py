@@ -29,24 +29,20 @@ GENERATE_SCENARIOS_PROMPT = """\
   - `target`: 对被操作UI元素的中文描述（例如"右上角的'新建Board'按钮"）
 
 - **预期结果（expectation）**：完成步骤后应达到的状态。每个预期结果包含：
-  - `type`: 取值为以下之一："page_content"、"url_change"、"element_exists"、"element_visible"、"toast_message"、"visual_match"
-  - `description`: 对应观察内容的中文描述
+  - `type`: 取值为以下之一："page_content"、"url_change"、"element_exists"、"element_visible"、"toast_message"
+  - `description`: 用**纯文字**描述页面应呈现的状态、可见的元素或 URL 变化
+    （例如"页面应显示新创建的Board名称'测试Board'，且侧边栏出现对应链接"）
+  - `source_chunk_id`: 该预期结果依据的 chunk ID
   - 预期结果是可选的，但强烈建议提供以进行验证。
 
-## visual_match 预期结果（必须包含）
+## 预期结果描述要求（重要）
 
-**重要**：只要下方"参考截图"列表中有与当前功能相关的截图，每个场景必须至少包含一个 `visual_match` 类型的预期结果。
-
-- `type`: `"visual_match"`
-- `description`: 对页面应呈现的视觉状态的中文描述（例如"创建Board后的页面应与参考截图视觉一致"）
-- `reference_image`: 参考截图的 **完整路径**（从下方"参考截图"列表中选择，必须填写，如 `"images/003_assets_images_boardcreate_en-dec32a5ab0362b083076298ee8be6f5_9fa8ce.png"`）
-- `source_chunk_id`: 该截图来源的 chunk ID
-
-**规则**：
-1. `reference_image` 必须是下方参考截图列表中实际存在的路径，不能为空或 null
-2. 选择与场景最匹配的截图作为 reference_image（例如创建Board的场景应选择Board creation popup的截图）
-3. 如果参考截图列表中有多个相关截图，可以为不同场景选择不同的截图
-4. visual_match 预期结果用于验证执行后的页面截图与文档中的参考截图是否视觉一致
+- **只用文字描述可观察的页面状态**，不要使用 `visual_match` 类型，不要引用参考截图路径，
+  不要写"与参考截图视觉一致"之类的描述。预期结果应能通过页面快照的文字内容判断是否达成，
+  不依赖任何图像比对。
+- 描述要具体可验证：写清应该出现的文本、URL、元素数量、状态变化，
+  而不是空泛的"页面正常"。例如"卡片'测试卡片'从Todo列表消失，Todo列表显示0 cards"。
+- 每个场景至少包含 1 个文字预期结果。
 
 ## 文档来源追溯要求
 
@@ -76,14 +72,8 @@ GENERATE_SCENARIOS_PROMPT = """\
       "expectations": [
         {{
           "type": "page_content",
-          "description": "页面应显示新创建的Board",
+          "description": "页面应显示新创建的Board，侧边栏出现'测试Board'链接，URL 跳转到该 Board 的看板视图",
           "source_chunk_id": "chunk_id_2"
-        }},
-        {{
-          "type": "visual_match",
-          "description": "创建Board后的页面应与参考截图视觉一致",
-          "reference_image": "images/003_assets_images_boardcreate_en-dec32a5ab0362b083076298ee8be6f5_9fa8ce.png",
-          "source_chunk_id": "chunk_id_3"
         }}
       ]
     }}
@@ -102,10 +92,6 @@ GENERATE_SCENARIOS_PROMPT = """\
 ## 文档块
 
 {chunks}
-
-## 参考截图
-
-{images}
 
 ## 可用UI元素（从文档中提取的真实界面元素）
 
