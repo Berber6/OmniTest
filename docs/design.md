@@ -39,7 +39,7 @@ Subsystem 1 (RAG Pipeline)          Subsystem 2 (Agent Execution)
                                     │ LiteLLM Router      │
                                     └─────────────────────┘
 
-          Next.js 15 Frontend (shared visualization)
+          Next.js 16 Frontend (shared visualization)
           React Flow + Timeline + Screenshot Compare
 ```
 
@@ -95,7 +95,7 @@ omni_test/
 │   └── pyproject.toml
 ├── frontend/
 │   ├── src/
-│   │   ├── app/                     # Next.js 15 App Router
+│   │   ├── app/                     # Next.js 16 App Router
 │   │   │   ├── page.tsx             # Dashboard
 │   │   │   ├── features/            # Feature tree page
 │   │   │   ├── scenarios/           # Scenario pages
@@ -331,7 +331,7 @@ class AgentState(TypedDict):
 | Agent tools | MCP Protocol | Standardized tool calling protocol |
 | Browser automation | Playwright MCP Server | Browser operations |
 | Backend | FastAPI | Python API service |
-| Frontend | Next.js 15 + React 19 | UI visualization |
+| Frontend | Next.js 16 + React 19 | UI visualization |
 | UI components | shadcn/ui + TailwindCSS | Component library + styling |
 | Visualization | React Flow | Feature tree graph |
 | Data storage | SQLite + ChromaDB | Structured data + vector data |

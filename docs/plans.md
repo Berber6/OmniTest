@@ -27,7 +27,7 @@ Web Test Agent 是一个自动化 Web 测试工具，包含两个独立子系统
 | Agent 工具 | MCP Protocol | 标准化工具调用协议 |
 | 浏览器自动化 | Playwright MCP Server | 浏览器操作 |
 | 后端 | FastAPI | Python API 服务 |
-| 前端 | Next.js 15 + React 19 | UI 可视化 |
+| 前端 | Next.js 16 + React 19 | UI 可视化 |
 | UI 组件 | shadcn/ui + TailwindCSS | 组件库 + 样式 |
 | 可视化 | React Flow | Feature Tree 图形展示 |
 | 数据存储 | SQLite + ChromaDB | 结构化数据 + 向量数据 |
@@ -53,7 +53,7 @@ API Base URL: https://chatbox.isrc.ac.cn/api/v1（OpenAI-compatible）
 | 0.2 | 后端骨架搭建 | 创建 FastAPI 入口 `backend/app/main.py`，配置 CORS、路由挂载 | 可启动的空 FastAPI 服务 |
 | 0.3 | 配置模块 | 实现 `backend/app/config.py`，支持 LiteLLM 配置、MCP Server 配置、API Key 环境变量 | 配置加载模块 |
 | 0.4 | 数据库初始化 | 实现 `backend/app/db/database.py` + `models.py`，SQLite ORM 定义核心表（Feature, TestScenario, Step, ExecutionRecord 等） | SQLite 数据模型 |
-| 0.5 | 前端骨架搭建 | Next.js 15 + App Router 初始化，安装 shadcn/ui、React Flow、TailwindCSS | 可启动的空 Next.js 应用 |
+| 0.5 | 前端骨架搭建 | Next.js 16 + App Router 初始化，安装 shadcn/ui、React Flow、TailwindCSS | 可启动的空 Next.js 应用 |
 | 0.6 | Docker 配置 | 编写 `docker-compose.yml`，定义 backend、frontend、chromadb 服务 | 容器化配置 |
 | 0.7 | 依赖管理 | 编写 `backend/requirements.txt` / `pyproject.toml`，`frontend/package.json` | 依赖清单 |
 
@@ -228,7 +228,7 @@ mcp              # MCP Python SDK
 ### 前端核心依赖
 
 ```
-next@15
+next@16
 react@19
 react-dom@19
 reactflow
