@@ -339,7 +339,43 @@ docker-compose up --build
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/api/status` | 系统状态 (特征数、场景数、执行数、变异数) |
-| GET | `/api/export/results` | 导出全部结果 |
+| GET | `/api/dashboard/stats` | 仪表板统计数据 (成功率、变异检出率等) |
+| GET | `/api/screenshots/{path}` | 提供截图文件 |
+| GET | `/api/reference-images/{path}` | 提供参考截图 (已爬取文档图片) |
+| GET | `/api/export` | 导出全部结果 (特征、场景、执行、变异) |
+
+### Settings & Token Usage
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/api/settings/` | 获取所有配置 (含 LLM 模型、成本参数) |
+| PUT | `/api/settings/{key}` | 更新动态配置项 |
+| GET | `/api/settings/models` | 获取当前 LLM 模型分配和 fallback 链 |
+| GET | `/api/settings/token-usage/summary` | Token 用量汇总 (按模型、阶段分组) |
+| GET | `/api/settings/token-usage/detail` | Token 用量明细 (分页查询) |
+
+### Import / Export
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/api/io/export/features` | 导出所有特征 |
+| GET | `/api/io/export/scenarios` | 导出所有场景 |
+| GET | `/api/io/export/executions` | 导出所有执行记录 (可选含 base64 截图) |
+| GET | `/api/io/export/all` | 导出全部数据 (bundle) |
+| POST | `/api/io/import/features` | 导入特征 (替换全部) |
+| POST | `/api/io/import/scenarios` | 导入场景 (替换全部) |
+| POST | `/api/io/import/executions` | 导入执行记录 (合并，跳过重复) |
+| POST | `/api/io/import/bundle` | 导入全部数据 (按顺序解析 FK) |
+
+### Graph (Neo4j - 可选)
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/api/graph/dependency-graph` | 获取完整依赖关系图 |
+| GET | `/api/graph/feature-coverage/{feature_id}` | 获取指定特征的覆盖率 |
+| GET | `/api/graph/impact-analysis/{feature_id}` | 获取特征变更影响分析 |
+| GET | `/api/graph/coverage-stats` | 获取按分类的覆盖率统计 |
+| GET | `/api/graph/execution-chains/{scenario_id}` | 获取场景的执行与变异链 |
 
 ## 前端页面
 
