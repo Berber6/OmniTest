@@ -49,72 +49,123 @@ Subsystem 1 (RAG Pipeline)          Subsystem 2 (Agent Execution)
 omni_test/
 ├── backend/
 │   ├── app/
+│   │   ├── __init__.py
 │   │   ├── main.py                  # FastAPI entry
 │   │   ├── config.py                # LiteLLM, MCP, global config
+│   │   ├── events.py                # EventBroadcaster for WebSocket push
 │   │   ├── api/
+│   │   │   ├── __init__.py
 │   │   │   ├── task1_routes.py      # Feature extraction + scenario generation API
 │   │   │   ├── task2_routes.py      # Agent execution + verification API
-│   │   │   └── common_routes.py     # Shared (status query, result export)
+│   │   │   ├── common_routes.py     # Status, dashboard stats, screenshots, export
+│   │   │   ├── settings_routes.py   # Runtime config & token usage API
+│   │   │   ├── import_export_routes.py  # Versioned JSON import/export
+│   │   │   └── graph_routes.py      # Neo4j graph relationship queries
 │   │   ├── task1/                   # Subsystem 1: RAG + scenario generation
+│   │   │   ├── __init__.py
 │   │   │   ├── crawler.py           # 4gaboards doc crawler (crawl4ai)
 │   │   │   ├── parser.py            # Doc parse + chunking
-│   │   │   ├── vector_store.py      # ChromaDB vector index
-│   │   │   ├── extractor.py         # Feature extraction (LLM)
+│   │   │   ├── vector_store.py      # ChromaDB vector index (bge-m3)
+│   │   │   ├── extractor.py         # Feature extraction (LLM + RAG)
 │   │   │   ├── generator.py         # Scenario generation (LLM + RAG)
-│   │   │   ├── models.py            # Data models (Feature, TestScenario, Step)
-│   │   │   └── granularity.py       # Granularity control logic
+│   │   │   ├── models.py            # Data models
+│   │   │   ├── granularity.py       # Granularity control logic
+│   │   │   ├── image_store.py       # Crawled image storage
+│   │   │   └── ui_registry.py       # UI component registry
 │   │   ├── task2/                   # Subsystem 2: Agent execution
-│   │   │   ├── agent/
-│   │   │   │   ├── graph.py         # LangGraph state graph definition
-│   │   │   │   ├── nodes/
-│   │   │   │   │   ├── plan.py      # Planning node
-│   │   │   │   │   ├── execute.py   # Execution node (MCP calls)
-│   │   │   │   │   ├── verify.py    # Verification node (visual + text)
-│   │   │   │   │   └── reflect.py   # Reflection node (failure re-planning)
-│   │   │   │   ├── state.py         # Agent state definition
-│   │   │   │   └── mcp_client.py    # Custom MCP Client implementation
-│   │   │   ├── mcp_servers/
-│   │   │   │   ├── playwright_mcp/  # Playwright MCP Server (npm package)
-│   │   │   │   ├── memory_mcp/      # Custom Memory MCP Server
-│   │   │   │   └── verify_mcp/      # Custom Verify MCP Server
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py            # Execution data models
 │   │   │   ├── mutation.py          # Mutation testing module
-│   │   │   └── models.py            # Execution data models
+│   │   │   ├── agent/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── graph.py         # LangGraph state graph definition
+│   │   │   │   ├── state.py         # Agent state definition
+│   │   │   │   ├── mcp_client.py    # Custom MCP Client
+│   │   │   │   ├── agent_loop.py    # Agent orchestration loop
+│   │   │   │   ├── runner.py        # Subprocess runner
+│   │   │   │   ├── app_config.py    # Agent-level configuration
+│   │   │   │   ├── env_utils.py     # Environment utilities
+│   │   │   │   ├── element_resolver.py   # DOM element resolution
+│   │   │   │   ├── snapshot_resolver.py  # Dynamic eN ref mapping
+│   │   │   │   └── nodes/
+│   │   │   │       ├── __init__.py
+│   │   │   │       ├── plan.py      # Planning node
+│   │   │   │       ├── execute.py   # Execution node (MCP calls)
+│   │   │   │       ├── verify.py    # Verification node (visual + text)
+│   │   │   │       └── reflect.py   # Reflection node (failure re-planning)
+│   │   │   └── mcp_servers/
+│   │   │       ├── __init__.py
+│   │   │       ├── memory_mcp/      # Memory MCP Server
+│   │   │       └── verify_mcp/      # Verify MCP Server
 │   │   ├── llm/
+│   │   │   ├── __init__.py
 │   │   │   ├── router.py            # LiteLLM unified routing
+│   │   │   ├── cost_table.py        # Cost estimation per model
+│   │   │   ├── json_parser.py       # LLM JSON response parsing
+│   │   │   ├── token_tracker.py     # Token usage tracking
 │   │   │   └── prompts/
-│   │   │   │   ├── extract_features.py
-│   │   │   │   ├── generate_scenarios.py
-│   │   │   │   ├── plan_actions.py
-│   │   │   │   ├── verify_result.py
-│   │   │   │   └── mutation.py
+│   │   │       ├── __init__.py
+│   │   │       ├── extract_features.py
+│   │   │       ├── generate_scenarios.py
+│   │   │       ├── plan_actions.py
+│   │   │       ├── verify_result.py
+│   │   │       └── mutation.py
 │   │   └── db/
-│   │       ├── database.py          # SQLite ORM
-│   │       └── models.py            # DB data models
+│   │       ├── __init__.py
+│   │       ├── database.py          # SQLite ORM (SQLAlchemy)
+│   │       ├── models.py            # DB data models
+│   │       ├── config_store.py      # Runtime config store
+│   │       ├── neo4j_queries.py     # Neo4j graph queries
+│   │       └── neo4j_sync.py        # Neo4j data sync
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── pyproject.toml
 ├── frontend/
 │   ├── src/
 │   │   ├── app/                     # Next.js 16 App Router
+│   │   │   ├── globals.css
+│   │   │   ├── layout.tsx
 │   │   │   ├── page.tsx             # Dashboard
 │   │   │   ├── features/            # Feature tree page
 │   │   │   ├── scenarios/           # Scenario pages
-│   │   │   └── executions/          # Execution timeline pages
+│   │   │   ├── executions/          # Execution timeline pages
+│   │   │   ├── mutations/           # Mutation testing panel
+│   │   │   └── settings/            # Settings & token usage
 │   │   ├── components/
+│   │   │   ├── AppLayout.tsx
+│   │   │   ├── DataListToolbar.tsx
 │   │   │   ├── FeatureTree.tsx      # React Flow feature tree
 │   │   │   ├── ScenarioDetail.tsx   # Expandable/collapsible scenario
 │   │   │   ├── ExecutionTimeline.tsx # Execution timeline
 │   │   │   ├── ScreenshotCompare.tsx # Screenshot comparison
 │   │   │   ├── MutationPanel.tsx    # Mutation testing panel
+│   │   │   ├── ImportExportDialog.tsx
+│   │   │   ├── PaginationControls.tsx
 │   │   │   └── ui/                  # shadcn/ui components
-│   │   ├── lib/
-│   │   │   ├── api.ts               # API client
-│   │   │   └── types.ts             # TypeScript type definitions
+│   │   └── lib/
+│   │       ├── api.ts               # API client
+│   │       ├── types.ts             # TypeScript types
+│   │       ├── store.ts             # Zustand state management
+│   │       ├── i18n.ts              # i18n dictionary
+│   │       ├── useI18n.ts           # Language toggle hook
+│   │       ├── format.ts            # Formatting utilities
+│   │       └── utils.ts             # Utility functions
 │   ├── package.json
 │   ├── Dockerfile
 │   └── next.config.ts
+├── nginx/
+│   ├── omnitest.conf              # Nginx reverse proxy config
+│   └── setup.sh                   # Auto-install script
 ├── docker-compose.yml
+├── .env.example
 ├── docs/
+│   ├── task.md
+│   ├── design.md
+│   ├── plans.md
+│   ├── project-overview.md
+│   ├── task1-optimization-summary.md
+│   └── 大作业题目.pdf
+├── CLAUDE.md
 └── README.md
 ```
 
