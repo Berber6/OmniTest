@@ -10,7 +10,7 @@ services:
     environment:
       - LLM_API_KEY=${LLM_API_KEY}
       - LLM_API_BASE=https://chatbox.isrc.ac.cn/api/v1
-      - DATABASE_PATH=/app/data/omni_test.db
+      - SQLITE_PATH=/app/data/omni_test.db
       - CHROMA_PATH=/app/data/chroma_db
     volumes:
       - backend_data:/app/data
