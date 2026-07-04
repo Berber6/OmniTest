@@ -182,6 +182,19 @@ async def serve_screenshot(path: str) -> FileResponse:
     except ValueError:
         raise HTTPException(status_code=403, detail="Access denied: path outside screenshots directory")
 
+    # Determine media type from file extension
+    ext = full_path.suffix.lower()
+    media_types = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+    }
+    media_type = media_types.get(ext, "application/octet-stream")
+
+    return FileResponse(str(full_path), media_type=media_type)
+
 
 @router.get("/api/reference-images/{path:path}", summary="Serve reference image files")
 async def serve_reference_image(path: str) -> FileResponse:
