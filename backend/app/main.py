@@ -7,6 +7,7 @@ via event-push (no DB polling).
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan: create DB tables, ensure config defaults, start token tracker."""
     init_db()
     ConfigStore.ensure_defaults()
@@ -37,7 +38,7 @@ async def lifespan(app: FastAPI):
     from app.llm.token_tracker import TokenTracker, drain_sync_buffer
     asyncio.create_task(TokenTracker.flush_loop(interval=5.0))
     # Also drain the sync buffer periodically (records from asyncio.to_thread calls)
-    async def _drain_loop():
+    async def _drain_loop() -> None:
         while True:
             await asyncio.sleep(2.0)
             await drain_sync_buffer()

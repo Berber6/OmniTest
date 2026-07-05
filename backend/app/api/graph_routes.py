@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/graph", tags=["graph"])
 
 
-def _check_neo4j():
+def _check_neo4j() -> None:
     """Raise 503 if Neo4j is not enabled."""
     if not settings.neo4j_enabled:
         raise HTTPException(

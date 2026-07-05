@@ -602,7 +602,7 @@ const translations: Record<Locale, Record<string, string>> = {
 
 let currentLocale: Locale = "zh";
 
-export function setLocale(locale: Locale) {
+export function setLocale(locale: Locale): void {
   currentLocale = locale;
   if (typeof window !== "undefined") {
     localStorage.setItem("omnitest-locale", locale);

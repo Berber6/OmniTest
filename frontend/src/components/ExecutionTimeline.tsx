@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -28,7 +28,7 @@ interface ExecutionTimelineProps {
   execution: ExecutionRecord;
 }
 
-function StatusIcon({ status }: { status: AgentStatus }) {
+function StatusIcon({ status }: { status: AgentStatus }): ReactNode {
   switch (status) {
     case AgentStatus.PENDING:
       return <Clock className="h-4 w-4 text-muted-foreground" />;
