@@ -141,10 +141,6 @@ class ConfigStore:
     """Persistent configuration store using SQLite AppSetting table."""
 
     @staticmethod
-    def _get_db():
-        return SessionLocal()
-
-    @staticmethod
     def ensure_defaults() -> None:
         """Populate DB with default values for all dynamic settings that don't exist.
 

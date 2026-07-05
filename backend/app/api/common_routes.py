@@ -8,7 +8,6 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.database import get_session

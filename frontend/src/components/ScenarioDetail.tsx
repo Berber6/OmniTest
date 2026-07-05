@@ -16,7 +16,6 @@ import {
   PlayCircle,
   Eye,
   Target,
-  FileText,
 } from "lucide-react";
 import type { TestScenario } from "@/lib/types";
 import { useI18n } from "@/lib/useI18n";

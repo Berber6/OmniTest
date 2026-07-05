@@ -36,9 +36,7 @@ import {
   Eye,
   RefreshCw,
   LayoutDashboard,
-  ArrowRight,
   Trash2,
-  Database,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatDateTime } from "@/lib/format";

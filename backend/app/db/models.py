@@ -5,7 +5,6 @@ from typing import Optional
 
 from sqlalchemy import (
     Boolean,
-    Column,
     DateTime,
     Float,
     ForeignKey,

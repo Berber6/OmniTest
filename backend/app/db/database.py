@@ -1,6 +1,5 @@
 """SQLite database setup with SQLAlchemy session management."""
 
-from pathlib import Path
 from sqlalchemy import create_engine, text as sa_text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 

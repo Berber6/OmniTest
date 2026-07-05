@@ -67,7 +67,6 @@ class Settings(BaseSettings):
     data_dir: Path = Path("./data")
     sqlite_path: Path = Path("./data/omni_test.db")
     chroma_path: Path = Path("./data/chroma_db")
-    chroma_db_path: Path = Path("./data/chroma_db")
 
     # --- Crawl4ai Configuration ---
     crawl_headless: bool = True
@@ -127,7 +126,6 @@ class Settings(BaseSettings):
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.sqlite_path.parent.mkdir(parents=True, exist_ok=True)
         self.chroma_path.mkdir(parents=True, exist_ok=True)
-        self.chroma_db_path.mkdir(parents=True, exist_ok=True)
         self.screenshot_dir.mkdir(parents=True, exist_ok=True)
 
 

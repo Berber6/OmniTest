@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Bug, Loader2, PlayCircle } from "lucide-react";
+import { Bug, Loader2 } from "lucide-react";
 import { MutationPanel } from "@/components/MutationPanel";
 import { useAppStore } from "@/lib/store";
 import { MutationType } from "@/lib/types";

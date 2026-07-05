@@ -390,86 +390,62 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   executeScenario: async (scenarioId: string) => {
-    try {
-      const result = await api.executeScenario(scenarioId);
-      if (result.data) {
-        set((state) => ({
-          executions: [result.data!, ...state.executions],
-        }));
-      }
-      // Refresh stats; execution updates will flow via WebSocket
-      get().fetchDashboardStats();
-    } catch (e) {
-      throw e;
+    const result = await api.executeScenario(scenarioId);
+    if (result.data) {
+      set((state) => ({
+        executions: [result.data!, ...state.executions],
+      }));
     }
+    // Refresh stats; execution updates will flow via WebSocket
+    get().fetchDashboardStats();
   },
 
   runMutation: async (scenarioId: string, mutationType: MutationType) => {
-    try {
-      const result = await api.runMutation(scenarioId, mutationType);
-      if (result.data) {
-        set((state) => ({
-          mutations: [result.data!, ...state.mutations],
-        }));
-      }
-      get().fetchDashboardStats();
-    } catch (e) {
-      throw e;
+    const result = await api.runMutation(scenarioId, mutationType);
+    if (result.data) {
+      set((state) => ({
+        mutations: [result.data!, ...state.mutations],
+      }));
     }
+    get().fetchDashboardStats();
   },
 
   deleteCrawlData: async () => {
     if (!window.confirm("确定要删除所有爬取数据吗？此操作不可恢复。")) {
       return;
     }
-    try {
-      await api.deleteCrawlData();
-      set({ crawlStatus: null });
-      get().fetchSystemStatus();
-    } catch (e) {
-      throw e;
-    }
+    await api.deleteCrawlData();
+    set({ crawlStatus: null });
+    get().fetchSystemStatus();
   },
 
   deleteFeatures: async () => {
     if (!window.confirm("确定要删除所有特征数据吗？此操作不可恢复。")) {
       return;
     }
-    try {
-      await api.deleteFeatures();
-      set({ extractStatus: null, features: [] });
-      get().fetchDashboardStats();
-    } catch (e) {
-      throw e;
-    }
+    await api.deleteFeatures();
+    set({ extractStatus: null, features: [] });
+    get().fetchDashboardStats();
   },
 
   deleteScenarios: async () => {
     if (!window.confirm("确定要删除所有场景数据吗？此操作不可恢复。")) {
       return;
     }
-    try {
-      await api.deleteScenarios();
-      set({ generateStatus: null, scenarios: [] });
-      get().fetchDashboardStats();
-    } catch (e) {
-      throw e;
-    }
+    await api.deleteScenarios();
+    set({ generateStatus: null, scenarios: [] });
+    get().fetchDashboardStats();
   },
 
   cancelExecution: async (executionId: string) => {
-    try {
-      await api.cancelExecution(executionId);
-      set((state) => ({
-        executions: state.executions.map((ex) =>
-          ex.id === executionId
-            ? { ...ex, status: AgentStatus.FAILED as AgentStatus, failure_reason: "Cancelled by user" }
-            : ex
-        ),
-      }));
-    } catch (e) {
-      throw e;
-    }
+    await api.cancelExecution(executionId);
+    set((state) => ({
+      executions: state.executions.map((ex) =>
+        ex.id === executionId
+          ? { ...ex, status: AgentStatus.FAILED, failure_reason: "Cancelled by user" }
+          : ex
+      ),
+    }));
   },
 
   initWebSocket: () => {
