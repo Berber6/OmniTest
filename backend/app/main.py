@@ -10,6 +10,9 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+FLUSH_INTERVAL = 5.0
+DRAIN_INTERVAL = 2.0
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -36,11 +39,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     ConfigStore.ensure_defaults()
     # Start token tracker flush loop
     from app.llm.token_tracker import TokenTracker, drain_sync_buffer
-    asyncio.create_task(TokenTracker.flush_loop(interval=5.0))
+    asyncio.create_task(TokenTracker.flush_loop(interval=FLUSH_INTERVAL))
     # Also drain the sync buffer periodically (records from asyncio.to_thread calls)
     async def _drain_loop() -> None:
         while True:
-            await asyncio.sleep(2.0)
+            await asyncio.sleep(DRAIN_INTERVAL)
             await drain_sync_buffer()
     asyncio.create_task(_drain_loop())
     yield
