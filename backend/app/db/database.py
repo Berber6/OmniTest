@@ -1,6 +1,10 @@
 """SQLite database setup with SQLAlchemy session management."""
 
+import logging
+
 from sqlalchemy import create_engine, text as sa_text
+
+logger = logging.getLogger(__name__)
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 
 from app.config import settings
@@ -59,7 +63,7 @@ def init_db() -> None:
                 with engine.connect() as conn:
                     conn.execute(sa_text(alter_sql))
                     conn.commit()
-                print(f"Auto-migrated: added column '{column.name}' to table '{table.name}'")
+                logger.info("Auto-migrated: added column '%s' to table '%s'", column.name, table.name)
 
 
 def get_session() -> Session:

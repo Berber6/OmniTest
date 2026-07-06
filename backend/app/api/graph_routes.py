@@ -3,8 +3,6 @@
 All endpoints return 503 when Neo4j is not enabled/configured.
 """
 
-import logging
-
 from fastapi import APIRouter, HTTPException
 
 from app.config import settings
@@ -15,8 +13,6 @@ from app.db.neo4j_queries import (
     get_coverage_stats,
     get_execution_chains,
 )
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/graph", tags=["graph"])
 

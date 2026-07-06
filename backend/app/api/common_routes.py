@@ -1,7 +1,6 @@
 """Shared API routes: system status, dashboard stats, screenshots, export."""
 
 import json
-import logging
 import os
 from pathlib import Path
 from typing import Optional
@@ -13,8 +12,6 @@ from sqlalchemy.orm import Session
 from app.db.database import get_session
 from app.db.models import ExecutionRecord, Feature, MutationResult, TestScenario
 from app.config import settings
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["common"])
 

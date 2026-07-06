@@ -109,9 +109,9 @@ async def get_token_usage_summary(
     db: Session = Depends(get_session),
 ) -> dict:
     """Return aggregated token usage with cost estimates."""
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     query = select(TokenUsage).where(TokenUsage.timestamp >= cutoff)
     if stage:
         query = query.where(TokenUsage.pipeline_stage == stage)
