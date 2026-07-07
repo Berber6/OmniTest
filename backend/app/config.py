@@ -7,6 +7,7 @@ Defaults are provided for development convenience.
 import os
 from pathlib import Path
 from typing import Dict, List
+from uuid import uuid4
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

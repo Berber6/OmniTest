@@ -8,6 +8,7 @@ return None or empty results, allowing graceful fallback.
 """
 
 import logging
+from functools import wraps
 from typing import Optional
 
 from sqlalchemy.orm import Session
