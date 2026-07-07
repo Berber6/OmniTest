@@ -10,6 +10,10 @@ backend/data/chroma_db/
 backend/data/omni_test.db
 backend/data/omni_test.db-shm
 backend/data/omni_test.db-wal
+*.db
+*.db-shm
+*.db-wal
+*.sqlite3
 
 # Screenshots & playwright artifacts
 backend/data/screenshots/
@@ -20,10 +24,16 @@ backend/data/crawled_docs/
 
 # Env files
 .env
+backend/.env
 
 # IDE
 .vscode/
 .idea/
+
+# Editor
+*.swp
+*.swo
+*~
 
 # OS
 .DS_Store
@@ -36,3 +46,13 @@ node_modules/
 # Python virtual env
 venv/
 .venv/
+
+# Testing
+.pytest_cache/
+playwright-report/
+test-results/
+coverage/
+
+# Type checking
+.mypy_cache/
+.ruff_cache/
