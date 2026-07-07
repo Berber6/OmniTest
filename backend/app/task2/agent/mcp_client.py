@@ -15,6 +15,7 @@ import asyncio
 import logging
 import shutil
 from typing import Any
+from uuid import uuid4
 
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
