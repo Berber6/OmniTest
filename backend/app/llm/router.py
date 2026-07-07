@@ -8,6 +8,7 @@ has connectivity issues (common in proxy-restricted environments).
 import os
 import asyncio
 import logging
+import random
 from typing import Any, Optional
 
 import litellm

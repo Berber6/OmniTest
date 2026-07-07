@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from time import perf_counter
 
 from app.events import broadcaster
 
