@@ -1,0 +1,17 @@
+.env
+.git
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+data/
+*.db
+*.db-shm
+*.db-wal
+Dockerfile
+README.md
