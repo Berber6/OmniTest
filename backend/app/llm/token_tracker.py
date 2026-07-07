@@ -9,6 +9,7 @@ import logging
 import uuid
 from datetime import datetime
 from dataclasses import dataclass, field
+from statistics import mean, stdev
 
 from app.db.database import SessionLocal
 from app.db.models import TokenUsage

@@ -7,6 +7,7 @@ import os
 import re
 import xml.etree.ElementTree as ET
 from typing import Optional
+from urllib.parse import urljoin, urlparse
 
 import aiohttp
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode

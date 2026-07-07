@@ -5,6 +5,7 @@ import logging
 import os
 import uuid
 from typing import Optional
+from uuid import uuid4
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
