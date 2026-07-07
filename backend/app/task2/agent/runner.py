@@ -22,6 +22,7 @@ import multiprocessing
 import os
 import tempfile
 import time
+from functools import partial
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
