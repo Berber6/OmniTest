@@ -12,6 +12,7 @@ Events are typed dicts matching the frontend's WebSocketEvent type:
 
 import asyncio
 import logging
+from collections import defaultdict
 from typing import Any
 
 logger = logging.getLogger(__name__)
