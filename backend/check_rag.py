@@ -14,7 +14,8 @@ from chromadb.utils import embedding_functions
 import json
 import sys
 import os
-
+import re
+import statistics
 # ─── 配置 ───
 CHROMA_DIR = "./data/chroma_db"
 COLLECTION_NAME = "4gaboards_docs"
