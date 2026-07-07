@@ -5,6 +5,8 @@ Provides estimate_cost() for each token usage record.
 Cost coefficients are per 1M (1,000,000) tokens.
 """
 
+from functools import lru_cache
+
 from app.db.config_store import ConfigStore
 
 

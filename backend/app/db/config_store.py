@@ -7,6 +7,7 @@ returned through the API.
 
 import json
 import logging
+from hashlib import sha256
 from typing import Any
 
 from sqlalchemy import select
