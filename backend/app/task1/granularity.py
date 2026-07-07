@@ -2,6 +2,7 @@
 
 import logging
 import re
+from collections import Counter
 from typing import Any, Optional
 
 from .models import Feature, TestScenario, GranularityIssue, GranularityReport
