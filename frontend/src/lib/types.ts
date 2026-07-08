@@ -68,8 +68,8 @@ export interface VerifyResult {
   passed: boolean;
   reason: string;
   text_match?: boolean;
-  visual_match?: boolean;
   details?: string;
+  verification_type?: string;
 }
 
 export interface ExecutionRecord {

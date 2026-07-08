@@ -107,8 +107,6 @@ export default function SettingsPage() {
   // Model labels
   const modelLabels: Record<string, string> = {
     deepseek_v4_flash: "DeepSeek-V4-Flash",
-    glm_5_1: "GLM-5.1",
-    qwen3_vl: "Qwen3-VL",
   };
 
   return (
@@ -200,7 +198,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Per-model cost coefficients */}
-                {(["deepseek_v4_flash", "glm_5_1", "qwen3_vl"] as const).map((mk) => (
+                {(["deepseek_v4_flash"] as const).map((mk) => (
                   <div key={mk} className="border rounded-lg p-4 space-y-2">
                     <h4 className="text-sm font-semibold">{modelLabels[mk] || mk}</h4>
                     <div className="grid grid-cols-2 gap-3">

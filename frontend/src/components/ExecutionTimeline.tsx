@@ -300,15 +300,9 @@ export function ExecutionTimeline({ execution }: ExecutionTimelineProps) {
                       {execution.verification_result.text_match ? t("timeline.yes") : t("timeline.no")}
                     </span>
                   )}
-                  {execution.verification_result.visual_match !== undefined && (
-                    <span className="flex items-center gap-1">
-                      {t("timeline.visualMatch")}:{" "}
-                      {execution.verification_result.visual_match ? t("timeline.yes") : t("timeline.no")}
-                      {!execution.verification_result.visual_match && execution.verification_result.details && (
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({execution.verification_result.details})
-                        </span>
-                      )}
+                  {execution.verification_result.details && (
+                    <span className="text-xs text-muted-foreground">
+                      ({execution.verification_result.details})
                     </span>
                   )}
                 </div>
