@@ -83,27 +83,16 @@ class MutationResult:
         }
 
     def is_effective(self) -> bool:
-        """此变异是否有效地检测到了应用的弱点。
+        """此变异是否被有效检出（killed）。
 
-        变异有效的情况：
-        - 对于 execution_exception 或 semantic_error 类型，
-          变异场景通过了（应用没有捕获错误）——这意味着应用有弱点
-        - 对于 layout_issue 类型，
-          变异场景以不同于预期的错误失败——应用的错误处理与预期不同
+        变异测试的标准语义：变异场景执行失败且被归类为具体错误类型，
+        说明应用正确处理了变异（拒绝了错误输入/操作），计为"已检出/killed"。
+        若应用接受了变异（执行通过），则归为 "none"，计为"未检出/survived"，
+        说明应用存在弱点。
         """
-        if self.expected_error_type == "execution_exception":
-            # 如果应用没有崩溃（通过），则有效 — 应用应该捕获此问题
-            return self.execution_passed
-
-        if self.expected_error_type == "semantic_error":
-            # 如果应用接受了错误输入（通过），则有效 — 应用应该拒绝此输入
-            return self.execution_passed
-
-        if self.expected_error_type == "layout_issue":
-            # 如果布局问题被实际检测到，则有效
-            return "layout" in self.detected_error_type.lower()
-
-        return not self.execution_passed
+        if not self.detected_error_type:
+            return False
+        return self.detected_error_type != "none"
 
 
 async def generate_mutations(scenario: dict, mutation_types: list[str] | None = None) -> list[dict]:
@@ -140,7 +129,7 @@ async def generate_mutations(scenario: dict, mutation_types: list[str] | None = 
 
     try:
         response = await call_llm(
-            model_key="glm_5_1",
+            model_key="deepseek_v4_flash",
             prompt=user_prompt,
             system_prompt=MUTATION_SYSTEM_PROMPT,
             temperature=0.5,  # 较高温度以产生创意变异
@@ -157,22 +146,35 @@ async def generate_mutations(scenario: dict, mutation_types: list[str] | None = 
     # 限制变异数量
     mutants = mutants[:MAX_MUTATIONS_PER_SCENARIO]
 
-    logger.info("为 '%s' 生成了 %d 个变异场景", len(mutants), scenario_name)
+    logger.info("为 '%s' 生成了 %d 个变异场景", scenario_name, len(mutants))
     return mutants
 
 
 async def run_mutation_test(
     mutant: dict,
     agent_runner: Any = None,
+    execution_id: str = "",
+    db_session: Any = None,
+    original_expectations: list | None = None,
 ) -> MutationResult:
     """执行变异测试场景并分析结果。
 
     通过代理执行系统运行变异，并将结果与预期错误类型进行比较，
     以确定应用是否正确处理了变异。
 
+    变异只改步骤，不改预期结果：执行时使用"原始场景的预期结果"作为 oracle。
+    这样验证器比较的是"被篡改步骤的真实执行结果"与"原始预期"。
+    - 若应用仍满足原始预期（变异被默默接受）= 应用存在弱点（survived）。
+    - 若应用不再满足原始预期（拒绝/报错/未达成）= 变异被检出（killed）。
+
     Args:
         mutant: 变异场景字典，包含变异元数据和修改后的场景。
-        agent_runner: 可选的自定义代理运行函数。默认使用 graph 模块的 run_agent。
+        agent_runner: 可选的自定义代理运行函数。
+                      默认使用 graph 模块的 run_agent，签名为 (scenario, execution_id, db_session)。
+        execution_id: 执行记录 ID（用于事件推送与结果落库一致性）。
+        db_session: 数据库 session（用于 token 追踪，可选）。
+        original_expectations: 原始场景的预期结果列表。若提供，执行时用其
+                               覆盖变异场景的 expectations，保证 oracle 不被篡改。
 
     Returns:
         包含检测详情的 MutationResult。
@@ -186,13 +188,17 @@ async def run_mutation_test(
     expected_error = mutant.get("expected_error_type", "")
     mutant_scenario = mutant.get("scenario", {})
 
+    # 用原始预期覆盖变异场景的预期，保证验证器以原始 oracle 判定
+    if original_expectations is not None:
+        mutant_scenario = {**mutant_scenario, "expectations": original_expectations}
+
     logger.info(
         "正在运行变异 '%s' (类型=%s, 预期错误=%s)",
         mutant_id, mutation_type, expected_error,
     )
 
     try:
-        final_state = await runner(mutant_scenario)
+        final_state = await runner(mutant_scenario, execution_id, db_session)
 
         execution_passed = final_state.get("final_result", "fail") == "pass"
         failure_reason = final_state.get("failure_reason", "")
@@ -238,6 +244,8 @@ async def run_mutation_test(
 async def run_mutation_suite(
     scenario: dict,
     agent_runner: Any = None,
+    execution_id_prefix: str = "mutation",
+    db_session: Any = None,
 ) -> list[MutationResult]:
     """为场景生成变异并执行所有变异。
 
@@ -246,16 +254,23 @@ async def run_mutation_suite(
 
     Args:
         scenario: 原始测试场景字典。
-        agent_runner: 可选的自定义代理运行函数。
+        agent_runner: 可选的自定义代理运行函数，签名为 (scenario, execution_id, db_session)。
+        execution_id_prefix: 生成执行 ID 的前缀。
+        db_session: 数据库 session（用于 token 追踪，可选）。
 
     Returns:
         所有变异的 MutationResult 列表。
     """
     mutants = await generate_mutations(scenario)
+    original_expectations = scenario.get("expectations", [])
     results = []
 
-    for mutant in mutants:
-        result = await run_mutation_test(mutant, agent_runner)
+    for idx, mutant in enumerate(mutants):
+        exec_id = f"{execution_id_prefix}-{idx + 1}"
+        result = await run_mutation_test(
+            mutant, agent_runner, execution_id=exec_id, db_session=db_session,
+            original_expectations=original_expectations,
+        )
         results.append(result)
 
     effective_count = sum(1 for r in results if r.is_effective())
@@ -414,8 +429,11 @@ def _classify_execution_error(
 ) -> str:
     """分类变异执行期间检测到的错误类型。
 
-    分析代理的最终状态以确定应用在面对变异场景时
-    表现出的错误类型。
+    变异测试的结果语义：
+    - 变异场景执行失败（应用拒绝/报错/未满足预期）= 应用正确处理了变异，
+      计为"已检测到"，返回实际的错误类型。
+    - 变异场景执行通过（应用接受了错误的输入/操作）= 应用未正确处理变异，
+      计为"未检测到"，返回 "none"。
 
     Args:
         final_state: 代理的最终状态字典。
@@ -423,49 +441,47 @@ def _classify_execution_error(
         expected_error: 预期的错误类型。
 
     Returns:
-        分类的错误类型字符串。
+        分类的错误类型字符串："execution_exception" / "semantic_error" /
+        "layout_issue"（已检测到的错误类型），或 "none"（未检测到）。
     """
     executed_steps = final_state.get("executed_steps", [])
     verification_result = final_state.get("verification_result", {})
     failure_reason = final_state.get("failure_reason", "")
+    final_result = final_state.get("final_result", "fail")
 
-    # 检查是否有步骤抛出了执行异常
-    step_errors = [
-        s.get("error", "") for s in executed_steps if s.get("error")
-    ]
-    if step_errors:
-        # 执行步骤本身失败了
-        if any("timeout" in e.lower() for e in step_errors):
-            return "execution_exception"
-        if any("not found" in e.lower() or "selector" in e.lower() for e in step_errors):
-            return "execution_exception"
-        return "execution_exception"
-
-    # 检查验证结果中的布局/语义问题
-    failed_expectations = verification_result.get("failed_expectations", [])
-
-    if expected_error == "layout_issue":
-        # 如果变异通过了，布局问题未被检测到
-        if final_state.get("final_result") == "pass":
-            return "layout_issue"
-        return "layout_issue"
-
-    if expected_error == "semantic_error":
-        # 如果变异通过了，语义错误被接受（不好）
-        if final_state.get("final_result") == "pass":
-            return "semantic_error"
-        # 如果失败了，应用正确地拒绝了它
+    # 变异通过 = 应用接受了错误输入/操作，未检测到问题
+    if final_result == "pass":
         return "none"
 
-    # 默认分类基于失败原因
-    if "layout" in failure_reason.lower():
-        return "layout_issue"
-    if "exception" in failure_reason.lower() or "error" in failure_reason.lower():
+    # 变异失败 = 应用正确处理了变异，进一步判断错误类型
+    # 1) 步骤本身抛出异常（找不到元素/超时）= 执行异常
+    step_errors = [s.get("error", "") for s in executed_steps if s.get("error")]
+    if step_errors:
+        err_text = " ".join(step_errors).lower()
+        if any(k in err_text for k in ("timeout", "not found", "selector", "ref=", "element")):
+            return "execution_exception"
         return "execution_exception"
-    if "semantic" in failure_reason.lower() or "wrong" in failure_reason.lower():
+
+    # 2) 步骤完成但验证未通过 = 语义错误
+    failed_expectations = verification_result.get("failed_expectations", [])
+    if failed_expectations or verification_result.get("passed") is False:
+        # 布局类失败优先于语义类
+        ver_reason = (verification_result.get("reason", "") or "").lower()
+        if "layout" in ver_reason or "layout" in failure_reason.lower():
+            return "layout_issue"
         return "semantic_error"
 
-    return "unknown"
+    # 3) 默认基于失败原因归类
+    fr = failure_reason.lower()
+    if "layout" in fr:
+        return "layout_issue"
+    if fr and any(k in fr for k in ("exception", "error", "timeout", "失败")):
+        return "execution_exception"
+    if any(k in fr for k in ("semantic", "wrong", "不匹配", "不一致")):
+        return "semantic_error"
+
+    # 失败但无法归类，按预期错误类型记录（仍是"已检测到"）
+    return expected_error or "unknown"
 
 
 def _build_detection_detail(
@@ -491,18 +507,16 @@ def _build_detection_detail(
 
     if execution_passed:
         detail = (
-            f"变异场景（{mutation_type} 变异）通过了执行。"
-            f"这意味着应用未正确处理预期的错误类型 '{expected_error}'。"
+            f"变异场景（{mutation_type} 变异）执行通过，应用接受了该变异。"
+            f"预期应触发的错误类型 '{expected_error}' 未出现，"
+            f"说明应用在此处存在弱点（变异 survived）。"
         )
-        if failed_exp:
-            detail += f"一些预期结果仍然失败: {failed_exp}"
-        else:
-            detail += "所有预期结果均满足，说明应用接受了无效操作。"
     else:
         detail = (
-            f"变异场景（{mutation_type} 变异）执行失败。"
-            f"应用正确处理了变异。"
-            f"失败原因: {failure_reason}"
+            f"变异场景（{mutation_type} 变异）执行失败，应用正确处理了该变异（变异 killed）。"
+            f"失败原因: {failure_reason or '验证未通过'}。"
         )
+        if failed_exp:
+            detail += f"未满足的预期结果: {failed_exp}"
 
     return detail

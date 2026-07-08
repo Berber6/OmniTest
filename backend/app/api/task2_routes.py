@@ -10,6 +10,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.db.database import get_session
 from app.db.models import ExecutionRecord, MutationResult as MutationResultORM, TestScenario as TestScenarioORM
 from app.task2.models import (
@@ -24,7 +25,7 @@ from app.events import broadcaster
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/task2", tags=["task2"])
+router = APIRouter(prefix="/api/task2", tags=["task2"], dependencies=[Depends(get_current_user)])
 
 # 限制同时执行的 agent 数量（每个 agent 会启动浏览器子进程）
 MAX_CONCURRENT_EXECUTIONS = 3
@@ -505,14 +506,19 @@ async def create_mutation(
     for mutant in mutations[:5]:  # Limit to 5 mutations
         mutation_id = str(uuid.uuid4())
 
-        try:
-            result = await run_mutation_test(mutant, run_agent)
+        # 预先生成 execution_id，保证事件推送与落库一致；同时传给 runner
+        now = datetime.now(timezone.utc)
+        base_id = now.strftime("%Y%m%d-%H%M%S")
+        existing = db.query(ExecutionRecord).filter(ExecutionRecord.id.startswith(base_id)).count()
+        exec_id = f"{base_id}-M{existing + 1}" if existing > 0 else f"{base_id}-M1"
 
-            # Create an execution record for the mutant
-            now = datetime.now(timezone.utc)
-            base_id = now.strftime("%Y%m%d-%H%M%S")
-            existing = db.query(ExecutionRecord).filter(ExecutionRecord.id.startswith(base_id)).count()
-            exec_id = f"{base_id}-{existing + 1}" if existing > 0 else base_id
+        try:
+            result = await run_mutation_test(
+                mutant, run_agent, execution_id=exec_id, db_session=db,
+                original_expectations=scenario_dict.get("expectations", []),
+            )
+
+            # 使用与 runner 一致的 exec_id 创建执行记录
             exec_record = ExecutionRecord(
                 id=exec_id,
                 scenario_id=scenario_id,
@@ -549,11 +555,7 @@ async def create_mutation(
 
         except Exception as exc:
             logger.error(f"Mutation test failed: {exc}")
-            # Create a failed execution record even for exceptions
-            now = datetime.now(timezone.utc)
-            base_id = now.strftime("%Y%m%d-%H%M%S")
-            existing = db.query(ExecutionRecord).filter(ExecutionRecord.id.startswith(base_id)).count()
-            exec_id = f"{base_id}-{existing + 1}" if existing > 0 else base_id
+            # 复用已预先生成的 exec_id 创建失败执行记录
             exec_record = ExecutionRecord(
                 id=exec_id,
                 scenario_id=scenario_id,
