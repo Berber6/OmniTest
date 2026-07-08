@@ -13,11 +13,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+from app.api.auth_routes import router as auth_router
 from app.api.common_routes import router as common_router
 from app.api.task1_routes import router as task1_router
 from app.api.task2_routes import router as task2_router
 from app.api.import_export_routes import router as io_router
+from app.api.import_export_routes import legacy_router as io_legacy_router
 from app.api.settings_routes import router as settings_router
 from app.api.graph_routes import router as graph_router
 from app.config import settings
@@ -62,12 +65,22 @@ app.add_middleware(
 )
 
 # --- Router Mounting ---
+app.include_router(auth_router)
 app.include_router(common_router)
 app.include_router(task1_router)
 app.include_router(task2_router)
 app.include_router(io_router)
+app.include_router(io_legacy_router)
 app.include_router(settings_router)
 app.include_router(graph_router)
+
+# --- Static screenshots ---
+# 兼容 next.config.ts 的 destination `/api/screenshots/:path*`
+# 同时也接受 `/screenshots/:path*` (历史路径)
+screenshot_dir = settings.screenshot_dir
+screenshot_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/api/screenshots", StaticFiles(directory=str(screenshot_dir)), name="screenshots")
+app.mount("/screenshots", StaticFiles(directory=str(screenshot_dir)), name="screenshots_legacy")
 
 
 @app.get("/", tags=["root"])
@@ -80,8 +93,11 @@ async def root() -> dict:
 # Frontend expects /ws/executions at top level (not /api/task2/ws/executions)
 
 @app.websocket("/ws/executions")
-async def global_execution_ws(websocket: WebSocket) -> None:
-    """Global WebSocket endpoint — event-push mode.
+async def global_execution_ws(websocket: WebSocket, token: str = "") -> None:
+    """Global WebSocket endpoint — event-push mode。
+
+    通过 ?token=<jwt> query param 校验身份后再 accept。
+    校验失败以 close(code=1008) 拒绝连接。
 
     Subscribes to the in-process EventBroadcaster. When the agent graph
     or task2 routes publish events (execution_started, step_completed,
@@ -90,6 +106,24 @@ async def global_execution_ws(websocket: WebSocket) -> None:
 
     No DB polling. Events arrive with ~0 latency.
     """
+    # 校验 JWT token
+    from jose import JWTError, jwt
+    credentials_invalid = True
+    if token:
+        try:
+            payload = jwt.decode(
+                token,
+                settings.jwt_secret,
+                algorithms=[settings.jwt_algorithm],
+            )
+            if payload.get("sub") == settings.admin_username:
+                credentials_invalid = False
+        except JWTError:
+            pass
+    if credentials_invalid:
+        await websocket.close(code=1008)  # policy violation
+        return
+
     await websocket.accept()
 
     queue = broadcaster.subscribe()

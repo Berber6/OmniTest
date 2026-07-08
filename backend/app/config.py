@@ -42,8 +42,8 @@ class Settings(BaseSettings):
 
     # LiteLLM model mapping: role -> model identifier
     llm_model_generation: str = "openai/DeepSeek-V4-Flash"
-    llm_model_reasoning: str = "openai/GLM-5.1"
-    llm_model_vision: str = "openai/Qwen3-VL-235B-A22B-Instruct"
+    llm_model_reasoning: str = "openai/DeepSeek-V4-Flash"
+    llm_model_vision: str = "openai/DeepSeek-V4-Flash"
 
     # --- MCP Server Configuration ---
     mcp_servers: Dict[str, Dict] = {
@@ -89,6 +89,13 @@ class Settings(BaseSettings):
     # Max cosine distance for RAG retrieval. Raised from 0.50 to 0.70 because
     # cross-lingual (Chinese query → English docs) matches score lower.
     rag_max_distance: float = 0.70
+
+    # --- Auth ---
+    admin_username: str = "admin"
+    admin_password: str = ""  # required, set in .env
+    jwt_secret: str = ""  # required, set in .env
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 720  # 12 hours
 
     # --- CORS ---
     cors_origins: List[str] = ["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"]

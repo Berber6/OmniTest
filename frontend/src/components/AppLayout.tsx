@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   GitBranch,
@@ -16,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import { useI18n } from "@/lib/useI18n";
+import { getToken, clearToken, getUsername } from "@/lib/auth";
 
 const navItems = [
   { href: "/", labelKey: "nav.dashboard", icon: LayoutDashboard },
@@ -28,8 +30,21 @@ const navItems = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const wsConnected = useAppStore((s) => s.wsConnected);
   const { locale, t, switchLocale } = useI18n();
+
+  // 路由守卫：未登录跳 /login（但 /login 自身不跳）
+  useEffect(() => {
+    if (!getToken() && pathname !== "/login") {
+      router.replace("/login");
+    }
+  }, [router, pathname]);
+
+  // login 页面绕过 AppLayout（无 sidebar），直接渲染 children
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -80,6 +95,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="p-4 border-t border-border space-y-3">
+          {/* 当前用户 + 登出 */}
+          {getUsername() && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{getUsername()}</span>
+              <button
+                onClick={() => {
+                  clearToken();
+                  router.replace("/login");
+                }}
+                className="text-muted-foreground hover:text-accent-foreground transition-colors"
+              >
+                登出
+              </button>
+            </div>
+          )}
           {/* Language toggle */}
           <button
             onClick={switchLocale}

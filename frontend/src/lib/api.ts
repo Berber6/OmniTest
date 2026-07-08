@@ -45,13 +45,30 @@ async function fetchApi<T>(
   options?: RequestInit
 ): Promise<T> {
   const url = `${getApiBaseUrl()}${endpoint}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+  // 加 Authorization（仅浏览器端；登录接口本身不需要）
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("omnitest_token");
+    if (token && !headers["Authorization"]) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+  const res = await fetch(url, { ...options, headers });
+
+  if (res.status === 401) {
+    // token 失效 — 清理并跳登录（fetchApi 非 React 组件，用 window.location）
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("omnitest_token");
+      localStorage.removeItem("omnitest_username");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+    throw new Error("Unauthorized");
+  }
 
   if (!res.ok) {
     const errorBody = await res.text();
@@ -61,6 +78,52 @@ async function fetchApi<T>(
   }
 
   return res.json() as Promise<T>;
+}
+
+// Blob fetch with the same auth-header + 401-redirect semantics as fetchApi.
+// Export endpoints return file downloads (not JSON), so they can't use fetchApi.
+async function fetchBlob(endpoint: string): Promise<Blob> {
+  const url = `${getApiBaseUrl()}${endpoint}`;
+  const headers: Record<string, string> = {};
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("omnitest_token");
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(url, { headers });
+
+  if (res.status === 401) {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("omnitest_token");
+      localStorage.removeItem("omnitest_username");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+    throw new Error("Unauthorized");
+  }
+
+  if (!res.ok) throw new Error(`Export failed: ${res.status} ${res.statusText}`);
+  return res.blob();
+}
+
+// ── Auth ──
+
+export async function login(
+  username: string,
+  password: string
+): Promise<{ access_token: string; username: string }> {
+  // OAuth2PasswordRequestForm 需要 form-urlencoded
+  const body = new URLSearchParams({ username, password });
+  const url = `${getApiBaseUrl()}/api/login`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+  if (!res.ok) {
+    throw new Error(`Login failed: ${res.status}`);
+  }
+  return res.json();
 }
 
 // ── Task 1: RAG Pipeline ──
@@ -236,10 +299,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 export async function exportResults(format: string = "json"): Promise<Blob> {
-  const url = `${getApiBaseUrl()}/api/export?format=${format}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
-  return res.blob();
+  return fetchBlob(`/api/export?format=${format}`);
 }
 
 // ── Import/Export (per-type) ──
@@ -254,27 +314,19 @@ export interface ImportResult {
 }
 
 export async function exportFeatures(): Promise<Blob> {
-  const res = await fetch(`${getApiBaseUrl()}/api/io/export/features`);
-  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
-  return res.blob();
+  return fetchBlob("/api/io/export/features");
 }
 
 export async function exportScenarios(): Promise<Blob> {
-  const res = await fetch(`${getApiBaseUrl()}/api/io/export/scenarios`);
-  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
-  return res.blob();
+  return fetchBlob("/api/io/export/scenarios");
 }
 
 export async function exportExecutions(includeScreenshots: boolean = true): Promise<Blob> {
-  const res = await fetch(`${getApiBaseUrl()}/api/io/export/executions?include_screenshots=${includeScreenshots}`);
-  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
-  return res.blob();
+  return fetchBlob(`/api/io/export/executions?include_screenshots=${includeScreenshots}`);
 }
 
 export async function exportBundle(includeScreenshots: boolean = true): Promise<Blob> {
-  const res = await fetch(`${getApiBaseUrl()}/api/io/export/all?include_screenshots=${includeScreenshots}`);
-  if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
-  return res.blob();
+  return fetchBlob(`/api/io/export/all?include_screenshots=${includeScreenshots}`);
 }
 
 export async function importFeatures(data: unknown): Promise<ImportResult> {
@@ -310,7 +362,7 @@ export async function importBundle(data: unknown): Promise<ImportResult> {
 // ── Settings ──
 
 export async function getSettings(): Promise<{ success: boolean; data: AppSetting[]; total: number }> {
-  return fetchApi<{ success: boolean; data: AppSetting[]; total: number }>("/api/settings/");
+  return fetchApi<{ success: boolean; data: AppSetting[]; total: number }>("/api/settings");
 }
 
 export async function updateSetting(key: string, value: string): Promise<{ success: boolean; data: AppSetting; message: string }> {
@@ -391,7 +443,7 @@ export function getScreenshotUrl(path: string): string {
   }
   // HTTP URL — 直接使用
   if (path.startsWith("http")) return path;
-  // 相对文件路径 — 通过 Nginx /screenshots/ 直接 serve 或 fallback 到后端 API
+  // 文件名/相对路径 → 经 Next.js rewrites 代理到后端 /api/screenshots/
   return `/screenshots/${encodeURIComponent(path)}`;
 }
 
@@ -405,16 +457,11 @@ export class ExecutionWebSocket {
   private reconnectAttempts = 0;
 
   connect(): void {
-    // Nginx 反向代理: /ws/ 代理到后端 8000，无需直连后端端口
-    // 无 Nginx 时（开发环境）: Next.js rewrite 无法代理 WS，需直连 8000
+    // 同源 WS — Next.js rewrites 代理 /ws/ 到后端
     const wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsHost = window.location.host; // includes port if non-standard
-    const explicitPort = window.location.port;
-    // 通过 Nginx (8080) 或标准端口访问时用同源 WS；3000 时直连后端 8000
-    const useProxy = !explicitPort || explicitPort === "8080" || explicitPort === "80" || explicitPort === "443";
-    const wsUrl = useProxy
-      ? `${wsProto}//${wsHost}/ws/executions`
-      : `${wsProto}//${window.location.hostname}:8000/ws/executions`;
+    const wsHost = window.location.host;
+    const token = localStorage.getItem("omnitest_token") || "";
+    const wsUrl = `${wsProto}//${wsHost}/ws/executions?token=${encodeURIComponent(token)}`;
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
