@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.config import settings
 from app.db.database import get_session
 from app.db.models import (
@@ -28,7 +29,13 @@ from app.db.models import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/io", tags=["import-export"])
+router = APIRouter(prefix="/api/io", tags=["import-export"], dependencies=[Depends(get_current_user)])
+
+# Legacy full-DB dump endpoint. Kept on a separate non-prefixed router so the
+# public path stays exactly `/api/export` (frontend calls this URL), but the
+# auth dependency from `get_current_user` still applies. Move into the main
+# prefixed router only if the frontend is updated to call `/api/io/export`.
+legacy_router = APIRouter(tags=["import-export"], dependencies=[Depends(get_current_user)])
 
 EXPORT_VERSION = 1
 
@@ -228,6 +235,37 @@ async def export_bundle(
             "features": [_serialize_feature(f) for f in features],
             "scenarios": [_serialize_scenario(s) for s in scenarios],
             "executions": [_serialize_execution(e, include_screenshots) for e in executions],
+            "mutations": [_serialize_mutation(m) for m in mutations],
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Legacy full-DB dump (moved from common_routes for auth protection)
+# ---------------------------------------------------------------------------
+
+@legacy_router.get("/api/export", summary="Export all results")
+async def export_results(
+    format: Optional[str] = Query("json", description="Export format (currently only json supported)"),
+    db: Session = Depends(get_session),
+) -> dict:
+    """Export all features, scenarios, execution records, and mutation results.
+
+    Returns a single JSON object containing all data, suitable for
+    download or archival. The format query parameter is accepted but
+    currently only JSON format is supported.
+    """
+    features = db.query(FeatureORM).all()
+    scenarios = db.query(TestScenarioORM).all()
+    executions = db.query(ExecutionRecord).all()
+    mutations = db.query(MutationResultORM).all()
+
+    return {
+        "success": True,
+        "data": {
+            "features": [_serialize_feature(f) for f in features],
+            "scenarios": [_serialize_scenario(s) for s in scenarios],
+            "executions": [_serialize_execution(e) for e in executions],
             "mutations": [_serialize_mutation(m) for m in mutations],
         },
     }

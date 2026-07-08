@@ -36,3 +36,6 @@ node_modules/
 # Python virtual env
 venv/
 .venv/
+
+# Superpowers skill local files (not project source)
+docs/superpowers/

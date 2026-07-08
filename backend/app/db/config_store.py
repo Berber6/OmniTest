@@ -33,13 +33,13 @@ DYNAMIC_SETTINGS: dict[str, dict[str, Any]] = {
         "category": "llm",
         "is_secret": False,
         "description": "LiteLLM model for reasoning tasks (e.g. planning, reflection, verification)",
-        "default": "openai/GLM-5.1",
+        "default": "openai/DeepSeek-V4-Flash",
     },
     "llm_model_vision": {
         "category": "llm",
         "is_secret": False,
         "description": "LiteLLM model for vision tasks (e.g. visual verification)",
-        "default": "openai/Qwen3-VL-235B-A22B-Instruct",
+        "default": "openai/DeepSeek-V4-Flash",
     },
     "crawl_headless": {
         "category": "crawl",
@@ -90,30 +90,6 @@ DYNAMIC_SETTINGS: dict[str, dict[str, Any]] = {
         "description": "Cost per 1M completion tokens for deepseek_v4_flash model",
         "default": "0.28",
     },
-    "cost_per_1m_tokens.glm_5_1.prompt": {
-        "category": "cost",
-        "is_secret": False,
-        "description": "Cost per 1M prompt tokens for glm_5_1 model",
-        "default": "1.0",
-    },
-    "cost_per_1m_tokens.glm_5_1.completion": {
-        "category": "cost",
-        "is_secret": False,
-        "description": "Cost per 1M completion tokens for glm_5_1 model",
-        "default": "2.0",
-    },
-    "cost_per_1m_tokens.qwen3_vl.prompt": {
-        "category": "cost",
-        "is_secret": False,
-        "description": "Cost per 1M prompt tokens for qwen3_vl model",
-        "default": "2.0",
-    },
-    "cost_per_1m_tokens.qwen3_vl.completion": {
-        "category": "cost",
-        "is_secret": False,
-        "description": "Cost per 1M completion tokens for qwen3_vl model",
-        "default": "6.0",
-    },
     "cost_currency": {
         "category": "cost",
         "is_secret": False,
@@ -156,11 +132,7 @@ class ConfigStore:
         try:
             # Phase 1: Migrate old 1K keys → 1M keys (values multiplied by 1000)
             old_key_names = ["cost_per_1k_tokens.deepseek_v4_flash.prompt",
-                             "cost_per_1k_tokens.deepseek_v4_flash.completion",
-                             "cost_per_1k_tokens.glm_5_1.prompt",
-                             "cost_per_1k_tokens.glm_5_1.completion",
-                             "cost_per_1k_tokens.qwen3_vl.prompt",
-                             "cost_per_1k_tokens.qwen3_vl.completion"]
+                             "cost_per_1k_tokens.deepseek_v4_flash.completion"]
             for old_key in old_key_names:
                 old_setting = db.execute(select(AppSetting).where(AppSetting.key == old_key)).scalar_one_or_none()
                 if old_setting:

@@ -24,6 +24,7 @@ from app.task1.vector_store import VectorStore
 from app.task1.extractor import extract_features
 from app.task1.generator import generate_scenarios
 from app.task1.granularity import validate_granularity
+from app.auth import get_current_user
 from app.task1.image_store import ImageStore
 from app.task1.ui_registry import UIElementRegistry
 from app.llm.router import call_llm
@@ -31,7 +32,7 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/task1", tags=["task1"])
+router = APIRouter(prefix="/api/task1", tags=["task1"], dependencies=[Depends(get_current_user)])
 
 # Module-level state for pipeline data
 _vector_store: Optional[VectorStore] = None

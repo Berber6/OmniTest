@@ -11,20 +11,21 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.db.config_store import ConfigStore, DYNAMIC_SETTINGS
 from app.db.database import get_session
 from app.db.models import TokenUsage
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/settings", tags=["settings"])
+router = APIRouter(prefix="/api/settings", tags=["settings"], dependencies=[Depends(get_current_user)])
 
 
 # ---------------------------------------------------------------------------
 # Configuration endpoints
 # ---------------------------------------------------------------------------
 
-@router.get("/", summary="Get all settings")
+@router.get("", summary="Get all settings")
 async def get_settings() -> dict:
     """Return all settings (dynamic + static), with secrets masked."""
     settings = ConfigStore.get_all_settings()
@@ -83,8 +84,8 @@ def _update_llm_router_model(key: str, value: str) -> None:
 
     role_to_model_key = {
         "llm_model_generation": "deepseek_v4_flash",
-        "llm_model_reasoning": "glm_5_1",
-        "llm_model_vision": "qwen3_vl",
+        "llm_model_reasoning": "deepseek_v4_flash",
+        "llm_model_vision": "deepseek_v4_flash",
     }
     mk = role_to_model_key.get(key)
     if mk and mk in MODEL_MAP:

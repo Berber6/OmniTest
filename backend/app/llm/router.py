@@ -51,24 +51,10 @@ MODEL_MAP = {
         "api_base": API_BASE_URL,
         "api_key": API_KEY,
     },
-    "glm_5_1": {
-        "model": "openai/GLM-5.1",
-        "api_base": API_BASE_URL,
-        "api_key": API_KEY,
-    },
-    "qwen3_vl": {
-        "model": "openai/Qwen3-VL-235B-A22B-Instruct",
-        "api_base": API_BASE_URL,
-        "api_key": API_KEY,
-    },
 }
 
-# Fallback chains: if the primary model fails, try alternatives in order.
-FALLBACK_MAP = {
-    "deepseek_v4_flash": ["glm_5_1"],
-    "glm_5_1": ["deepseek_v4_flash"],
-    "qwen3_vl": ["glm_5_1"],
-}
+# 单一模型，无 fallback 链
+FALLBACK_MAP: dict[str, list[str]] = {}
 
 MAX_RETRIES = 3
 INITIAL_BACKOFF = 1.0  # seconds
@@ -229,7 +215,7 @@ async def call_llm_with_vision(
     """Call a vision-capable LLM with an image input.
 
     Args:
-        model_key: Key in MODEL_MAP (e.g. "qwen3_vl").
+        model_key: Key in MODEL_MAP (e.g. "deepseek_v4_flash").
         prompt: User prompt text.
         image: Image URL or base64 string.
         system_prompt: Optional system prompt.

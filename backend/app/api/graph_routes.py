@@ -5,8 +5,9 @@ All endpoints return 503 when Neo4j is not enabled/configured.
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth import get_current_user
 from app.config import settings
 from app.db.neo4j_queries import (
     get_dependency_graph,
@@ -18,7 +19,7 @@ from app.db.neo4j_queries import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/graph", tags=["graph"])
+router = APIRouter(prefix="/api/graph", tags=["graph"], dependencies=[Depends(get_current_user)])
 
 
 def _check_neo4j():
