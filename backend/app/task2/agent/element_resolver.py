@@ -303,7 +303,7 @@ async def resolve_with_vlm(description: str, mcp_client) -> dict | None:
         )
 
         response = await call_llm_with_vision(
-            model_key="qwen3_vl",
+            model_key="deepseek_v4_flash",
             prompt=vlm_prompt,
             image=screenshot_b64,
             system_prompt=vlm_system,

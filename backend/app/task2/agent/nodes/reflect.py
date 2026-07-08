@@ -203,7 +203,7 @@ async def reflect_node(state: AgentState) -> dict:
 
     try:
         response = await call_llm(
-            model_key="glm_5_1",
+            model_key="deepseek_v4_flash",
             prompt=user_prompt,
             system_prompt=REFLECT_SYSTEM_PROMPT,
             temperature=0.3,

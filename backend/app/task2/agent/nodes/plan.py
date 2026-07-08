@@ -93,9 +93,9 @@ async def plan_node(state: AgentState) -> dict:
     logger.info("正在规划场景 '%s' (id=%s)，共 %d 个步骤", scenario_name, scenario_id, len(steps))
 
     try:
-        # 使用 GLM-5.1 处理需要推理的规划任务
+        # 使用 DeepSeek-V4-Flash 处理需要推理的规划任务
         response_text = await call_llm(
-            model_key="glm_5_1",
+            model_key="deepseek_v4_flash",
             prompt=user_prompt,
             system_prompt=system_prompt,
             temperature=0.2,  # 低温度以保证确定性规划

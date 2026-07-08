@@ -530,25 +530,26 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
                 # Capture page state after interactive actions
                 if tool_name in ("browser_click", "browser_type", "browser_navigate",
                                  "browser_select", "browser_hover", "browser_press"):
-                    page_state = await _capture_page_state(mcp_client, screenshots, idx)
-                    # 如果交互后快照为空，等待2秒后重新获取
-                    snap_content = page_state.get("snapshot", "")
-                    if snap_content and '```yaml\n\n```' in snap_content:
-                        child_logger.info("交互后快照为空（页面正在加载），等待2秒后重试")
-                        await asyncio.sleep(2)
-                        retry_snap = await asyncio.wait_for(
-                            mcp_client.call_tool_text("playwright", "browser_snapshot", {}),
-                            timeout=10,
-                        )
-                        page_state["snapshot"] = retry_snap
-                        # 重新提取 URL 和 title
-                        for line in retry_snap.split("\n"):
-                            if line.startswith("- Page URL:"):
-                                page_state["url"] = line.replace("- Page URL:", "").strip()
-                            elif line.startswith("- Page Title:"):
-                                page_state["title"] = line.replace("- Page Title:", "").strip()
-                    step_result["page_state"] = page_state
-                    current_page_state.update(page_state)
+                    if idx == len(plan) - 1:
+                        page_state = await _capture_page_state(mcp_client, screenshots, idx)
+                        # 如果交互后快照为空，等待2秒后重新获取
+                        snap_content = page_state.get("snapshot", "")
+                        if snap_content and '```yaml\n\n```' in snap_content:
+                            child_logger.info("交互后快照为空（页面正在加载），等待2秒后重试")
+                            await asyncio.sleep(2)
+                            retry_snap = await asyncio.wait_for(
+                                mcp_client.call_tool_text("playwright", "browser_snapshot", {}),
+                                timeout=10,
+                            )
+                            page_state["snapshot"] = retry_snap
+                            # 重新提取 URL 和 title
+                            for line in retry_snap.split("\n"):
+                                if line.startswith("- Page URL:"):
+                                    page_state["url"] = line.replace("- Page URL:", "").strip()
+                                elif line.startswith("- Page Title:"):
+                                    page_state["title"] = line.replace("- Page Title:", "").strip()
+                        step_result["page_state"] = page_state
+                        current_page_state.update(page_state)
 
                 if tool_name == "browser_snapshot":
                     # 如果快照返回空的 YAML（页面可能还在加载），等待2秒后重试
@@ -592,7 +593,7 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
                         child_logger.info("替代方式成功: %s", retry_tool)
 
                         # Capture page state after fallback action
-                        if retry_tool in ("browser_evaluate", "browser_press_key"):
+                        if retry_tool in ("browser_evaluate", "browser_press_key") and idx == len(plan) - 1:
                             page_state = await _capture_page_state(mcp_client, screenshots, idx)
                             step_result["page_state"] = page_state
                             current_page_state.update(page_state)
@@ -602,12 +603,13 @@ def _mcp_execute_process(plan_json: str, scenario_json: str, output_file: str, c
                         step_result["error"] = f"{str(exc)} (fallback also failed: {str(retry_exc)})"
                         step_result["error_category"] = _classify_error(step_result["error"])
 
-                try:
-                    page_state = await _capture_page_state(mcp_client, screenshots, idx)
-                    step_result["page_state"] = page_state
-                    current_page_state.update(page_state)
-                except Exception:
-                    pass
+                if idx == len(plan) - 1:
+                    try:
+                        page_state = await _capture_page_state(mcp_client, screenshots, idx)
+                        step_result["page_state"] = page_state
+                        current_page_state.update(page_state)
+                    except Exception:
+                        pass
 
             executed_steps.append(step_result)
 

@@ -34,10 +34,10 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # 配置常量
 # ============================================================================
-MAX_LOOP_STEPS = 16  # 观察-决策-执行循环最大步数（超出强制结束）
-# 12 太紧：复杂表单（开弹窗+填名称+搜模板+选模板+开项目下拉+选项目+提交）易在提交前耗尽。
+MAX_LOOP_STEPS = 24  # 观察-决策-执行循环最大步数（超出强制结束）
+# 16 太紧：登录占 2-3 步，多步场景 + ref 失效重试易在结束前耗尽。
 MAX_RETRIES = 1      # 验证失败后最大重试次数（减少总耗时）
-LOGIN_WAIT_SECONDS = 4  # 登录提交后等待时长
+LOGIN_WAIT_SECONDS = 8  # 登录提交后等待时长（SPA 路由跳转需要时间）
 SNAPSHOT_WAIT_SECONDS = 1  # 每次 snapshot 前等待（让页面稳定）
 # 单次调用超时：防止 LLM/MCP 调用挂起导致整个子进程空转到 900s 总超时被杀。
 # 命中超时即视为该步失败，循环继续或结束，而不是静默卡死几分钟。
@@ -69,6 +69,15 @@ def _child_worker(
     for k, v in build_child_env().items():
         os.environ[k] = v
 
+    # 子进程独立日志：写到 /tmp/agent_{execution_id}.log，便于调试 agent 行为
+    child_logger = logging.getLogger()
+    child_logger.setLevel(logging.INFO)
+    log_file = f"/tmp/agent_{execution_id}.log"
+    fh = logging.FileHandler(log_file, mode="w", encoding="utf-8")
+    fh.setFormatter(logging.Formatter("%(asctime)s [%(name)s] %(levelname)s: %(message)s"))
+    child_logger.addHandler(fh)
+    logger.info(f"子进程日志写入 {log_file}")
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
@@ -96,6 +105,44 @@ def _child_worker(
         os._exit(0)
 
 
+def _build_display_plan(scenario: dict) -> list[dict]:
+    """从场景步骤生成展示用 plan（前端 ExecutionTimeline 的 plan 节点）。
+
+    生产 agent 是反应式的（LLM 在 _agent_loop 中每步实时决策，不依赖此 plan），
+    这里仅把场景 steps + expectations 翻译成 Action 格式供前端展示。
+    Action 字段对齐 frontend/src/lib/types.ts 的 Action interface。
+    """
+    plan: list[dict] = []
+    for s in scenario.get("steps", []):
+        action_text = str(s.get("action", "")).strip()
+        target_text = str(s.get("target", "")).strip()
+        step_num = s.get("step", "?")
+        # 启发式映射：场景动作文本 → MCP 工具名（仅用于展示，不参与执行）
+        a = action_text.lower()
+        if any(k in a for k in ("点击", "click", "press", "按钮")):
+            tool = "browser_click"
+        elif any(k in a for k in ("输入", "填写", "type", "input")):
+            tool = "browser_type"
+        elif any(k in a for k in ("导航", "打开", "前往", "navigate", "go to")):
+            tool = "browser_navigate"
+        elif any(k in a for k in ("选择", "select", "下拉")):
+            tool = "browser_select_option"
+        elif any(k in a for k in ("拖", "drag")):
+            tool = "browser_drag"
+        elif any(k in a for k in ("悬停", "hover")):
+            tool = "browser_hover"
+        elif any(k in a for k in ("等待", "wait")):
+            tool = "browser_wait_for"
+        else:
+            tool = "browser_click"  # 默认猜测
+        plan.append({
+            "tool": tool,
+            "args": {"target": target_text} if target_text else {},
+            "description": f"步骤{step_num}: {action_text}" + (f"（目标：{target_text}）" if target_text else ""),
+        })
+    return plan
+
+
 async def _run_scenario(
     scenario_json: str,
     execution_id: str,
@@ -105,7 +152,7 @@ async def _run_scenario(
     """执行场景主流程（async 协程，在子进程的 loop 里跑）。
 
     返回 {final_result, failure_reason, executed_steps, screenshots,
-           verification_result, retry_count, reflection}
+           verification_result, retry_count, reflection, plan}
     """
     scenario = json.loads(scenario_json)
     base_url = config["base_url"]
@@ -113,6 +160,11 @@ async def _run_scenario(
     login_password = config["login_password"]
     screenshot_dir = Path(config["screenshot_dir"])
     screenshot_dir.mkdir(parents=True, exist_ok=True)
+
+    # 生成展示用 plan（前端 ExecutionTimeline 的 plan 节点）。
+    # 注意：生产 agent 是反应式的（LLM 在 _agent_loop 中每步实时决策），
+    # 不依赖此 plan 执行。这里仅把场景步骤翻译成 Action 格式供前端展示。
+    display_plan = _build_display_plan(scenario)
 
     from app.task2.agent.mcp_client import MCPClient
     mcp = MCPClient()
@@ -133,6 +185,7 @@ async def _run_scenario(
             "screenshots": [],
             "verification_result": {},
             "retry_count": 0,
+            "plan": display_plan,
         }
 
     # 2. 确定性登录（先检查是否已登录）
@@ -148,6 +201,7 @@ async def _run_scenario(
             "screenshots": [],
             "verification_result": {},
             "retry_count": 0,
+            "plan": display_plan,
         }
 
     # 3. 主循环：重试逻辑（验证失败 → 反思 → 重试）
@@ -184,6 +238,7 @@ async def _run_scenario(
                 "verification_result": verify_result,
                 "retry_count": retry,
                 "reflection": reflection,
+                "plan": display_plan,
             }
 
         # 验证失败
@@ -205,6 +260,7 @@ async def _run_scenario(
                 "verification_result": verify_result,
                 "retry_count": retry,
                 "reflection": reflection,
+                "plan": display_plan,
             }
 
     # 不会到这里
@@ -216,6 +272,7 @@ async def _run_scenario(
         "screenshots": [],
         "verification_result": {},
         "retry_count": 0,
+        "plan": display_plan,
     }
 
 
@@ -278,8 +335,16 @@ async def _ensure_logged_in(
         if err:
             return False, f"导航到应用首页失败: {txt[:200]}"
 
-        await asyncio.sleep(3)
-        snap, snap_err = await _snap()
+        # 等待页面渲染：最多重试 5 次 snapshot，每次间隔 2s。
+        # SPA 首次导航后 accessibility tree 可能延迟出现，空快照会导致 has_login_form
+        # 误判为 False，从而跳过登录进入空白的 _agent_loop（agent 看不到任何元素）。
+        snap, snap_err = "", True
+        for _snap_attempt in range(5):
+            await asyncio.sleep(2)
+            snap, snap_err = await _snap()
+            if not snap_err and snap and "[ref=" in snap:
+                break  # 快照有实际元素，可用
+            logger.info(f"等待页面渲染（attempt {_snap_attempt+1}），快照仍为空")
 
         if not snap_err and snap:
             # 检查当前 URL 和页面状态
@@ -290,12 +355,36 @@ async def _ensure_logged_in(
                     break
 
             # 已登录的判断：URL 不在 /login，且页面没有登录表单
+            # 登录表单判定更严：必须有 textbox + email/username 文本（不仅有 "Log in" 按钮，
+            # 因为有些 SPA 主页可能也有 Login 链接指向登录页）
             is_on_login = "/login" in current_url.lower()
-            has_login_form = "Log in" in snap or "Login" in snap or "textbox" in snap and "email" in snap.lower()
+            snap_lower = snap.lower()
+            has_login_form = (
+                "textbox" in snap_lower
+                and ("email" in snap_lower or "username" in snap_lower or "邮箱" in snap_lower)
+            )
+            # 关键：快照里没有 [ref= 元素（只有 yaml header）说明页面未渲染，
+            # 此时 has_login_form=False 是不可信的 — 不能据此判"已登录"。
+            # 应该走登录流程（_ensure_logged_in 会重新导航 + 渲染）。
+            has_rendered = "[ref=" in snap
+            # 调试日志：前 300 字看页面实际内容
+            logger.info(
+                f"登录状态检测: URL={current_url}, is_on_login={is_on_login}, "
+                f"has_login_form={has_login_form}, has_rendered={has_rendered}, "
+                f"snap_head={snap[:300]!r}"
+            )
 
-            if not is_on_login and not has_login_form:
+            if has_rendered and not is_on_login and not has_login_form:
                 logger.info(f"已在登录状态（URL={current_url}），跳过登录")
                 return True, ""
+            if not has_rendered:
+                logger.info(
+                    f"页面未渲染（无 [ref= 元素），不走已登录分支，继续到登录流程重新导航"
+                )
+            else:
+                logger.info(
+                    f"未登录状态（URL={current_url}, has_login_form={has_login_form}），需执行登录"
+                )
 
         # Step 2: 未登录 → 导航到 /login 并执行确定性登录
         login_url = f"{base_url}/login"
@@ -328,18 +417,21 @@ async def _ensure_logged_in(
         else:
             return False, f"登录页输入框未在 30s 内渲染（快照前300字: {snap[:300]})"
 
-        # 从快照中解析 eN 引用
-        # 快照格式：- textbox [ref=e10] 或 - textbox [active] [ref=e10]
+        # 从快照中解析 ref 引用
+        # 快照格式：- textbox [ref=e10]（旧）或 - textbox [ref=f1e10]（新）
+        # 兼容两种格式：纯 eN 与 f<digits>e<digits>
         email_ref = None
         password_ref = None
         login_btn_ref = None
+
+        ref_re = _re.compile(r'\[ref=([a-z]?\d*e\d+)\]')
 
         # 查找 email/username textbox
         for line in snap.split("\n"):
             line = line.strip()
             if not line.startswith("- "):
                 continue
-            ref_match = _re.search(r'\[ref=(e\d+)\]', line)
+            ref_match = ref_re.search(line)
             if not ref_match:
                 continue
             ref = ref_match.group(1)
@@ -367,7 +459,7 @@ async def _ensure_logged_in(
             for line in snap.split("\n"):
                 line = line.strip()
                 if "textbox" in line:
-                    m = _re.search(r'\[ref=(e\d+)\]', line)
+                    m = ref_re.search(line)
                     if m:
                         all_textbox_refs.append(m.group(1))
             if len(all_textbox_refs) >= 2:
@@ -378,7 +470,7 @@ async def _ensure_logged_in(
             for line in snap.split("\n"):
                 line = line.strip()
                 if "button" in line and ("submit" in line.lower() or "Log in" in line or "Login" in line):
-                    m = _re.search(r'\[ref=(e\d+)\]', line)
+                    m = ref_re.search(line)
                     if m:
                         login_btn_ref = m.group(1)
 
@@ -445,11 +537,17 @@ async def _ensure_logged_in(
         if snap_err:
             # snapshot 失败：无法确认登录状态，保守判失败，避免误进循环
             return False, f"登录后快照获取失败，无法确认登录状态: {snap[:120]}"
-        if "/login" in snap[:300]:
+        # 明确解析 Page URL 行，避免在快照正文里误搜到 /login 链接
+        current_url = ""
+        for line in snap.split("\n"):
+            if "Page URL:" in line:
+                current_url = line.replace("- Page URL:", "").strip()
+                break
+        if "/login" in current_url.lower():
             # 可能有错误提示
             if "Invalid" in snap or "invalid" in snap:
                 return False, "凭据被拒绝（Invalid username or password）"
-            return False, "登录后仍在 /login 页面"
+            return False, f"登录后仍在 /login 页面（URL={current_url}）"
 
         logger.info("登录成功")
         return True, ""
@@ -501,11 +599,9 @@ async def _agent_loop(
             logger.warning("快照失败 step=%d: %s", step_num, snap_txt[:150])
             snap_txt = "（快照获取失败）"
 
-        # 2. 截图
-        screenshot_name = f"{execution_id}_step{step_num}_{int(time.time())}.png"
-        screenshot_path = screenshot_dir / screenshot_name
-        await _take_screenshot_to_file(mcp, screenshot_path)
-        screenshots.append(screenshot_name)
+        # 2. 截图：每步动作后截一张，记录该步执行后的页面状态（前端 ExecutionTimeline 展示用）。
+        # 在步骤 5 执行动作之后捕获；此处先占位留空。
+        screenshot_name = ""
 
         # 3. LLM 决策下一个动作
         loop_hint = detect_loop(executed_steps)
@@ -514,31 +610,38 @@ async def _agent_loop(
         user_prompt = build_decide_prompt(
             scenario, executed_steps, snap_txt, reflection, loop_hint
         )
-        try:
-            llm_response = await asyncio.wait_for(
-                call_llm(
-                    model_key="glm_5_1",
-                    prompt=user_prompt,
-                    system_prompt=DECIDE_SYSTEM_PROMPT,
-                    temperature=0.2,
-                    max_tokens=2048,
-                    pipeline_stage="task2_agent_decide",
-                ),
-                timeout=LLM_CALL_TIMEOUT,
-            )
-        except asyncio.TimeoutError as exc:
-            logger.error("LLM 决策超时 step=%d（%ds）", step_num, LLM_CALL_TIMEOUT)
+        # LLM 决策：超时/异常时重试一次（90s × 2 给 LLM 充分响应时间），
+        # 避免单次网络抖动直接终结整个执行（之前 F8_S2 step=1 超时就丢掉全部场景）。
+        llm_response = None
+        last_err: Exception | None = None
+        for _decide_attempt in (1, 2):
+            try:
+                llm_response = await asyncio.wait_for(
+                    call_llm(
+                        model_key="deepseek_v4_flash",
+                        prompt=user_prompt,
+                        system_prompt=DECIDE_SYSTEM_PROMPT,
+                        temperature=0.2,
+                        max_tokens=4096,
+                        pipeline_stage="task2_agent_decide",
+                    ),
+                    timeout=LLM_CALL_TIMEOUT,
+                )
+                break
+            except asyncio.TimeoutError as exc:
+                last_err = exc
+                logger.warning("LLM 决策超时 step=%d attempt=%d（%ds）",
+                               step_num, _decide_attempt, LLM_CALL_TIMEOUT)
+            except Exception as exc:
+                last_err = exc
+                logger.error("LLM 决策失败 step=%d attempt=%d: %s",
+                             step_num, _decide_attempt, exc)
+        if llm_response is None:
+            logger.error("LLM 决策重试耗尽 step=%d: %s", step_num, last_err)
             return {
                 "executed_steps": executed_steps,
                 "screenshots": screenshots,
-                "reason": f"LLM 决策超时（step {step_num}）",
-            }
-        except Exception as exc:
-            logger.error("LLM 决策失败 step=%d: %s", step_num, exc)
-            return {
-                "executed_steps": executed_steps,
-                "screenshots": screenshots,
-                "reason": f"LLM 决策失败: {exc}",
+                "reason": f"LLM 决策超时/失败（step {step_num}，重试 2 次均失败）",
             }
 
         decision = parse_decision(llm_response)
@@ -559,13 +662,18 @@ async def _agent_loop(
 
         # 4. 如果 LLM 说完成了，结束循环
         if done:
+            # 末步：截一张最终状态图
+            final_screenshot = f"{execution_id}_step{step_num}_final_{int(time.time())}.png"
+            final_path = screenshot_dir / final_screenshot
+            await _take_screenshot_to_file(mcp, final_path)
+            screenshots.append(final_screenshot)
             executed_steps.append({
                 "step_number": step_num,
                 "tool": "",
                 "reasoning": reasoning,
                 "success": True,
                 "done": True,
-                "screenshot": screenshot_name,
+                "screenshot": final_screenshot,
             })
             _send_event(pipe_send, {
                 "type": "step_progress",
@@ -573,7 +681,7 @@ async def _agent_loop(
                 "total_steps": step_num,
                 "action_tool": "done",
                 "reasoning": reasoning,
-                "screenshot": screenshot_name,
+                "screenshot": final_screenshot,
                 "success": True,
             })
             return {
@@ -593,13 +701,37 @@ async def _agent_loop(
             result_txt, is_error = f"动作超时（{tool}）", True
         success = not is_error
 
+        # Stale-ref 检测：MCP 报告 ref 不在当前快照里 — 追加明确提示让 LLM 重选
+        if is_error and ("Ref" in result_txt or "not found" in result_txt.lower()):
+            stale_hint = (
+                "｜⚠️ 上次用的 ref 已失效（页面已变化），下一轮请从最新快照里"
+                "重新选一个 ref（不要复用旧 ref）"
+            )
+            logger.info("Step %d 检测到 stale ref，注入重选提示", step_num)
+            result_txt_with_hint = result_txt + stale_hint
+        else:
+            result_txt_with_hint = result_txt
+
+        # 5.1 动作后截图：记录该步执行后的页面状态（前端 ExecutionTimeline 每步展示用）。
+        # 仅对会产生可见页面变化的最常见交互动作截图；wait_for/press_key 等也截，
+        # 因为它们可能触发 SPA 路由或渲染变化。失败动作也截，便于排查失败原因。
+        step_screenshot_name = f"{execution_id}_step{step_num}_{int(time.time())}.png"
+        step_shot_path = screenshot_dir / step_screenshot_name
+        try:
+            await _take_screenshot_to_file(mcp, step_shot_path)
+            screenshots.append(step_screenshot_name)
+            screenshot_name = step_screenshot_name
+        except Exception as shot_exc:
+            logger.warning("Step %d 截图失败: %s", step_num, shot_exc)
+            # 截图失败不阻塞执行流程；screenshot_name 保持空串
+
         executed_steps.append({
             "step_number": step_num,
             "tool": tool,
             "args": args,
             "reasoning": reasoning,
             "success": success,
-            "error": result_txt[:300] if is_error else "",
+            "error": result_txt_with_hint[:400] if is_error else "",
             "result": result_txt[:300] if not is_error else "",
             "screenshot": screenshot_name,
         })
@@ -642,7 +774,7 @@ async def _verify(
     Returns:
         {passed: bool, confidence: float, reason: str, verification_type: str}
     """
-    from app.llm.router import call_llm, call_llm_with_vision
+    from app.llm.router import call_llm
 
     expectations = scenario.get("expectations", [])
     if not expectations:
@@ -676,23 +808,21 @@ async def _verify(
     if snap_err:
         final_snap = ""
 
-    # 文本验证
-    text_expectations = [e for e in expectations if e.get("type") in {"page_content", "url_change", "element_state"}]
-    if text_expectations:
-        exp_text = "\n".join([f"- {e.get('description', '')}" for e in text_expectations])
-        # 用 trim_snapshot 而非 final_snap[:4000]：后者硬截断前 4000 字符，
-        # Board 页面侧边栏很长，主体列表会被截掉，导致验证 LLM 看不到关键证据、
-        # 把成功的执行误判为失败。trim_snapshot 优先保留可操作元素 + 提高上限。
-        from app.task2.agent.agent_loop import trim_snapshot
-        verify_snap = trim_snapshot(final_snap) if final_snap else "（无快照）"
-        # 场景步骤目标：让验证 LLM 综合判断"预期是否与场景目标一致"，
-        # 而非机械比对某个中间态预期。某些场景的 visual_match 预期描述的是中间态
-        # （如"导出前的菜单状态"），但 agent 按步骤完整执行后状态已推进到终态——
-        # 此时若只看预期会误判失败。给出步骤目标让 LLM 识别这种矛盾。
-        steps_text = "\n".join(
-            f"{i+1}. {s.get('action','')}" for i, s in enumerate(scenario.get("steps", []))
-        )
-        verify_prompt = f"""你是验证专家。场景执行完毕，检查最终页面是否符合预期。
+    # 文本验证：所有预期都走 LLM 文本验证（Task 3 仅 LLM 文本验证策略）
+    exp_text = "\n".join([f"- {e.get('description', '')}" for e in expectations])
+    # 用 trim_snapshot 而非 final_snap[:4000]：后者硬截断前 4000 字符，
+    # Board 页面侧边栏很长，主体列表会被截掉，导致验证 LLM 看不到关键证据、
+    # 把成功的执行误判为失败。trim_snapshot 优先保留可操作元素 + 提高上限。
+    from app.task2.agent.agent_loop import trim_snapshot
+    verify_snap = trim_snapshot(final_snap) if final_snap else "（无快照）"
+    # 场景步骤目标：让验证 LLM 综合判断"预期是否与场景目标一致"，
+    # 而非机械比对某个中间态预期。某些场景的 visual_match 预期描述的是中间态
+    # （如"导出前的菜单状态"），但 agent 按步骤完整执行后状态已推进到终态——
+    # 此时若只看预期会误判失败。给出步骤目标让 LLM 识别这种矛盾。
+    steps_text = "\n".join(
+        f"{i+1}. {s.get('action','')}" for i, s in enumerate(scenario.get("steps", []))
+    )
+    verify_prompt = f"""你是验证专家。场景执行完毕，检查最终页面是否符合预期。
 
 ## 场景目标（步骤）
 {steps_text}
@@ -714,84 +844,41 @@ async def _verify(
 
 只返回 JSON：{{"passed": true/false, "reason": "原因（中文）", "confidence": 0-1}}
 """
-        try:
-            resp = await asyncio.wait_for(
-                call_llm(
-                    model_key="glm_5_1",
-                    prompt=verify_prompt,
-                    system_prompt="你是验证专家，严格检查页面状态。",
-                    temperature=0.1,
-                    max_tokens=2048,
-                    pipeline_stage="task2_verify_text",
-                ),
-                timeout=LLM_CALL_TIMEOUT,
-            )
-            from app.llm.json_parser import parse_llm_json
-            vdata = parse_llm_json(resp)
-            if isinstance(vdata, dict) and "passed" in vdata:
-                return {
-                    "passed": bool(vdata["passed"]),
-                    "confidence": float(vdata.get("confidence", 0.7)),
-                    "reason": vdata.get("reason", ""),
-                    "verification_type": "text",
-                }
-        except Exception as exc:
-            logger.warning("文本验证 LLM 失败: %s", exc)
-
-    # 视觉验证（如果有 visual_match 预期且有截图）
-    visual_exp = [e for e in expectations if e.get("type") == "visual_match"]
-    if visual_exp and screenshots:
-        last_screenshot = screenshot_dir / screenshots[-1]
-        if last_screenshot.exists():
-            try:
-                with open(last_screenshot, "rb") as f:
-                    img_b64 = base64.b64encode(f.read()).decode()
-                exp_desc = visual_exp[0].get("description", "页面应与参考截图视觉一致")
-                steps_text = "\n".join(
-                    f"{i+1}. {s.get('action','')}" for i, s in enumerate(scenario.get("steps", []))
-                )
-                visual_prompt = f"""你是视觉验证专家。场景执行完毕，判断最终截图是否符合预期。
-
-## 场景目标（需要完成的步骤）
-{steps_text}
-
-## 预期结果描述
-{exp_desc}
-
-## 执行的动作（最后3步）
-{json.dumps(executed_steps[-3:], ensure_ascii=False)}
-
-判断要点：
-1. 主要看截图是否反映了场景目标达成后的合理终态。
-2. 预期描述的是"操作前的中间态"时（如"导出前的菜单状态"），若 agent 已正确完成
-   全部步骤并推进到合理终态，应判 passed=true（预期描述与场景目标矛盾时以目标为准）。
-3. 只有当截图明显缺少场景目标所需的结果（如该出现的元素没出现、页面错误）才判 false。
-
-只返回 JSON：{{"passed": true/false, "reason": "原因（中文）", "confidence": 0-1}}
-"""
-                resp = await asyncio.wait_for(
-                    call_llm_with_vision(
-                        model_key="qwen3_vl",
-                        prompt=visual_prompt,
-                        image=img_b64,
-                        pipeline_stage="task2_verify_visual",
-                    ),
-                    timeout=LLM_CALL_TIMEOUT,
-                )
-                from app.llm.json_parser import parse_llm_json
-                vdata = parse_llm_json(resp or "")
-                if isinstance(vdata, dict) and "passed" in vdata:
-                    return {
-                        "passed": bool(vdata["passed"]),
-                        "confidence": float(vdata.get("confidence", 0.6)),
-                        "reason": vdata.get("reason", ""),
-                        "verification_type": "visual",
-                    }
-            except Exception as exc:
-                logger.warning("视觉验证失败: %s", exc)
+    try:
+        resp = await asyncio.wait_for(
+            call_llm(
+                model_key="deepseek_v4_flash",
+                prompt=verify_prompt,
+                system_prompt="你是验证专家，严格检查页面状态。",
+                temperature=0.1,
+                max_tokens=4096,
+                pipeline_stage="task2_verify_text",
+            ),
+            timeout=LLM_CALL_TIMEOUT,
+        )
+        from app.llm.json_parser import parse_llm_json
+        vdata = parse_llm_json(resp)
+        if isinstance(vdata, dict) and "passed" in vdata:
+            return {
+                "passed": bool(vdata["passed"]),
+                "confidence": float(vdata.get("confidence", 0.7)),
+                "reason": vdata.get("reason", ""),
+                "verification_type": "text",
+            }
+    except Exception as exc:
+        logger.warning("文本验证 LLM 失败: %s", exc)
 
     # 回退：LLM 验证不可用（网络/限流等）时，基于执行步骤是否成功启发式判断，
     # 避免因瞬时 LLM 故障把成功的执行误判为失败。
+    # 注意：executed_steps 为空时不能判通过——agent 没执行任何业务动作
+    # （通常是 LLM 决策全超时/失败），场景目标根本没有被尝试。
+    if not executed_steps:
+        return {
+            "passed": False,
+            "confidence": 0.7,
+            "reason": "LLM验证不可用，且 agent 0 步执行（场景未实际推进）",
+            "verification_type": "fallback",
+        }
     has_major_error = any(
         not s.get("success") and s.get("tool") in {"browser_navigate", "browser_type", "browser_click"}
         for s in executed_steps
@@ -864,7 +951,7 @@ async def _reflect(
     try:
         reflection = await asyncio.wait_for(
             call_llm(
-                model_key="glm_5_1",
+                model_key="deepseek_v4_flash",
                 prompt=reflect_prompt,
                 system_prompt="你是测试反思专家，简明扼要。",
                 temperature=0.3,
@@ -1026,7 +1113,8 @@ async def run_agent_for_scenario(
 
     Path(result_file).unlink(missing_ok=True)
 
-    # 兼容旧格式：添加 plan 字段（前端需要）
-    result["plan"] = []
+    # 子进程返回的 result 包含 plan 字段（display plan，供前端展示）；
+    # 若子进程未提供（旧版本兼容），fallback 到空列表。
+    result.setdefault("plan", [])
 
     return result

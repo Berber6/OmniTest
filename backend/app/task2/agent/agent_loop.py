@@ -99,11 +99,12 @@ DECIDE_USER_TEMPLATE = """\
 {loop_hint_section}{reflection_section}## 已执行的动作历史（最近{history_n}条）
 {history_text}
 
-## 当前页面（真实快照，元素带 eN 引用）
+## 当前页面（真实快照，元素带 ref 引用）
 {snapshot_text}
 
 ---
-根据当前页面快照，决定**下一个**动作。target 必须用上面快照里真实存在的 eN 引用。
+根据当前页面快照，决定**下一个**动作。target 必须用上面快照里真实存在的 ref 引用
+（形如 `e10` 或 `f1e10`，从快照里逐字复制）。
 如果场景目标已达成，返回 done=true。只返回单个 JSON 对象。"""
 
 
@@ -137,7 +138,8 @@ def trim_snapshot(snapshot_text: str, max_elements: int = 200, max_chars: int = 
             header_lines.append(stripped)
             continue
         # 保留带 ref 的元素行（保留原始缩进以传达层级关系）
-        if "[ref=e" in line:
+        # 兼容两种 ref 格式：旧 [ref=e10] 和新 [ref=f1e10]
+        if "[ref=" in line and re.search(r"\[ref=[a-z]?\d*e\d+\]", line):
             # 判断是否可操作：快照行形如 "- button \"Add card\" [ref=e232]"
             # 取 ref 前的 role 词
             role_part = stripped.lstrip("- ").split(" ", 1)[0].lower()
